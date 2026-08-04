@@ -1,0 +1,37 @@
+{
+  "name": "@hostcore/toolkit",
+  "version": "1.0.0",
+  "description": "Write, validate and build HostCore storefront templates.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./entry.server": "./src/entries/entry.server.tsx",
+    "./entry.client": "./src/entries/entry.client.tsx"
+  },
+  "bin": {
+    "hct": "./cli/index.ts"
+  },
+  "files": [
+    "src",
+    "cli",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "bunx tsc --noEmit",
+    "test": "bun test"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.4.10"
+  }
+}
