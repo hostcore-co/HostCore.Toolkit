@@ -1,11 +1,11 @@
-// The template data contract.
+// The data your template is rendered with.
 //
-// This is what a template is written against, so it is the shape the rest of
-// the platform has to produce. Keep in sync with:
-//   - HostCore.Backend, internal/storefront/storefront.go (the producer)
-//   - packages/engine/src/types.ts (which relays these payloads verbatim)
+// Every page component receives one of the PageData shapes below, through
+// useHC(). This file is the whole contract — if it is not here, it is not
+// something a template can read.
 //
-// A change here is a breaking change for every published template.
+// It changes on major versions only, because a change here breaks every
+// published template.
 
 // ─── Store ─────────────────────────────────────────────────────────────────
 
@@ -221,9 +221,9 @@ export interface ServicePageData extends BasePageData {
 }
 
 /**
- * Standalone /domains page. Carries no extra engine-provided data
- * beyond the BasePageData (store + service_groups + meta) — the
- * page's content (TLD pricing, search UI, etc.) is template-defined.
+ * The /domains page. Reached only when the store sells domains — see
+ * `domains_enabled`, which is on every page so navigation can decide
+ * whether to link here.
  */
 export interface DomainsPageData extends BasePageData {
   page_type: 'domains'

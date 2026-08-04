@@ -25,9 +25,9 @@ export function HomePage() {
 }
 ```
 
-`src/types.ts` is the whole contract. It is mirrored by the platform's API and
-by the rendering engine, so a change to it is a breaking change for every
-published template — it moves on major versions only.
+`src/types.ts` is the whole contract — if a field is not in there, it is not
+something your template can read. It changes on major versions only, because a
+change to it breaks every published template.
 
 ## The commands
 
@@ -38,11 +38,10 @@ hct dev [dir]          run the template's local dev server
 hct keygen             generate a signing keypair
 ```
 
-`hct build` runs the policy check first, so a template that reaches for a host
-capability fails at build time rather than silently at render time. The engine
-runs your bundle in a realm with no filesystem, no network and no module
-system, so the check is there to tell you early rather than to be the thing
-standing between your template and the platform.
+`hct build` runs the policy check first, so a template that reaches for
+something it cannot have fails at build time rather than at render time. Your
+bundle runs with no filesystem, no network and no module system — the check is
+there to tell you early, not to be the only thing enforcing it.
 
 Vite and the build plugins are resolved from your template's own
 dependencies, not from here — you control which versions build your template.

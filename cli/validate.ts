@@ -54,8 +54,8 @@ export async function validateTemplate(
 
   for await (const relPath of glob.scan({ cwd: template.root, dot: false })) {
     if (SKIP_DIRECTORIES.some((dir) => relPath.includes(dir))) continue
-    // The dev harness never ships: it is the local mock engine, not
-    // template code, and it legitimately does things the sandbox forbids.
+    // The dev harness never ships. It stands in for the platform locally,
+    // so it legitimately does things a template may not.
     if (relPath.startsWith('dev/') || relPath.startsWith('mocks/')) continue
     if (relPath === 'vite.config.ts') continue
 

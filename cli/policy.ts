@@ -1,23 +1,22 @@
 /**
- * The platform's build policy for template code.
+ * What a template is allowed to contain.
  *
- * A template is source we compile and then execute on our own
- * infrastructure, so the useful place to say no is here, at build time,
- * where a rejection is a failed build the author can read — rather than
- * at render time, where it is an outage for a store.
+ * Your template is compiled and then run on shared infrastructure, so these
+ * limits are checked at build time, where a rejection is a build error you
+ * can read and fix. The alternative is finding out at render time, which is
+ * a broken storefront.
  *
- * These lists are owned by the platform. A template's own
- * `allowedPackages` may only narrow them, never widen them: a template
- * cannot grant itself a dependency by editing its own manifest.
+ * Your template's own `allowedPackages` may narrow these lists but never
+ * widen them — a template cannot grant itself a dependency.
  */
 
 /**
  * Packages a template may depend on.
  *
- * Anything reaching the filesystem, the network, a child process or the
- * module system is absent by design. Adding to this list means agreeing
- * to run that package's code inside the render sandbox for every store
- * that uses it, so entries need a reason beyond convenience.
+ * Anything that reaches the filesystem, the network, a child process or the
+ * module system is absent by design — none of it would work at render time
+ * anyway. If you need something that is not here, ask rather than vendor it:
+ * a copy inside your template fails the source scan for the same reasons.
  */
 export const PLATFORM_ALLOWED_PACKAGES: readonly string[] = [
   '@hostcore/toolkit',
@@ -51,9 +50,9 @@ export const PLATFORM_ALLOWED_DEV_PACKAGES: readonly string[] = [
 /**
  * Module specifiers a template may not import.
  *
- * The render worker already strips these capabilities, so an import
- * would fail at runtime. Failing the build instead turns a production
- * incident into a build error with a file and line.
+ * None of these exist where your template runs, so an import would fail at
+ * render time. Failing the build instead turns a broken storefront into a
+ * build error with a file and a line.
  */
 export const BANNED_IMPORT_PREFIXES: readonly string[] = [
   'node:',

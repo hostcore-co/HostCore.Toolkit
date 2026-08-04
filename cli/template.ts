@@ -38,9 +38,9 @@ export class TemplateError extends Error {
 /**
  * Reads and checks a template's metadata.
  *
- * The id and version are validated to exactly the shape the engine
- * accepts, so a template that would be unloadable in production fails
- * here instead of at first request.
+ * The id and version are checked against exactly what the platform will
+ * accept, so a template that could never be loaded fails here rather than
+ * on the first request to a storefront.
  */
 export async function loadTemplate(root: string): Promise<LoadedTemplate> {
   const manifest = await readJson<TemplateManifest>(

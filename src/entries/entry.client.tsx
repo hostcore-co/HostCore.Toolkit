@@ -1,7 +1,8 @@
-// LOCKED FILE — Do not modify.
+// LOCKED FILE — a copy of this in your template is ignored; `hct build`
+// always uses this one.
 //
-// Hydrates the SSR'd HTML on the client using the data injected
-// into window.__HC__ by the engine's HTML shell.
+// Hydrates the server-rendered HTML in the browser, using the same page
+// data the server rendered it with.
 import { hydrateRoot } from 'react-dom/client'
 import { HCContext } from '../hooks'
 // @ts-ignore — resolved by Vite alias '@template/App' at build time

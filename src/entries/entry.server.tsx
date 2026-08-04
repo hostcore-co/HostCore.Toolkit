@@ -1,9 +1,8 @@
-// LOCKED FILE — Do not modify. Build pipeline overwrites any
-// template-supplied version with this file.
+// LOCKED FILE — a copy of this in your template is ignored; `hct build`
+// always uses this one.
 //
-// This is the SSR entry called by the engine's worker thread for
-// every request. It is bundled into entry.server.cjs which exports
-// a single `render(data)` function.
+// The server-side entry point. Your App is rendered through it once per
+// request, and the result is the HTML a visitor receives.
 import { renderToString } from 'react-dom/server'
 import { HCContext } from '../hooks'
 import type { PageData } from '../types'
@@ -11,9 +10,9 @@ import type { PageData } from '../types'
 import { App } from '@template/App'
 
 /**
- * Called by the engine worker for each SSR request. `data` is a
- * plain JSON object matching PageData and includes store +
- * service_groups, which we lift onto the context for convenience.
+ * Renders one page. `data` is plain JSON matching PageData; `store` and
+ * `service_groups` are lifted onto the context so useStore() and
+ * useServiceGroups() can reach them without digging through `data`.
  */
 export function render(data: PageData): string {
   return renderToString(

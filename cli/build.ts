@@ -7,7 +7,7 @@ import { digest, signManifest, type BundleManifest } from './manifest'
 import type { LoadedTemplate } from './template'
 import { formatFindings, validateTemplate } from './validate'
 
-/** Prefix the engine serves a built-in template's own assets from. */
+/** Where a --local-paths build addresses its own assets. */
 export const ENGINE_ASSET_PREFIX = '/_hc/assets/'
 
 export interface BuildOptions {
@@ -19,11 +19,10 @@ export interface BuildOptions {
    */
   cdnBaseUrl?: string
   /**
-   * Build for a template the engine serves itself.
+   * Address assets at a platform-local path rather than a CDN.
    *
-   * Built-in templates ship inside the engine image, so their assets are
-   * addressed at an engine-local path rather than on a CDN — there is no
-   * upload step and nothing to point them at.
+   * There is no upload step and no CDN URL to supply, which is what makes
+   * a local build and preview possible.
    */
   localPaths?: boolean
   /** Raw base64 ed25519 key. Omitted produces an unsigned build. */
@@ -47,16 +46,16 @@ export class BuildError extends Error {
 /**
  * Builds a template into the two artefacts the platform serves.
  *
- *   server/entry.server.cjs — loaded by the engine's render workers.
- *     Everything is inlined, because the sandbox has no module loader:
- *     a bundle that still contains a require() fails at render time.
+ *   server/entry.server.cjs — rendered on the server. Every dependency is
+ *     inlined, because the sandbox it runs in has no module loader: a
+ *     bundle that still contains a require() fails at render time.
  *
- *   client/*.js + client/*.css — served to browsers from the CDN and
- *     referenced by the manifest.
+ *   client/*.js + client/*.css — sent to the browser, and named in the
+ *     manifest.
  *
- * Validation runs first and a failure stops the build. The point of the
- * policy is that unvetted code never reaches a bundle, so building it
- * "just to see" would defeat it.
+ * Validation runs first and a failure stops the build. The policy exists so
+ * that unvetted code never reaches a bundle, so building anyway "just to
+ * see" would defeat it.
  */
 export async function buildTemplate(
   template: LoadedTemplate,
@@ -147,8 +146,8 @@ async function serverConfig(
       emptyOutDir: true,
       ssr: true,
       minify: false,
-      // Keep CSS out of the SSR bundle — the client build emits it, and
-      // the engine links it from the CDN.
+      // Keep CSS out of the SSR bundle. The client build emits it, and the
+      // rendered page links it rather than inlining it.
       cssCodeSplit: false,
       lib: {
         entry: entryPath(template.root, 'entry.server'),
@@ -187,9 +186,9 @@ async function clientConfig(
 }
 
 /**
- * The SDK's entrypoints are locked files: the build always uses the
- * SDK's copies, never a template-supplied override, so a template
- * cannot replace the code that wraps its App in the engine's context.
+ * The entry points are locked: the build always uses the toolkit's copies,
+ * never a template's own, so the code that wraps your App and reads the
+ * page data is the same in every template.
  */
 function entryPath(root: string, entry: 'entry.server' | 'entry.client'): string {
   const require = createRequire(join(root, 'package.json'))
@@ -268,7 +267,7 @@ async function writeManifest(
   } else {
     if (!options.cdnBaseUrl) {
       throw new BuildError(
-        'a build for object storage needs a CDN base URL; pass --local-paths for a template the engine serves itself',
+        'a build for object storage needs a CDN base URL; pass --local-paths to address assets locally',
       )
     }
     base = `${options.cdnBaseUrl.replace(/\/$/, '')}/templates/${template.manifest.id}/${template.manifest.version}/client`

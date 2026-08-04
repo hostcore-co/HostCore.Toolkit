@@ -1,12 +1,12 @@
 import { createHash, createPrivateKey, sign } from 'node:crypto'
 
 /**
- * Build-side counterpart to packages/engine/src/bundles/integrity.ts.
+ * The manifest that travels with a build: what each artefact is, and a
+ * digest of its bytes.
  *
- * The two files must agree exactly on the digest format and on what the
- * signature covers — they are the producer and consumer of the same
- * trust anchor. The engine's tests cover verification; these functions
- * cover production.
+ * The platform re-checks every digest before it will run a bundle, so a
+ * manifest that disagrees with the files beside it is refused rather than
+ * rendered.
  */
 
 export interface BundleManifest {
@@ -33,8 +33,9 @@ export function digest(bytes: Uint8Array): string {
 }
 
 /**
- * Deterministic JSON with sorted keys — must match the engine's
- * canonicalJson, or nothing will verify.
+ * Deterministic JSON with sorted keys. The signature covers these exact
+ * bytes, so the ordering is part of the format rather than a formatting
+ * preference.
  */
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value)
@@ -52,11 +53,11 @@ export function signingPayload(manifest: BundleManifest): string {
 }
 
 /**
- * Signs a manifest with the pipeline's ed25519 key.
+ * Signs a manifest with an ed25519 key.
  *
  * `privateKeyBase64` is the raw 32-byte key as printed by `hct keygen`.
- * It is the only secret in the build, and it is what stops anyone with
- * write access to the bucket from pointing a store at their own bundle.
+ * The signature is what proves a build came from a trusted pipeline
+ * rather than from anyone who could write to where builds are stored.
  */
 export function signManifest(
   manifest: BundleManifest,

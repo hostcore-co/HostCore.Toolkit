@@ -8,10 +8,10 @@ import { formatFindings, validateTemplate } from './validate'
 /**
  * hct — the HostCore template toolchain.
  *
- * The build pipeline is the platform's control point over template
- * code: it decides what a template may depend on, refuses anything that
- * reaches for a host capability, and signs the result so the engine can
- * tell a real build from bytes that merely appeared in the bucket.
+ * Turns a template into the bundle the platform renders. The build checks
+ * what your template depends on and what it reaches for before it compiles
+ * anything, so a template that would be refused at render time fails here
+ * instead, with a file and a line.
  *
  *   hct validate            check a template against the build policy
  *   hct build               validate, build, and emit a signed manifest
@@ -28,10 +28,9 @@ Usage:
   hct keygen
 
 Options:
-  --local-paths        Build a template the engine serves itself. Its assets
-                       are addressed at an engine-local path, so no CDN is
-                       involved and $CDN_BASE_URL is not needed. This is how
-                       the built-in templates are built.
+  --local-paths        Address assets at a platform-local path instead of a
+                       CDN, so no $CDN_BASE_URL is needed. Use it to build and
+                       preview locally.
   --out <dir>          Output directory (default: <dir>/dist)
   --sign <base64-key>  Raw base64 ed25519 private key.
                        Defaults to $TEMPLATE_SIGNING_PRIVATE_KEY.
@@ -97,7 +96,7 @@ async function buildCommand(
 
   if (!localPaths && !cdnBaseUrl) {
     process.stderr.write(
-      'build needs $CDN_BASE_URL, or --local-paths for a template the engine serves itself\n',
+      'build needs $CDN_BASE_URL, or --local-paths to address assets locally\n',
     )
     return 1
   }
@@ -122,8 +121,8 @@ async function buildCommand(
       `  server:    ${manifest.integrity.server_bundle}`,
       `  client:    ${manifest.cdn_paths.client_js}`,
       `  css:       ${manifest.cdn_paths.css}`,
-      `  assets:    ${localPaths ? 'served by the engine' : 'published to the CDN'}`,
-      `  signature: ${manifest.signature ? 'signed' : localPaths ? 'unsigned — built-in templates are trusted via the image' : 'UNSIGNED — the engine will reject this in production'}`,
+      `  assets:    ${localPaths ? 'addressed locally' : 'published to the CDN'}`,
+      `  signature: ${manifest.signature ? 'signed' : localPaths ? 'unsigned — local build' : 'UNSIGNED — a published template needs a signature'}`,
       '',
     ].join('\n'),
   )
@@ -132,9 +131,9 @@ async function buildCommand(
 }
 
 /**
- * Delegates to the template's own Vite config, which mounts the dev
- * harness in dev/ against the fixtures in mocks/. That harness stands in
- * for the engine, so a template author never needs one running.
+ * Runs your template's own Vite config, which serves the dev harness in
+ * dev/ against the fixtures in mocks/. Nothing else has to be running —
+ * the harness supplies the page data the platform would.
  */
 async function devCommand(root: string): Promise<number> {
   const proc = Bun.spawn(['bunx', 'vite'], {
@@ -147,8 +146,8 @@ async function devCommand(root: string): Promise<number> {
 function keygenCommand(): number {
   const { publicKey, privateKey } = generateKeyPairSync('ed25519')
 
-  // Raw 32-byte keys: the last 32 bytes of the DER encodings. Both the
-  // engine and the signer expect this form.
+  // Raw 32-byte keys: the last 32 bytes of the DER encodings, which is the
+  // form --sign and the verifier both expect.
   const pub = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32)
   const priv = privateKey.export({ format: 'der', type: 'pkcs8' }).subarray(-32)
 
@@ -159,9 +158,9 @@ function keygenCommand(): number {
       `TEMPLATE_SIGNING_PRIVATE_KEY=${priv.toString('base64')}`,
       `TEMPLATE_SIGNING_PUBLIC_KEY=${pub.toString('base64')}`,
       '',
-      'Give the private key to the build pipeline only. The public key goes',
-      'to the engine, which uses it to reject any manifest the pipeline did',
-      'not produce.',
+      'The private key belongs to whatever builds your templates, and',
+      'nowhere else. The public key is what verifies a build was produced',
+      'with it.',
       '',
     ].join('\n'),
   )
