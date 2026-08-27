@@ -75,6 +75,13 @@ export interface Service {
   image: string
   type: ServiceType
   marketing: Marketing
+  /**
+   * True when the service has exactly one orderable plan. A plan listing
+   * for it would be a page with one card, so link it straight to
+   * `/checkout/{slug}` instead of `/{group}/{slug}` — the engine redirects
+   * its service page there anyway.
+   */
+  single_plan: boolean
 }
 
 /**
