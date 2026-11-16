@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
-import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { appendFile, cp, mkdir, readdir, readFile, rm, symlink, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { CheckReport } from '../check'
+import type { CheckReport, CheckResult } from '../check'
 import { parseBytes } from '../check'
 import { hct } from './host'
 
@@ -148,5 +149,89 @@ export default function Group({ data }: PageProps<'catalog.group'>) {
     expect(parseBytes('250kb')).toBe(256000)
     expect(parseBytes('1.5MB')).toBe(1572864)
     expect(parseBytes('a lot')).toBeNull()
+  })
+})
+
+describe('hct check --dist verifies the build before rendering it', () => {
+  const pristine = join(TMP, 'verify-pristine')
+  let copies = 0
+
+  beforeAll(async () => {
+    const built = await hct(['build', 'examples/basic', '--local-paths', '--out', pristine, '--runtime', RUNTIME])
+    if (built.code !== 0) throw new Error(built.stderr)
+  }, 60_000)
+
+  async function copy(): Promise<{ dir: string; manifest: Record<string, any> }> {
+    const dir = join(TMP, `verify-${copies++}`)
+    await cp(pristine, dir, { recursive: true })
+    return { dir, manifest: JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf8')) }
+  }
+
+  async function check(dir: string): Promise<{ code: number; report: CheckReport; human: string }> {
+    const json = await hct(['check', '--dist', dir, '--runtime', RUNTIME, '--json'])
+    const human = await hct(['check', '--dist', dir, '--runtime', RUNTIME])
+    expect(human.code).toBe(json.code)
+    return { code: json.code, report: parse(json.stdout), human: human.stdout }
+  }
+
+  function problem(error: string): CheckResult {
+    return { page: '', fixture: '', kind: 'build', variant: '', ok: false, html_sha256: '', bytes: 0, error }
+  }
+
+  it('reports a changed file with its listed and found digest and size, and renders nothing', async () => {
+    const { dir, manifest } = await copy()
+    await appendFile(join(dir, manifest.entry.server), '\n')
+    const listed = manifest.files[manifest.entry.server]
+    const { code, report, human } = await check(dir)
+    expect(code).toBe(1)
+    expect(Object.keys(report)).toEqual(['build_id', 'contract', 'protocol', 'ok', 'results', 'sizes'])
+    expect(report).toMatchObject({ build_id: manifest.build_id, contract: '2026-11', protocol: 2, ok: false, sizes: { server: 0, client_js: 0, css: 0 } })
+    expect(report.results).toHaveLength(1)
+    expect(report.results[0]!.error).toMatch(
+      new RegExp(`^HC_BUILD_FILES: server/entry\\.server\\.cjs does not match manifest\\.json: listed ${listed.integrity.replace(/[+/=]/g, '\\$&')} \\(${listed.bytes} bytes\\), found sha256-\\S+ \\(${listed.bytes + 1} bytes\\)$`),
+    )
+    expect(human).toContain(`  ✗ ${report.results[0]!.error}\n`)
+    expect(human).toContain('✗ the build failed 1 check(s) and was not rendered')
+  })
+
+  it('reports a missing file, an unlisted file and a manifest path outside the build', async () => {
+    const { dir, manifest } = await copy()
+    await unlink(join(dir, manifest.entry.css))
+    await writeFile(join(dir, 'client', 'extra.js'), 'export {}\n')
+    manifest.files['../outside.js'] = { integrity: 'sha256-AAAA', bytes: 1 }
+    await writeFile(join(dir, 'manifest.json'), JSON.stringify(manifest))
+    const { code, report } = await check(dir)
+    expect(code).toBe(1)
+    expect(report.ok).toBe(false)
+    expect(report.results).toEqual([
+      problem(`HC_BUILD_FILES: ${manifest.entry.css} is listed in manifest.json but missing from the build`),
+      problem('HC_BUILD_FILES: manifest.json lists "../outside.js", which is not a path inside the build'),
+      problem('HC_BUILD_FILES: client/extra.js is in the build but not listed in manifest.json'),
+    ])
+  })
+
+  it('reports an entry that is not one of the listed files, and a link in the build', async () => {
+    const { dir, manifest } = await copy()
+    manifest.entry.client_js = 'client/elsewhere.js'
+    await writeFile(join(dir, 'manifest.json'), JSON.stringify(manifest))
+    await symlink(join(dir, manifest.entry.server), join(dir, 'server', 'linked.cjs'))
+    const { report } = await check(dir)
+    expect(report.results.map((r) => r.error)).toEqual([
+      'HC_BUILD_FILES: server/linked.cjs is in the build but is not a regular file',
+      'HC_BUILD_FILES: manifest.json\'s entry.client_js "client/elsewhere.js" is not one of its files',
+    ])
+  })
+
+  it('fails a build whose stylesheet loads from another site, even when the manifest lists it', async () => {
+    const { dir, manifest } = await copy()
+    const css = 'main{background:url(https://images.example.com/hero.jpg)}'
+    await writeFile(join(dir, manifest.entry.css), css)
+    manifest.files[manifest.entry.css] = { integrity: `sha256-${createHash('sha256').update(css).digest('base64')}`, bytes: css.length }
+    await writeFile(join(dir, 'manifest.json'), JSON.stringify(manifest))
+    const { code, report } = await check(dir)
+    expect(code).toBe(1)
+    expect(report.results).toHaveLength(1)
+    expect(report.results[0]!.kind).toBe('build')
+    expect(report.results[0]!.error).toStartWith(`HC_STYLESHEET_EXTERNAL: ${manifest.entry.css}:1: url("https://images.example.com/hero.jpg") loads from another site.`)
   })
 })

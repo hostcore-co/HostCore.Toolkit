@@ -46,7 +46,14 @@ hct push --listing <id>    # upload it as a new version and get a preview link
   `--budget-server`, `--budget-client-js`, `--budget-css`). A budget is
   advice: only a failed render fails the check. `--json` prints a
   machine-readable report, and `--dist <dir>` checks a build you already
-  have.
+  have. Before it renders anything, it checks the build itself: every file
+  `manifest.json` lists must be there with the listed digest and size, with
+  no file it does not list, and the stylesheet may not load from another
+  site (below). A build that fails this is not rendered; in the `--json`
+  report each problem is a result with `"kind": "build"`, `"ok": false`,
+  empty `page`, `fixture` and `variant`, and an `error` that starts with
+  `HC_BUILD_FILES` or `HC_STYLESHEET_EXTERNAL`, and the report's `ok` is
+  `false`.
 - **`hct push [dir]`** builds the template, then uploads its source as a new
   version of your marketplace listing and prints the platform's checks and
   a preview link. Set `HOSTCORE_API_URL` and `HOSTCORE_TOKEN` in the

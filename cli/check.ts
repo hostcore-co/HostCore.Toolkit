@@ -5,12 +5,13 @@ import { join, relative, resolve, sep } from 'node:path'
 import { TOOLKIT_CONTRACT_DIR } from '../contract/src/generate'
 import { buildTemplate } from './build'
 import { buildFormat2 } from './build-v2'
-import type { ManifestV2 } from './manifest'
+import { digest, type ManifestV2 } from './manifest'
 import { buildRuntime, readRuntime, writeRuntime } from './runtime'
 import { loadBundleSource, loadLegacyBundle, type LoadedBundle } from './sandbox'
 import { LAYOUT_VARIANTS } from '../src/v2/server'
 import { isFormat2, loadTemplate } from './template'
 import { CommandError, quietStdout, stringFlag, type Flags } from './commands'
+import { scanBuiltStylesheets } from './validate'
 
 /**
  * hct check — renders a build against every contract fixture, the way the
@@ -21,11 +22,22 @@ import { CommandError, quietStdout, stringFlag, type Flags } from './commands'
  * and its layout once per variant. A format-1 build renders every contract
  * "1" fixture. Each render is reported with the sha256 of its HTML, so two
  * builds render the same when their results have the same keys and hashes.
+ *
+ * Before anything is rendered, the build itself is checked: a format-2
+ * build must hold exactly the files its manifest lists, each with the
+ * listed digest and size, and no build's stylesheet may load from another
+ * site. Each problem is a result of kind "build" (see CheckResult), and a
+ * build with any is not rendered at all.
  */
 
-export type CheckKind = 'document' | 'layout' | 'body' | 'legacy'
+/**
+ * `build` is a problem with the build itself rather than a render: its
+ * `page`, `fixture` and `variant` are "", and `error` starts with
+ * HC_BUILD_FILES or HC_STYLESHEET_EXTERNAL.
+ */
+export type CheckKind = 'document' | 'layout' | 'body' | 'legacy' | 'build'
 
-/** One render. `variant` is set only for kind "layout". */
+/** One render, or one problem with the build. `variant` is set only for kind "layout". */
 export interface CheckResult {
   page: string
   fixture: string
@@ -197,6 +209,72 @@ async function runtimeServerSource(source: RuntimeSource): Promise<{ id: string;
   return { id: built.json.runtime_id, server: new TextDecoder().decode(built.files['server.cjs']) }
 }
 
+/** A result for a problem with the build itself. */
+function buildProblem(error: string): CheckResult {
+  return { page: '', fixture: '', kind: 'build', variant: '', ok: false, html_sha256: '', bytes: 0, error }
+}
+
+/** A path as a manifest must write it: relative, with "/" separators, inside the build. */
+function isBuildPath(path: string): boolean {
+  return path !== '' && !path.startsWith('/') && !path.includes('\\') && path.split('/').every((part) => part !== '' && part !== '.' && part !== '..')
+}
+
+/**
+ * Compares a format-2 build with its manifest: every listed file is
+ * present with the listed digest and size, every file present is listed,
+ * and the entries are among the listed files. Returns one message per
+ * problem.
+ */
+export async function verifyBuildFiles(dist: string, manifest: ManifestV2): Promise<string[]> {
+  const problems: string[] = []
+  const listed = manifest.files && typeof manifest.files === 'object' ? manifest.files : {}
+  const present = new Set<string>()
+  for (const entry of await readdir(dist, { withFileTypes: true, recursive: true })) {
+    if (entry.isDirectory()) continue
+    const path = relative(dist, join(entry.parentPath, entry.name)).split(sep).join('/')
+    if (path === 'manifest.json') continue
+    if (!entry.isFile()) problems.push(`${path} is in the build but is not a regular file`)
+    else present.add(path)
+  }
+  for (const [path, file] of Object.entries(listed)) {
+    if (!isBuildPath(path)) {
+      problems.push(`manifest.json lists ${JSON.stringify(path)}, which is not a path inside the build`)
+      continue
+    }
+    if (!present.has(path)) {
+      problems.push(`${path} is listed in manifest.json but missing from the build`)
+      continue
+    }
+    const bytes = await readFile(join(dist, path))
+    const found = { integrity: digest(bytes), bytes: bytes.byteLength }
+    if (found.integrity !== file?.integrity || found.bytes !== file?.bytes) {
+      problems.push(
+        `${path} does not match manifest.json: listed ${String(file?.integrity)} (${String(file?.bytes)} bytes), found ${found.integrity} (${found.bytes} bytes)`,
+      )
+    }
+  }
+  for (const path of [...present].sort()) {
+    if (!Object.prototype.hasOwnProperty.call(listed, path)) problems.push(`${path} is in the build but not listed in manifest.json`)
+  }
+  const entry = manifest.entry ?? ({} as Partial<ManifestV2['entry']>)
+  for (const [name, path] of [
+    ['server', entry.server],
+    ['client_js', entry.client_js],
+    ['css', entry.css],
+  ] as const) {
+    if (name === 'css' && path === '') continue
+    if (typeof path !== 'string' || !Object.prototype.hasOwnProperty.call(listed, path)) {
+      problems.push(`manifest.json's entry.${name} ${JSON.stringify(path ?? null)} is not one of its files`)
+    }
+  }
+  return problems.map((p) => `HC_BUILD_FILES: ${p}`)
+}
+
+/** The stylesheet rule applied to every .css file of a build. */
+async function verifyStylesheets(dist: string): Promise<string[]> {
+  return (await scanBuiltStylesheets(dist)).map((f) => `HC_STYLESHEET_EXTERNAL: ${f.file}${f.line > 0 ? `:${f.line}` : ''}: ${f.message}`)
+}
+
 export interface DistCheck {
   report: CheckReport
   /** template_id@version from the build's manifest. */
@@ -217,6 +295,13 @@ export async function checkDist(distDir: string, runtime: RuntimeSource): Promis
   const label = `${manifest.template_id}@${manifest.version}`
 
   if (manifest.manifest_version === undefined) {
+    const problems = await verifyStylesheets(dist)
+    if (problems.length > 0) {
+      return {
+        label,
+        report: { build_id: '', contract: '1', protocol: 1, ok: false, results: problems.map(buildProblem), sizes: { server: 0, client_js: 0, css: 0 } },
+      }
+    }
     const fixtures = await readFixtures('1')
     const bundle = loadLegacyBundle(join(dist, 'server', 'entry.server.cjs'))
     const results = fixtures.map((fixture) =>
@@ -249,6 +334,21 @@ export async function checkDist(distDir: string, runtime: RuntimeSource): Promis
     throw new CheckError(`${join(dist, 'manifest.json')} has manifest_version ${JSON.stringify(manifest.manifest_version)}, which this toolkit does not know`)
   }
   const m = manifest as unknown as ManifestV2
+  const problems = await verifyBuildFiles(dist, m)
+  if (problems.length === 0) problems.push(...(await verifyStylesheets(dist)))
+  if (problems.length > 0) {
+    return {
+      label,
+      report: {
+        build_id: typeof m.build_id === 'string' ? m.build_id : '',
+        contract: typeof m.contract === 'string' ? m.contract : '',
+        protocol: 2,
+        ok: false,
+        results: problems.map(buildProblem),
+        sizes: { server: 0, client_js: 0, css: 0 },
+      },
+    }
+  }
   const { id, server } = await runtimeServerSource(runtime)
   const bundle = loadBundleSource(server, await readFile(join(dist, m.entry.server), 'utf8'), m.entry.server)
   if (bundle.protocol !== 2) throw new CheckError(`${m.entry.server} exports protocol ${bundle.protocol}, not 2`)
@@ -330,6 +430,12 @@ export function formatCheck(check: DistCheck, budgets: CheckSizes): string {
   lines.push(`check ${check.label} (${format}${report.build_id ? `, build ${report.build_id.slice(0, 12)}` : ''})`)
   if (check.runtimeMismatch) {
     lines.push(`  note: rendered with runtime ${check.runtimeMismatch.used.slice(0, 12)}, the build names ${check.runtimeMismatch.build.slice(0, 12)}`)
+  }
+  const problems = report.results.filter((r) => r.kind === 'build')
+  if (problems.length > 0) {
+    for (const r of problems) lines.push(`  ✗ ${r.error}`)
+    lines.push(`✗ the build failed ${problems.length} check(s) and was not rendered`)
+    return `${lines.join('\n')}\n`
   }
   for (const r of report.results.filter((r) => !r.ok)) {
     const kind = r.kind === 'layout' ? `layout (${r.variant})` : r.kind
