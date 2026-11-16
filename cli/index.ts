@@ -12,6 +12,7 @@ import { initCommand } from './init'
 import { pushCommand } from './push'
 import { buildRuntime, RuntimeError, writeRuntime } from './runtime'
 import { isFormat2, loadTemplate, TemplateError } from './template'
+import { upgradeCommand } from './upgrade'
 import { formatFindings, validateTemplate } from './validate'
 
 /**
@@ -55,6 +56,8 @@ async function main(argv: string[]): Promise<number> {
       return devCommand(root, flags)
     case 'init':
       return initCommand(root, flags)
+    case 'upgrade':
+      return upgradeCommand(root, flags)
     case 'push':
       return pushCommand(root, flags)
     case 'keygen':
