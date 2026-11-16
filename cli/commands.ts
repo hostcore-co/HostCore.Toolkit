@@ -50,7 +50,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     ],
     flags: [
       { flag: '--port <n>', text: 'Port to listen on (default 4173; 0 picks a free one).' },
-      { flag: '--payload <file>', text: 'Also preview this page payload, a 2026-11 page envelope, for example one exported from your own store.' },
+      { flag: '--payload <file>', text: 'Also preview this page payload: a 2026-11 page envelope in a JSON file you write, for example a copy of a contract fixture you have changed. Fields that do not fit the contract are named in the preview.' },
     ],
   },
   {

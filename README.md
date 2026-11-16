@@ -37,8 +37,9 @@ hct push --listing <id>    # upload it as a new version and get a preview link
   no layout. Links
   in the preview go to the fixture for that page. Save a file and the
   template rebuilds and the browser reloads. `--payload <file>` previews a
-  page payload of your own as well, for example one exported from your
-  store.
+  page payload of your own as well: a 2026-11 page envelope in a JSON file
+  you write, most easily by copying one of the fixtures and changing it.
+  The preview names any field that does not fit the contract.
 - **`hct check [dir]`** builds the template and renders every page it
   implements against every fixture for that page, as a whole document and
   as a body, and its layout once per variant — what the platform does before
@@ -261,7 +262,8 @@ result.action, years })`, `years` one of that action's terms.
 `actions.domain_search` yourself or read its answer: on a store page the
 platform's own script makes the request, so it can change what the
 endpoint takes and answers without your template changing. `hct dev` has
-no such script, and `searchDomains` makes the request itself there.
+no such script and serves no domain search, so there `searchDomains`
+makes the request itself and resolves to the error `unavailable`.
 
 ### Typed data in shared components
 
