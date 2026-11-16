@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { COMMANDS } from '../commands'
 import { hct } from './host'
 
@@ -17,6 +19,14 @@ describe('hct help', () => {
       for (const f of c.flags) expect(result.stdout).toContain(`  ${f.flag}\n`)
       for (const flag of c.usage.matchAll(/--[a-z-]+/g)) expect(c.flags.map((f) => f.flag.split(' ')[0])).toContain(flag[0])
     }
+  })
+
+  it('prints the toolkit version', async () => {
+    const pkg = JSON.parse(await readFile(join(import.meta.dir, '..', '..', 'package.json'), 'utf8'))
+    expect(pkg.version).toBe('2.0.0')
+    const result = await hct(['--version'])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe('2.0.0\n')
   })
 
   it('refuses an unknown command', async () => {

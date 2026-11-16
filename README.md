@@ -5,7 +5,7 @@ contract your components are written against, and the toolchain that turns
 them into a bundle the platform will run.
 
 ```bash
-bun add github:hostcore-co/HostCore.Toolkit#v1.0.0
+bun add github:hostcore-co/HostCore.Toolkit#v2.0.0
 ```
 
 That gives you both — `@hostcore/toolkit` to import from, and `hct` to build
@@ -229,7 +229,7 @@ render with an error naming the prop.
 // package.json
 {
   "dependencies": {
-    "@hostcore/toolkit": "github:hostcore-co/HostCore.Toolkit#<commit>",
+    "@hostcore/toolkit": "github:hostcore-co/HostCore.Toolkit#v2.0.0",
     "react": "~19.3.1",
     "react-dom": "~19.3.1"
   },
@@ -244,6 +244,8 @@ render with an error naming the prop.
   }
 }
 ```
+
+`hct init` writes the dependency on the toolkit release that ran it.
 
 With Tailwind, write `@import "tailwindcss" source(".");` so it scans only
 your own source for class names. `gsap` and `embla-carousel-react` run only
@@ -353,6 +355,7 @@ left exactly as it was. `hct docs` writes the full field-by-field table
 ## The commands
 
 ```
+hct --version          print the toolkit version
 hct init [dir]         start a new format-2 template (--minimal, --id, --name)
 hct dev [dir]          preview it against the contract fixtures (--port, --payload <file>)
 hct validate [dir]     check a template against the build policy
@@ -388,3 +391,7 @@ bun cli/index.ts contract check
 The examples are workspaces of this package, so `bun install` installs
 their dependencies too, including the older Vite `examples/legacy` builds
 with.
+
+A release is tagged `v<version>`, with `version` from `package.json`
+(`hct --version` prints it); the `#v2.0.0` in a template's dependency is
+that tag, and `hct init` writes the tag of the release that ran it.

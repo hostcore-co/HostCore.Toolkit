@@ -201,6 +201,7 @@ export function overviewHelp(): string {
     'hct — the HostCore template toolchain',
     '',
     'Usage: hct <command> [options]     hct <command> --help for its options',
+    '       hct --version                print the toolkit version',
     '',
     ...COMMANDS.map((c) => `  ${c.name.padEnd(width)}  ${c.summary}`),
     '',

@@ -1,3 +1,5 @@
+import toolkitPackage from '../package.json' with { type: 'json' }
+
 /**
  * The toolchain this toolkit builds format-2 templates with.
  *
@@ -43,10 +45,13 @@ export const FORMAT2_REQUIRED = {
   devDependencies: ['vite', '@vitejs/plugin-react'],
 } as const
 
+/** This toolkit's release version, from its package.json. `hct --version` prints it. */
+export const TOOLKIT_VERSION: string = toolkitPackage.version
+
 /**
  * The @hostcore/toolkit dependency a new template gets: this repository at
- * the tag of this toolkit's version.
+ * the tag of a toolkit release, `v<version>`.
  */
-export function toolkitDependency(version: string): string {
+export function toolkitDependency(version: string = TOOLKIT_VERSION): string {
   return `github:hostcore-co/HostCore.Toolkit#v${version}`
 }

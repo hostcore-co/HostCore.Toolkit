@@ -29,7 +29,9 @@ describe('hct init', () => {
     expect(manifest).toMatchObject({ id: 'acme-hosting', name: 'Acme Hosting', version: '0.1.0', format: 2, contract: '2026-11', toolchain: 2 })
     const pkg = JSON.parse(await readFile(join(dir, 'package.json'), 'utf8'))
     expect(pkg.name).toBe('acme-hosting')
-    expect(pkg.dependencies['@hostcore/toolkit']).toMatch(/^github:hostcore-co\/HostCore\.Toolkit#v\d+\.\d+\.\d+$/)
+    const toolkit = JSON.parse(await readFile(join(REPO, 'package.json'), 'utf8'))
+    // The dependency is the release tag of the toolkit that wrote it.
+    expect(pkg.dependencies['@hostcore/toolkit']).toBe(`github:hostcore-co/HostCore.Toolkit#v${toolkit.version}`)
 
     expect((await hct(['validate', dir])).code).toBe(0)
     const check = await hct(['check', dir, '--json'])

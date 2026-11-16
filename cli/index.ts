@@ -13,6 +13,7 @@ import { initCommand } from './init'
 import { pushCommand } from './push'
 import { buildRuntime, RuntimeError, writeRuntime } from './runtime'
 import { isFormat2, loadTemplate, TemplateError } from './template'
+import { TOOLKIT_VERSION } from './toolchain'
 import { upgradeCommand } from './upgrade'
 import { formatFindings, validateTemplate } from './validate'
 
@@ -28,6 +29,11 @@ async function main(argv: string[]): Promise<number> {
   if (!command || command === '--help' || command === '-h' || command === 'help') {
     process.stdout.write(overviewHelp())
     return command ? 0 : 1
+  }
+
+  if (command === '--version') {
+    process.stdout.write(`${TOOLKIT_VERSION}\n`)
+    return 0
   }
 
   const { positional, flags } = parseArgs(rest)

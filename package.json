@@ -1,6 +1,6 @@
 {
   "name": "@hostcore/toolkit",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Write, validate and build HostCore storefront templates.",
   "license": "UNLICENSED",
   "type": "module",

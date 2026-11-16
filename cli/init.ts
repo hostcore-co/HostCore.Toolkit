@@ -8,7 +8,8 @@ import { FORMAT2_PACKAGE_RANGES, toolkitDependency } from './toolchain'
 /**
  * hct init — writes a new format-2 template. The full scaffold is a copy of
  * examples/basic, the tokens-only one of examples/minimal, each with the
- * new template's id and name and a package.json an author can install.
+ * new template's id and name and a package.json an author can install,
+ * which depends on the release of this toolkit that wrote it.
  */
 
 const TOOLKIT_ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -45,11 +46,6 @@ async function isEmptyOrMissing(dir: string): Promise<boolean> {
     if ((e as NodeJS.ErrnoException).code === 'ENOENT') return true
     throw e
   }
-}
-
-async function toolkitVersion(): Promise<string> {
-  const pkg = JSON.parse(await readFile(join(TOOLKIT_ROOT, 'package.json'), 'utf8')) as { version: string }
-  return pkg.version
 }
 
 function packageJson(id: string, minimal: boolean, toolkit: string, example: Record<string, any>): Record<string, unknown> {
@@ -113,7 +109,7 @@ export async function initTemplate(root: string, options: InitOptions = {}): Pro
   const template = JSON.parse(await readFile(join(source, 'template.json'), 'utf8')) as Record<string, unknown>
   const { id: _id, version: _version, name: _name, ...rest } = template
   await writeFile(join(root, 'template.json'), `${JSON.stringify({ id, version: '0.1.0', name, ...rest }, null, 2)}\n`)
-  const pkg = packageJson(id, minimal, toolkitDependency(await toolkitVersion()), basicPkg)
+  const pkg = packageJson(id, minimal, toolkitDependency(), basicPkg)
   await writeFile(join(root, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`)
   await writeFile(join(root, '.gitignore'), GITIGNORE)
   written.push('template.json', 'package.json', '.gitignore')
