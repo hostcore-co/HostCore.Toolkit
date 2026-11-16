@@ -46,7 +46,11 @@ hct push --listing <id>    # upload it as a new version and get a preview link
   its page, fixture and kind, and the build's sizes against budgets (server
   bundle 1 MB, client JavaScript 250 KB, stylesheet 100 KB; change them with
   `--budget-server`, `--budget-client-js`, `--budget-css`). A budget is
-  advice: only a failed render fails the check. `--json` prints a
+  advice: only a failed render fails the check. A page that renders
+  nothing fails too, with `HC_EMPTY_RENDER`: its markup, leaving out HTML
+  comments and whitespace, must have at least one element or some text,
+  so a page component that returns `null` for a fixture fails, while one
+  that renders a single empty element passes. `--json` prints a
   machine-readable report, and `--dist <dir>` checks a build you already
   have. Before it renders anything, it checks the build itself: every file
   `manifest.json` lists must be there with the listed digest and size, with

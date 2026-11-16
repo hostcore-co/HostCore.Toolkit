@@ -153,11 +153,43 @@ function htmlOf(output: string): string {
   return parsed.html
 }
 
+/**
+ * The page's own markup in a render: all of a `body` render, and what is
+ * inside the outlet of a `document` render.
+ */
+function pageMarkup(kind: 'document' | 'body', html: string): string {
+  if (kind === 'body') return html
+  const start = html.indexOf('<hc-outlet>')
+  const end = html.lastIndexOf('</hc-outlet>')
+  return start === -1 || end < start ? '' : html.slice(start + '<hc-outlet>'.length, end)
+}
+
+/**
+ * Whether a page's markup is empty: nothing but HTML comments and
+ * whitespace, as when the page component returns null, an empty fragment or
+ * only empty strings. One element, even an empty one, or one character of
+ * text makes a page that is not empty.
+ */
+export function isEmptyMarkup(markup: string): boolean {
+  return markup.replace(/<!--[\s\S]*?-->/g, '').trim() === ''
+}
+
+/** The error of a page render whose page markup is empty. */
+export function emptyRenderError(page: string, fixture: string, variant: string): string {
+  return `HC_EMPTY_RENDER: page "${page}" rendered nothing for fixture "${fixture}" (variant ${variant}): a page must render at least one element or some text`
+}
+
 /** Renders a loaded format-2 bundle against the fixtures. */
 export function checkBundle(bundle: LoadedBundle, fixtures: Fixture[]): CheckResult[] {
   const results: CheckResult[] = []
   const render = (kind: 'document' | 'layout' | 'body', page: string, variant: string, payload: Record<string, any>) =>
     htmlOf(bundle.render(JSON.stringify({ kind, page, variant, payload, env: envFor(payload, kind) })))
+  /** A page render that fails when the page's own markup is empty. */
+  const renderPage = (kind: 'document' | 'body', page: string, fixture: string, payload: Record<string, any>) => {
+    const html = render(kind, page, 'default', payload)
+    if (isEmptyMarkup(pageMarkup(kind, html))) throw new Error(emptyRenderError(page, fixture, 'default'))
+    return html
+  }
 
   const layoutFixture = fixtures.find((f) => f.name === LAYOUT_FIXTURE)
   if (bundle.layouts.length > 0) {
@@ -176,10 +208,10 @@ export function checkBundle(bundle: LoadedBundle, fixtures: Fixture[]): CheckRes
       if (bundle.layouts.length > 0) {
         // Each render gets its own copy: a payload is never shared between renders.
         const payload = JSON.parse(fixture.json) as Record<string, any>
-        results.push(rendered({ page, fixture: fixture.name, kind: 'document', variant: '' }, () => render('document', page, 'default', payload)))
+        results.push(rendered({ page, fixture: fixture.name, kind: 'document', variant: '' }, () => renderPage('document', page, fixture.name, payload)))
       }
       const payload = JSON.parse(fixture.json) as Record<string, any>
-      results.push(rendered({ page, fixture: fixture.name, kind: 'body', variant: '' }, () => render('body', page, 'default', payload)))
+      results.push(rendered({ page, fixture: fixture.name, kind: 'body', variant: '' }, () => renderPage('body', page, fixture.name, payload)))
     }
   }
   return results

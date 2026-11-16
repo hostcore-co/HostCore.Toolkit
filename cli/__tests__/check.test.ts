@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { appendFile, cp, mkdir, readdir, readFile, rm, symlink, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { CheckReport, CheckResult } from '../check'
-import { parseBytes } from '../check'
+import { emptyRenderError, isEmptyMarkup, parseBytes } from '../check'
 import { hct } from './host'
 
 const REPO = join(import.meta.dir, '..', '..')
@@ -98,6 +98,40 @@ describe('hct check --json', () => {
     const result = await hct(['check', 'examples/minimal', '--runtime', RUNTIME, '--json'])
     expect(result.code).toBe(0)
     expect(parse(result.stdout)).toMatchObject({ ok: true, results: [] })
+  })
+})
+
+describe('hct check on a page that renders nothing', () => {
+  const empty = join(TMP, 'empty')
+
+  beforeAll(async () => {
+    await mkdir(join(empty, 'src', 'pages'), { recursive: true })
+    await writeFile(join(empty, 'template.json'), JSON.stringify({ id: 'empty', version: '1.0.0', name: 'Empty', format: 2, contract: '2026-11', toolchain: 2 }))
+    await writeFile(join(empty, 'src', 'layout.tsx'), 'export default function Layout({ children }: { children?: unknown }) { return <main>{children as never}</main> }\n')
+    // Renders nothing for a store with no domains, and an empty element otherwise.
+    await writeFile(
+      join(empty, 'src', 'pages', 'home.tsx'),
+      `import type { PageProps } from '@hostcore/toolkit'
+export default function Home({ page }: PageProps<'home'>) {
+  return page.nav.links.domains === '' ? null : <section />
+}
+`,
+    )
+  })
+
+  it('fails the page render with HC_EMPTY_RENDER, as a document and as a body', async () => {
+    const json = await hct(['check', empty, '--runtime', RUNTIME, '--json'])
+    expect(json.code).toBe(1)
+    const report = parse(json.stdout)
+    const failed = report.results.filter((r) => !r.ok)
+    expect(failed.map((r) => `${r.page}/${r.fixture}/${r.kind}`)).toEqual(['home/home.no-domains/document', 'home/home.no-domains/body'])
+    for (const r of failed) expect(r).toMatchObject({ error: emptyRenderError('home', 'home.no-domains', 'default'), html_sha256: '', bytes: 0 })
+    expect(report.results.filter((r) => r.kind === 'layout').every((r) => r.ok)).toBe(true)
+  })
+
+  it('counts only comments and whitespace as empty', () => {
+    for (const markup of ['', '   \n\t', '<!-- -->', ' <!-- a --> <!---->\n']) expect([markup, isEmptyMarkup(markup)]).toEqual([markup, true])
+    for (const markup of ['<div></div>', 'x', '<!-- -->0', '<br/>', '&nbsp;']) expect([markup, isEmptyMarkup(markup)]).toEqual([markup, false])
   })
 })
 
