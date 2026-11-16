@@ -432,7 +432,12 @@ export interface Action {
  * is absent.
  */
 export interface Actions {
-  /** Searches domain availability. Absent when the store sells no domains. */
+  /**
+   * Searches domain availability. Call it with searchDomains(action, query)
+   * from the SDK, which returns a DomainSearchOutcome, rather than requesting
+   * its url yourself: the platform may change what the endpoint takes and
+   * answers. Absent when the store sells no domains.
+   */
   domain_search?: Action
   /**
    * Where a visitor buys a domain they searched for: a GET of its url with the
@@ -509,6 +514,116 @@ export interface DomainsData {
   /** An ISO 4217 code. */
   currency: string
 }
+
+/**
+ * DomainSearchRequest is what a domain search asks for. searchDomains sends
+ * it; a template does not build it.
+ */
+export interface DomainSearchRequest {
+  /**
+   * What the visitor typed: a bare name ("acme") or a full domain
+   * ("acme.example").
+   */
+  query: string
+}
+
+/**
+ * DomainTermPrice is the price of a domain for one term, in the money
+ * conventions of Price: the whole amount for the whole term.
+ */
+export interface DomainTermPrice {
+  /** The length of the term in whole years, from 1. */
+  years: number
+  /** Major units, ready to render. */
+  amount: number
+  /** The same amount in minor units (cents), for arithmetic. */
+  amount_minor: number
+  /** An ISO 4217 code. */
+  currency: string
+}
+
+/**
+ * DomainSearchAction is what a visitor can do with a searched domain: register
+ * it, transfer it in, or neither.
+ */
+export type DomainSearchAction = 'register' | 'transfer' | 'none'
+
+export const DomainSearchActionValues = ['register', 'transfer', 'none'] as const
+
+/** DomainSearchResult is one domain a search found. */
+export interface DomainSearchResult {
+  /** The domain name, such as "acme.example". */
+  domain: string
+  /** The name before the extension, such as "acme". */
+  sld: string
+  /** The extension, lowercase and without a leading dot, such as "example". */
+  tld: string
+  /** True when the domain can be registered. */
+  available: boolean
+  /** True when the registry prices the domain as premium. */
+  premium: boolean
+  /**
+   * Why the store cannot sell the domain at all, such as an extension it does
+   * not offer; "" when there is none.
+   */
+  reason: string
+  /**
+   * What a visitor can do: register when it is available and has register
+   * terms; transfer when it is taken, has transfer terms and no reason;
+   * otherwise none. Send the visitor to actions.domain_checkout with this
+   * action and one of its terms.
+   */
+  action: DomainSearchAction
+  /** The terms it can be registered for, by years ascending; empty when none. */
+  register: DomainTermPrice[]
+  /**
+   * The terms it can be transferred in for, by years ascending; empty when
+   * none.
+   */
+  transfer: DomainTermPrice[]
+  /** The terms it renews for, by years ascending; empty when none. */
+  renew: DomainTermPrice[]
+}
+
+/** DomainSearchSuccess is a domain search that answered. */
+export interface DomainSearchSuccess {
+  /** Always "ok". */
+  status: 'ok'
+  /**
+   * The domains found, in the order the platform ranks them. Empty when
+   * nothing matched.
+   */
+  results: DomainSearchResult[]
+  /** The ISO 4217 code of every price in the results. */
+  currency: string
+}
+
+/** DomainSearchError is a domain search that did not answer with results. */
+export interface DomainSearchError {
+  /** Always "error". */
+  status: 'error'
+  /**
+   * Why: "invalid_query" for a query the platform cannot search,
+   * "rate_limited" when the visitor searched too often, "unavailable" when the
+   * store does not offer domain search, "failed" for anything else. An open
+   * set: treat a code you do not know as "failed".
+   */
+  code: 'invalid_query' | 'rate_limited' | 'unavailable' | 'failed' | (string & {})
+  /** A sentence a visitor can read, in English. */
+  message: string
+}
+
+/**
+ * DomainSearchOutcome is what searchDomains(action, query) resolves to: a
+ * DomainSearchSuccess or a DomainSearchError, told apart by status. It never
+ * rejects. On a store page the platform provides the search itself, so the
+ * request it sends and the answer it reads can change with the platform rather
+ * than with a template: searchDomains calls window.hc.searchDomains(query)
+ * when that is a function, which must resolve to a DomainSearchOutcome and
+ * never reject. Elsewhere, such as in hct dev, searchDomains requests
+ * actions.domain_search itself.
+ */
+export type DomainSearchOutcome = DomainSearchSuccess | DomainSearchError
 
 /** NotFoundData is the data of the not-found page. It is always empty. */
 export type NotFoundData = Record<string, never>

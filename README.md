@@ -202,6 +202,7 @@ Everything is imported from `@hostcore/toolkit`:
 | `useNav()` | the store's groups, and `links`: home, login, signup, account, domains, terms, privacy (empty when not offered) |
 | `useSetting(id)` | the store's value for a setting, or the default you declared |
 | `useAction(name)` | an action the page may use from the browser, or `undefined`: an endpoint to call (`domain_search`) or a page to send a visitor to (`domain_checkout`) |
+| `searchDomains(action, query)` | search for domains: typed results, or a typed failure (below) |
 | `actionHref(action, params)` | the href to an action with query parameters, such as checkout for a searched domain (below) |
 | `useEnv()` | the build id, asset base, locale, currency and render mode |
 | `<Link href>` | a link; take every `href` from the payload |
@@ -235,6 +236,32 @@ adds them after any query the action's URL already has; for
 `domain_checkout` the parameters are typed: `domain`, `action`
 (`'register'` or `'transfer'`) and `years`, a whole number of years
 offered by the search result.
+
+### Domain search
+
+`searchDomains(useAction('domain_search'), query)` searches and resolves to
+a `DomainSearchOutcome`; it never rejects:
+
+```tsx
+const outcome = await searchDomains(useAction('domain_search'), 'acme')
+if (outcome.status === 'ok') {
+  for (const result of outcome.results) {
+    // result.domain, result.available, result.action: 'register' | 'transfer' | 'none',
+    // result.register / result.transfer / result.renew: [{ years, amount, amount_minor, currency }]
+  }
+} else {
+  outcome.message   // outcome.code: 'invalid_query' | 'rate_limited' | 'unavailable' | 'failed'
+}
+```
+
+Send a visitor to checkout for a result with
+`actionHref(useAction('domain_checkout'), { domain: result.domain, action:
+result.action, years })`, `years` one of that action's terms.
+`examples/basic/src/islands/domain-search.tsx` does both. Never request
+`actions.domain_search` yourself or read its answer: on a store page the
+platform's own script makes the request, so it can change what the
+endpoint takes and answers without your template changing. `hct dev` has
+no such script, and `searchDomains` makes the request itself there.
 
 ### Typed data in shared components
 

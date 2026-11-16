@@ -296,7 +296,10 @@ d.define(
   'Actions',
   'is the endpoints a page may call. An action the store does not offer is absent.',
   t.object({
-    domain_search: doc('Searches domain availability. Absent when the store sells no domains.', optional(t.ref('Action'))),
+    domain_search: doc(
+      'Searches domain availability. Call it with searchDomains(action, query) from the SDK, which returns a DomainSearchOutcome, rather than requesting its url yourself: the platform may change what the endpoint takes and answers. Absent when the store sells no domains.',
+      optional(t.ref('Action')),
+    ),
     domain_checkout: doc(
       'Where a visitor buys a domain they searched for: a GET of its url with the query parameters domain (the domain name), action (register or transfer) and years (a whole number of years, one of the terms the search result offers). Build the link with actionHref rather than by hand. Present exactly when domain_search is, so absent when the store sells no domains.',
       optional(t.ref('Action')),
@@ -358,6 +361,85 @@ d.define(
   }),
 )
 
+// ─── Domain search ─────────────────────────────────────────────────────────
+
+d.define(
+  'DomainSearchRequest',
+  'is what a domain search asks for. searchDomains sends it; a template does not build it.',
+  t.object({
+    query: doc('What the visitor typed: a bare name ("acme") or a full domain ("acme.example").', t.string()),
+  }),
+)
+
+d.define(
+  'DomainTermPrice',
+  'is the price of a domain for one term, in the money conventions of Price: the whole amount for the whole term.',
+  t.object({
+    years: doc('The length of the term in whole years, from 1.', t.integer()),
+    amount: doc('Major units, ready to render.', t.number()),
+    amount_minor: doc('The same amount in minor units (cents), for arithmetic.', t.integer({ bits: 64 })),
+    currency: doc('An ISO 4217 code.', t.string()),
+  }),
+)
+
+d.define(
+  'DomainSearchAction',
+  'is what a visitor can do with a searched domain: register it, transfer it in, or neither.',
+  t.enum(['register', 'transfer', 'none']),
+)
+
+d.define(
+  'DomainSearchResult',
+  'is one domain a search found.',
+  t.object({
+    domain: doc('The domain name, such as "acme.example".', t.string()),
+    sld: doc('The name before the extension, such as "acme".', t.string()),
+    tld: doc('The extension, lowercase and without a leading dot, such as "example".', t.string()),
+    available: doc('True when the domain can be registered.', t.boolean()),
+    premium: doc('True when the registry prices the domain as premium.', t.boolean()),
+    reason: doc('Why the store cannot sell the domain at all, such as an extension it does not offer; "" when there is none.', t.string()),
+    action: doc(
+      'What a visitor can do: register when it is available and has register terms; transfer when it is taken, has transfer terms and no reason; otherwise none. Send the visitor to actions.domain_checkout with this action and one of its terms.',
+      t.ref('DomainSearchAction'),
+    ),
+    register: doc('The terms it can be registered for, by years ascending; empty when none.', t.array(t.ref('DomainTermPrice'))),
+    transfer: doc('The terms it can be transferred in for, by years ascending; empty when none.', t.array(t.ref('DomainTermPrice'))),
+    renew: doc('The terms it renews for, by years ascending; empty when none.', t.array(t.ref('DomainTermPrice'))),
+  }),
+)
+
+d.define(
+  'DomainSearchSuccess',
+  'is a domain search that answered.',
+  t.object({
+    status: doc('Always "ok".', t.literal('ok')),
+    results: doc('The domains found, in the order the platform ranks them. Empty when nothing matched.', t.array(t.ref('DomainSearchResult'))),
+    currency: doc('The ISO 4217 code of every price in the results.', t.string()),
+  }),
+)
+
+d.define(
+  'DomainSearchError',
+  'is a domain search that did not answer with results.',
+  t.object({
+    status: doc('Always "error".', t.literal('error')),
+    code: doc(
+      'Why: "invalid_query" for a query the platform cannot search, "rate_limited" when the visitor searched too often, "unavailable" when the store does not offer domain search, "failed" for anything else. An open set: treat a code you do not know as "failed".',
+      t.openEnum(['invalid_query', 'rate_limited', 'unavailable', 'failed'], 'failed'),
+    ),
+    message: doc('A sentence a visitor can read, in English.', t.string()),
+  }),
+)
+
+d.define(
+  'DomainSearchOutcome',
+  [
+    'is what searchDomains(action, query) resolves to: a DomainSearchSuccess or a DomainSearchError, told apart by status. It never rejects.',
+    'On a store page the platform provides the search itself, so the request it sends and the answer it reads can change with the platform rather than with a template: searchDomains calls window.hc.searchDomains(query) when that is a function, which must resolve to a DomainSearchOutcome and never reject. Elsewhere, such as in hct dev, searchDomains requests actions.domain_search itself.',
+  ].join(' '),
+  t.union('status', { ok: 'DomainSearchSuccess', error: 'DomainSearchError' }),
+)
+
 d.define('NotFoundData', 'is the data of the not-found page. It is always empty.', t.object({}))
 
 export const contract202611: Contract = {
@@ -372,4 +454,5 @@ export const contract202611: Contract = {
     'not-found': 'NotFoundData',
   },
   envelope: 'PageEnvelope',
+  inputs: ['DomainSearchRequest'],
 }

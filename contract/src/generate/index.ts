@@ -5,13 +5,15 @@ import { contract1 } from '../contract-1'
 import { contract202611 } from '../contract-2026-11'
 import { downgrade } from '../downgrade'
 import { LINK_CASES } from '../link-cases'
+import { DOMAIN_SEARCH_CASES } from '../domain-search-cases'
+import { domainSearchOutcome } from '../domain-search'
 import { normaliseRegistry, readRegistry, validateRegistry } from '../registry'
 import { linkValueError } from '../settings'
 import { contractSurface, diffSurface, type ContractChange, type ContractSurface } from '../surface'
 import { TOKEN_CASES } from '../token-cases'
 import { effectiveTokens, TOKEN_PATTERNS, TOKENS } from '../tokens'
 import { STANDARD_SETTINGS } from '../settings'
-import { validate } from '../validate'
+import { validate, validateType } from '../validate'
 import { generateGoContract } from './go'
 import { generateGoFrontendPrefixes, generateGoRegistry } from './go-registry'
 import { generateJsonSchema } from './json-schema'
@@ -80,6 +82,13 @@ function linkFixture(): string {
   return `[\n${rows.join(',\n')}\n]\n`
 }
 
+/** JSON with every object's keys sorted, to compare values whatever their key order. */
+function canonical(value: unknown): string {
+  return JSON.stringify(value, (_key, v) =>
+    v !== null && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v,
+  )
+}
+
 function sameEntries(a: Record<string, string>, b: Record<string, string>): boolean {
   const keys = Object.keys(a)
   return keys.length === Object.keys(b).length && keys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && a[k] === b[k])
@@ -101,10 +110,26 @@ function tokenFixture(): string {
 }
 
 /**
+ * The cases of domainSearchOutcome as `fixtures/domain-search.json`, each
+ * checked against it and against the contract's DomainSearchOutcome first.
+ */
+function domainSearchFixture(): string {
+  const errors: string[] = []
+  const cases = DOMAIN_SEARCH_CASES.map((c) => {
+    const got = domainSearchOutcome(c.status, c.body)
+    if (canonical(got) !== canonical(c.outcome)) errors.push(`"${c.name}": domainSearchOutcome gives ${JSON.stringify(got)}`)
+    errors.push(...validateType('2026-11', 'DomainSearchOutcome', c.outcome).map((e) => `"${c.name}" outcome ${e.path}: ${e.message}`))
+    return { ...c, outcome: got }
+  })
+  if (errors.length > 0) throw new ContractError(`the domain search cases are wrong:\n  ${errors.join('\n  ')}`)
+  return json(cases)
+}
+
+/**
  * Every generated file, keyed by path relative to the contract directory:
  * `dist/`, the contract "1" fixtures, which are the reference downgrade of
  * the "2026-11" fixtures, and the tables of rules other implementations test
- * against (`fixtures/links.json`, `fixtures/tokens.json`).
+ * against (`fixtures/links.json`, `fixtures/tokens.json`, `fixtures/domain-search.json`).
  */
 export function generateAll(contractDir: string): Record<string, string> {
   const registry = loadCheckedRegistry(contractDir)
@@ -127,6 +152,7 @@ export function generateAll(contractDir: string): Record<string, string> {
   files['dist/registry.json'] = json(registry)
   files['fixtures/links.json'] = linkFixture()
   files['fixtures/tokens.json'] = tokenFixture()
+  files['fixtures/domain-search.json'] = domainSearchFixture()
 
   const sourceDir = join(contractDir, 'fixtures', '2026-11')
   const fixtureErrors: string[] = []

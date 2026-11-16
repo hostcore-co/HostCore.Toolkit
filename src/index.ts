@@ -66,6 +66,8 @@ export { Outlet } from './v2/outlet'
 export { island } from './v2/island'
 export { asset } from './v2/env'
 export { actionHref } from './v2/action'
+export { searchDomains } from './v2/domains'
+export type { PageDomainSearch } from './v2/domains'
 export type { ActionFor, ActionParams, ActionQuery, ActionWithParams, DomainCheckoutParams } from './v2/action'
 export {
   formatMoney,
@@ -98,6 +100,12 @@ export type {
   CatalogGroupData,
   CatalogServiceData,
   ContractPageId,
+  DomainSearchAction,
+  DomainSearchError,
+  DomainSearchOutcome,
+  DomainSearchResult,
+  DomainSearchSuccess,
+  DomainTermPrice,
   DomainTld,
   DomainsData,
   Group,

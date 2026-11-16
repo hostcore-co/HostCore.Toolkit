@@ -987,7 +987,7 @@
       "type": "object",
       "properties": {
         "domain_search": {
-          "description": "Searches domain availability. Absent when the store sells no domains.",
+          "description": "Searches domain availability. Call it with searchDomains(action, query) from the SDK, which returns a DomainSearchOutcome, rather than requesting its url yourself: the platform may change what the endpoint takes and answers. Absent when the store sells no domains.",
           "$ref": "#/$defs/Action"
         },
         "domain_checkout": {
@@ -1145,6 +1145,202 @@
         "currency"
       ],
       "additionalProperties": false
+    },
+    "DomainSearchRequest": {
+      "description": "DomainSearchRequest is what a domain search asks for. searchDomains sends it; a template does not build it.",
+      "type": "object",
+      "properties": {
+        "query": {
+          "description": "What the visitor typed: a bare name (\"acme\") or a full domain (\"acme.example\").",
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "DomainTermPrice": {
+      "description": "DomainTermPrice is the price of a domain for one term, in the money conventions of Price: the whole amount for the whole term.",
+      "type": "object",
+      "properties": {
+        "years": {
+          "description": "The length of the term in whole years, from 1.",
+          "type": "integer"
+        },
+        "amount": {
+          "description": "Major units, ready to render.",
+          "type": "number"
+        },
+        "amount_minor": {
+          "description": "The same amount in minor units (cents), for arithmetic.",
+          "type": "integer"
+        },
+        "currency": {
+          "description": "An ISO 4217 code.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "years",
+        "amount",
+        "amount_minor",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "DomainSearchAction": {
+      "description": "DomainSearchAction is what a visitor can do with a searched domain: register it, transfer it in, or neither.",
+      "enum": [
+        "register",
+        "transfer",
+        "none"
+      ]
+    },
+    "DomainSearchResult": {
+      "description": "DomainSearchResult is one domain a search found.",
+      "type": "object",
+      "properties": {
+        "domain": {
+          "description": "The domain name, such as \"acme.example\".",
+          "type": "string"
+        },
+        "sld": {
+          "description": "The name before the extension, such as \"acme\".",
+          "type": "string"
+        },
+        "tld": {
+          "description": "The extension, lowercase and without a leading dot, such as \"example\".",
+          "type": "string"
+        },
+        "available": {
+          "description": "True when the domain can be registered.",
+          "type": "boolean"
+        },
+        "premium": {
+          "description": "True when the registry prices the domain as premium.",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "Why the store cannot sell the domain at all, such as an extension it does not offer; \"\" when there is none.",
+          "type": "string"
+        },
+        "action": {
+          "description": "What a visitor can do: register when it is available and has register terms; transfer when it is taken, has transfer terms and no reason; otherwise none. Send the visitor to actions.domain_checkout with this action and one of its terms.",
+          "$ref": "#/$defs/DomainSearchAction"
+        },
+        "register": {
+          "description": "The terms it can be registered for, by years ascending; empty when none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DomainTermPrice"
+          }
+        },
+        "transfer": {
+          "description": "The terms it can be transferred in for, by years ascending; empty when none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DomainTermPrice"
+          }
+        },
+        "renew": {
+          "description": "The terms it renews for, by years ascending; empty when none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DomainTermPrice"
+          }
+        }
+      },
+      "required": [
+        "domain",
+        "sld",
+        "tld",
+        "available",
+        "premium",
+        "reason",
+        "action",
+        "register",
+        "transfer",
+        "renew"
+      ],
+      "additionalProperties": false
+    },
+    "DomainSearchSuccess": {
+      "description": "DomainSearchSuccess is a domain search that answered.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"ok\".",
+          "const": "ok"
+        },
+        "results": {
+          "description": "The domains found, in the order the platform ranks them. Empty when nothing matched.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DomainSearchResult"
+          }
+        },
+        "currency": {
+          "description": "The ISO 4217 code of every price in the results.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "results",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "DomainSearchError": {
+      "description": "DomainSearchError is a domain search that did not answer with results.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"error\".",
+          "const": "error"
+        },
+        "code": {
+          "description": "Why: \"invalid_query\" for a query the platform cannot search, \"rate_limited\" when the visitor searched too often, \"unavailable\" when the store does not offer domain search, \"failed\" for anything else. An open set: treat a code you do not know as \"failed\".",
+          "type": "string",
+          "examples": [
+            "invalid_query",
+            "rate_limited",
+            "unavailable",
+            "failed"
+          ],
+          "x-open-enum": {
+            "known": [
+              "invalid_query",
+              "rate_limited",
+              "unavailable",
+              "failed"
+            ],
+            "fallback": "failed"
+          }
+        },
+        "message": {
+          "description": "A sentence a visitor can read, in English.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "DomainSearchOutcome": {
+      "description": "DomainSearchOutcome is what searchDomains(action, query) resolves to: a DomainSearchSuccess or a DomainSearchError, told apart by status. It never rejects. On a store page the platform provides the search itself, so the request it sends and the answer it reads can change with the platform rather than with a template: searchDomains calls window.hc.searchDomains(query) when that is a function, which must resolve to a DomainSearchOutcome and never reject. Elsewhere, such as in hct dev, searchDomains requests actions.domain_search itself.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DomainSearchSuccess"
+        },
+        {
+          "$ref": "#/$defs/DomainSearchError"
+        }
+      ]
     },
     "NotFoundData": {
       "description": "NotFoundData is the data of the not-found page. It is always empty.",

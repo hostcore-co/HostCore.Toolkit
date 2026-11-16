@@ -395,7 +395,10 @@ type V202611Action struct {
 // V202611Actions is the endpoints a page may call. An action the store does not
 // offer is absent.
 type V202611Actions struct {
-	// Searches domain availability. Absent when the store sells no domains.
+	// Searches domain availability. Call it with searchDomains(action, query) from
+	// the SDK, which returns a DomainSearchOutcome, rather than requesting its url
+	// yourself: the platform may change what the endpoint takes and answers.
+	// Absent when the store sells no domains.
 	DomainSearch *V202611Action `json:"domain_search,omitempty"`
 	// Where a visitor buys a domain they searched for: a GET of its url with the
 	// query parameters domain (the domain name), action (register or transfer) and
@@ -463,6 +466,89 @@ type V202611DomainsData struct {
 	TLDs []V202611DomainTld `json:"tlds"`
 	// An ISO 4217 code.
 	Currency string `json:"currency"`
+}
+
+// V202611DomainSearchRequest is what a domain search asks for. searchDomains
+// sends it; a template does not build it.
+type V202611DomainSearchRequest struct {
+	// What the visitor typed: a bare name ("acme") or a full domain
+	// ("acme.example").
+	Query string `json:"query"`
+}
+
+// V202611DomainTermPrice is the price of a domain for one term, in the money
+// conventions of Price: the whole amount for the whole term.
+type V202611DomainTermPrice struct {
+	// The length of the term in whole years, from 1.
+	Years int `json:"years"`
+	// Major units, ready to render.
+	Amount float64 `json:"amount"`
+	// The same amount in minor units (cents), for arithmetic.
+	AmountMinor int64 `json:"amount_minor"`
+	// An ISO 4217 code.
+	Currency string `json:"currency"`
+}
+
+// V202611DomainSearchAction is what a visitor can do with a searched domain:
+// register it, transfer it in, or neither.
+type V202611DomainSearchAction string
+
+const (
+	V202611DomainSearchActionRegister V202611DomainSearchAction = "register"
+	V202611DomainSearchActionTransfer V202611DomainSearchAction = "transfer"
+	V202611DomainSearchActionNone     V202611DomainSearchAction = "none"
+)
+
+// V202611DomainSearchResult is one domain a search found.
+type V202611DomainSearchResult struct {
+	// The domain name, such as "acme.example".
+	Domain string `json:"domain"`
+	// The name before the extension, such as "acme".
+	Sld string `json:"sld"`
+	// The extension, lowercase and without a leading dot, such as "example".
+	TLD string `json:"tld"`
+	// True when the domain can be registered.
+	Available bool `json:"available"`
+	// True when the registry prices the domain as premium.
+	Premium bool `json:"premium"`
+	// Why the store cannot sell the domain at all, such as an extension it does
+	// not offer; "" when there is none.
+	Reason string `json:"reason"`
+	// What a visitor can do: register when it is available and has register terms;
+	// transfer when it is taken, has transfer terms and no reason; otherwise none.
+	// Send the visitor to actions.domain_checkout with this action and one of its
+	// terms.
+	Action V202611DomainSearchAction `json:"action"`
+	// The terms it can be registered for, by years ascending; empty when none.
+	Register []V202611DomainTermPrice `json:"register"`
+	// The terms it can be transferred in for, by years ascending; empty when none.
+	Transfer []V202611DomainTermPrice `json:"transfer"`
+	// The terms it renews for, by years ascending; empty when none.
+	Renew []V202611DomainTermPrice `json:"renew"`
+}
+
+// V202611DomainSearchSuccess is a domain search that answered.
+type V202611DomainSearchSuccess struct {
+	// Always "ok".
+	Status string `json:"status"`
+	// The domains found, in the order the platform ranks them. Empty when nothing
+	// matched.
+	Results []V202611DomainSearchResult `json:"results"`
+	// The ISO 4217 code of every price in the results.
+	Currency string `json:"currency"`
+}
+
+// V202611DomainSearchError is a domain search that did not answer with results.
+type V202611DomainSearchError struct {
+	// Always "error".
+	Status string `json:"status"`
+	// Why: "invalid_query" for a query the platform cannot search, "rate_limited"
+	// when the visitor searched too often, "unavailable" when the store does not
+	// offer domain search, "failed" for anything else. An open set: treat a code
+	// you do not know as "failed".
+	Code string `json:"code"`
+	// A sentence a visitor can read, in English.
+	Message string `json:"message"`
 }
 
 // V202611NotFoundData is the data of the not-found page. It is always empty.

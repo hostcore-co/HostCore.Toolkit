@@ -12,6 +12,7 @@ fixtures/2026-11/*.json  example payloads, written by hand
 fixtures/1/*.json        the same payloads downgraded to contract "1" (generated)
 fixtures/links.json      the cases of the link rule (generated)
 fixtures/tokens.json     the cases of the colour rule (generated)
+fixtures/domain-search.json  domain search answers and their outcomes (generated)
 baselines/<version>.json what a template can observe of each version, frozen (hct contract accept)
 dist/                    generated, committed; copy these files, do not edit them
   ts/contract-1.ts  ts/contract-2026-11.ts  ts/registry.ts
@@ -107,6 +108,31 @@ receives the fallback in its place; in `"1"`, where the enum is closed, any
 value outside `game-server`, `web-hosting`, `dedicated-server`, `vps` and
 `other` becomes `other`. The empty string, a service with no type set, is
 passed through unchanged in both contracts.
+
+## Domain search
+
+`actions.domain_search` is not for templates to request themselves. The
+SDK's `searchDomains(action, query)` resolves to a `DomainSearchOutcome`:
+a `DomainSearchSuccess` (`{ status: "ok", results: DomainSearchResult[],
+currency }`) or a `DomainSearchError` (`{ status: "error", code, message }`,
+`code` an open set of `invalid_query`, `rate_limited`, `unavailable`,
+`failed`). A `DomainSearchResult` has `domain`, `sld`, `tld`, `available`,
+`premium`, `reason`, `action` (`register`, `transfer` or `none`) and
+`register`, `transfer`, `renew`: arrays of `DomainTermPrice` (`{ years,
+amount, amount_minor, currency }`, the whole price of the term) by years
+ascending. `DomainSearchRequest` (`{ query }`) is what is sent.
+
+**The page interface.** A store page may provide
+`window.hc.searchDomains(query: string): Promise<DomainSearchOutcome>`.
+When it is a function, `searchDomains` calls it with the query and uses
+what it resolves to, making no request of its own; it must resolve to a
+`DomainSearchOutcome` and never reject (a rejection, or a value of another
+shape, becomes the error `failed`). Without it, `searchDomains` posts
+`{ "query": … }` as JSON to the action's url and reads the answer as
+`src/domain-search.ts` describes. `fixtures/domain-search.json`
+(generated from `src/domain-search-cases.ts`, each case checked) lists
+`{ name, status, body, outcome }`: an HTTP status and body the endpoint
+answers, and the outcome a page's implementation must give for it.
 
 ## Standard settings
 

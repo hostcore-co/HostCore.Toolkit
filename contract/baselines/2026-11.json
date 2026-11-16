@@ -65,6 +65,135 @@
     "ContractVersion": {
       "kind": "\"2026-11\""
     },
+    "DomainSearchAction": {
+      "kind": "enum",
+      "values": [
+        "register",
+        "transfer",
+        "none"
+      ],
+      "open": false
+    },
+    "DomainSearchError": {
+      "kind": "object",
+      "fields": {
+        "code": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "invalid_query",
+            "rate_limited",
+            "unavailable",
+            "failed"
+          ],
+          "open": true
+        },
+        "message": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"error\"",
+          "optional": false
+        }
+      }
+    },
+    "DomainSearchOutcome": {
+      "kind": "union(status: ok=DomainSearchSuccess, error=DomainSearchError)"
+    },
+    "DomainSearchRequest": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "query": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "DomainSearchResult": {
+      "kind": "object",
+      "fields": {
+        "action": {
+          "type": "DomainSearchAction",
+          "optional": false
+        },
+        "available": {
+          "type": "boolean",
+          "optional": false
+        },
+        "domain": {
+          "type": "string",
+          "optional": false
+        },
+        "premium": {
+          "type": "boolean",
+          "optional": false
+        },
+        "reason": {
+          "type": "string",
+          "optional": false
+        },
+        "register": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        },
+        "renew": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        },
+        "sld": {
+          "type": "string",
+          "optional": false
+        },
+        "tld": {
+          "type": "string",
+          "optional": false
+        },
+        "transfer": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        }
+      }
+    },
+    "DomainSearchSuccess": {
+      "kind": "object",
+      "fields": {
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "results": {
+          "type": "DomainSearchResult[]",
+          "optional": false
+        },
+        "status": {
+          "type": "\"ok\"",
+          "optional": false
+        }
+      }
+    },
+    "DomainTermPrice": {
+      "kind": "object",
+      "fields": {
+        "amount": {
+          "type": "number",
+          "optional": false
+        },
+        "amount_minor": {
+          "type": "integer",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "years": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
     "DomainTld": {
       "kind": "object",
       "fields": {

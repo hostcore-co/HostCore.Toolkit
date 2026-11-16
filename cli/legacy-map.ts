@@ -98,7 +98,7 @@ export const NEW_IN_2026_11: readonly { field: string; use: string }[] = [
   { field: 'service.url', use: 'link a service card; it already points at checkout for a single-plan service' },
   { field: 'plan.checkout_url', use: 'link to order a plan; never build "/checkout/…" yourself' },
   { field: 'nav.links.home, login, signup, account, domains', use: 'every platform link a layout needs; "" when the store does not offer it' },
-  { field: 'actions.domain_search', use: 'the endpoint a domain search posts to (useAction("domain_search"))' },
+  { field: 'actions.domain_search', use: 'search for domains with searchDomains(useAction("domain_search"), query), which returns typed results; never request the endpoint or read its answer yourself' },
   { field: 'actions.domain_checkout', use: 'link to buy a searched domain: actionHref(useAction("domain_checkout"), { domain, action, years }); never build "/checkout/domains?…" yourself' },
   { field: 'store.locale, store.currency', use: 'format numbers and prices (useMoney())' },
   { field: 'page.params', use: 'the path parameters the page was matched with' },
