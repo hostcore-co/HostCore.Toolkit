@@ -22,6 +22,51 @@ describe('settings', () => {
     ])
   })
 
+  it('lets a template change a standard setting\'s label, limits and default, but not its shape', () => {
+    expect(
+      validateSettingSchema([
+        { id: 'hero.title', type: 'text', label: 'Banner headline', max: 80, default: 'Welcome' },
+        { id: 'hero.highlights', type: 'list', max: 3 },
+        {
+          id: 'faq.items',
+          type: 'object-list',
+          max: 8,
+          fields: [
+            { id: 'answer', type: 'textarea', max: 500 },
+            { id: 'question', type: 'text', max: 120 },
+          ],
+        },
+      ]),
+    ).toEqual([])
+
+    expect(
+      validateSettingSchema([
+        { id: 'hero.title', type: 'textarea' },
+        { id: 'hero.highlights', type: 'list', of: 'url' },
+        { id: 'features.cards', type: 'object-list', fields: [{ id: 'title', type: 'text' }] },
+        {
+          id: 'faq.items',
+          type: 'object-list',
+          fields: [
+            { id: 'question', type: 'text' },
+            { id: 'answer', type: 'text' },
+          ],
+        },
+      ]),
+    ).toEqual([
+      'settings[0].type must be text: hero.title is a standard setting and keeps its shape in every template',
+      'settings[1].of must be text: hero.highlights is a standard setting and keeps its shape in every template',
+      'settings[2].fields must be title (text), description (text): features.cards is a standard setting and keeps its shape in every template',
+      'settings[3].fields must be question (text), answer (textarea): faq.items is a standard setting and keeps its shape in every template',
+    ])
+  })
+
+  it('accepts a stored FAQ question as long as a store could always save one', () => {
+    const faq = STANDARD_SETTINGS.find((s) => s.id === 'faq.items')!
+    expect(settingValueError(faq, [{ question: 'q'.repeat(600), answer: '' }])).toBeNull()
+    expect(settingValueError(faq, [{ question: 'q'.repeat(601), answer: '' }])).not.toBeNull()
+  })
+
   it('rejects malformed declarations', () => {
     const errors = validateSettingSchema([
       { id: 'Hero Title', type: 'text' },
@@ -188,12 +233,12 @@ describe('standard setting limits', () => {
   const byId = (id: string) => STANDARD_SETTINGS.find((s) => s.id === id)!
   const field = (id: string, f: string) => byId(id).fields!.find((x) => x.id === f)!
 
-  it('limit short text to 160 characters and long text to 600', () => {
+  it('limit short text to 160 characters and long text, including an FAQ question, to 600', () => {
     for (const id of ['hero.title', 'categories.title', 'features.title', 'faq.title']) expect(byId(id).max).toBe(160)
     for (const id of ['hero.subtitle', 'categories.subtitle', 'features.subtitle', 'faq.subtitle']) expect(byId(id).max).toBe(600)
     expect(field('features.cards', 'title').max).toBe(160)
     expect(field('features.cards', 'description').max).toBe(600)
-    expect(field('faq.items', 'question').max).toBe(160)
+    expect(field('faq.items', 'question').max).toBe(600)
     expect(field('faq.items', 'answer').max).toBe(2000)
     expect(byId('hero.highlights').item_max).toBe(160)
     for (const id of ['hero.primary_cta', 'hero.secondary_cta']) {

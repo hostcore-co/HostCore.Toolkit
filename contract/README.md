@@ -90,13 +90,15 @@ exactly these; `src/settings.ts` has their labels, limits and defaults.
 | `features.title`, `features.subtitle` | text (160 / 600 characters) |
 | `features.cards` | object-list `{ title (160), description (600) }`, at most 12 |
 | `faq.title`, `faq.subtitle` | text (160 / 600 characters) |
-| `faq.items` | object-list `{ question (160), answer (2000) }`, at most 24 |
+| `faq.items` | object-list `{ question (600), answer (2000) }`, at most 24 |
 
 A setting entry is `{ id, type, label?, description?, max?, href_max?, min?,
 step?, of?, item_max?, fields?, options?, default? }` with type one of `text`,
 `textarea`, `url`, `link`, `color`, `boolean`, `number`, `select`, `image`,
 `list`, `object-list`. `validateSettingSchema` checks a template's
-declarations.
+declarations. A template that declares a standard id may change its label,
+limits and default, but not its shape (its type, a list's item type, or an
+object list's fields), so a store's content carries over between templates.
 
 - `description` is help text shown beside the setting in the editor.
 - `max` counts characters for text types; for a `link` it limits the label,

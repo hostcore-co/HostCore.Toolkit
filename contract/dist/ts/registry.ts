@@ -530,7 +530,7 @@ export const STANDARD_SETTINGS: readonly SettingSchemaEntry[] = [
     label: 'Questions',
     max: 24,
     fields: [
-      { id: 'question', type: 'text', label: 'Question', max: 160 },
+      { id: 'question', type: 'text', label: 'Question', max: 600 },
       { id: 'answer', type: 'textarea', label: 'Answer', max: 2000 },
     ],
     default: [
@@ -691,6 +691,29 @@ function boundsErrors(at: string, type: string, bounds: Bounds): string[] {
   return errors
 }
 
+/**
+ * Checks that a template declaring a standard setting keeps its shape.
+ *
+ * A store's content for a standard id is shared by every template and by the
+ * pages the platform supplies, so a template may change the label, the limits
+ * and the default, but not the type, a list's item type or an object list's
+ * fields.
+ */
+function standardShapeErrors(at: string, entry: SettingSchemaEntry): string[] {
+  const standard = STANDARD_SETTINGS.find((s) => s.id === entry.id)
+  if (!standard) return []
+  const why = `${entry.id} is a standard setting and keeps its shape in every template`
+  if (entry.type !== standard.type) return [`${at}.type must be ${standard.type}: ${why}`]
+  if (standard.type === 'list' && (entry.of ?? 'text') !== (standard.of ?? 'text')) {
+    return [`${at}.of must be ${standard.of ?? 'text'}: ${why}`]
+  }
+  if (standard.type !== 'object-list' || !Array.isArray(entry.fields)) return []
+  const want = (standard.fields ?? []).map((f) => `${f.id} (${f.type})`)
+  const got = entry.fields.map((f) => `${f?.id} (${f?.type})`)
+  if (want.length === got.length && want.every((f) => got.includes(f))) return []
+  return [`${at}.fields must be ${want.join(', ')}: ${why}`]
+}
+
 /** Checks a template's declared settings. Returns one message per problem. */
 export function validateSettingSchema(entries: unknown): string[] {
   if (!Array.isArray(entries)) return ['settings must be an array']
@@ -773,6 +796,7 @@ export function validateSettingSchema(entries: unknown): string[] {
     } else if (entry.options !== undefined) {
       errors.push(`${at}.options is only for select settings`)
     }
+    if (errors.length === before) errors.push(...standardShapeErrors(at, entry))
     if (entry.default !== undefined && errors.length === before) {
       const err = settingValueError(entry, entry.default)
       if (err) errors.push(`${at}.default ${err}`)
