@@ -58,7 +58,7 @@ export function isFormat2(
   return template.manifest.format === 2
 }
 
-const TEMPLATE_ID = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
+export const TEMPLATE_ID = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
 const TEMPLATE_VERSION = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/
 
 export class TemplateError extends Error {

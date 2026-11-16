@@ -18,6 +18,8 @@
     "src",
     "cli",
     "contract",
+    "examples/basic",
+    "examples/minimal",
     "README.md"
   ],
   "workspaces": [
