@@ -4,7 +4,9 @@ import { checkContract, type Contract } from '../dsl'
 import { contract1 } from '../contract-1'
 import { contract202611 } from '../contract-2026-11'
 import { downgrade } from '../downgrade'
+import { LINK_CASES } from '../link-cases'
 import { normaliseRegistry, readRegistry, validateRegistry } from '../registry'
+import { linkValueError } from '../settings'
 import { validate } from '../validate'
 import { generateGoContract } from './go'
 import { generateGoFrontendPrefixes, generateGoRegistry } from './go-registry'
@@ -60,9 +62,25 @@ export function generateFrontendPrefixes(contractDir: string, packageName: strin
 }
 
 /**
+ * The link rule's cases as `fixtures/links.json`, each checked against
+ * linkValueError first.
+ */
+function linkFixture(): string {
+  const wrong = LINK_CASES.filter((c) => (linkValueError(c.kind, c.value) === null) !== c.ok)
+  if (wrong.length > 0) {
+    throw new ContractError(
+      `the link rule disagrees with its cases:\n  ${wrong.map((c) => `${c.kind} ${JSON.stringify(c.value)} should be ${c.ok ? 'accepted' : 'refused'}`).join('\n  ')}`,
+    )
+  }
+  const rows = LINK_CASES.map((c) => `  ${JSON.stringify({ kind: c.kind, value: c.value, ok: c.ok })}`)
+  return `[\n${rows.join(',\n')}\n]\n`
+}
+
+/**
  * Every generated file, keyed by path relative to the contract directory:
- * `dist/` and the contract "1" fixtures, which are the reference downgrade
- * of the "2026-11" fixtures.
+ * `dist/`, the contract "1" fixtures, which are the reference downgrade of
+ * the "2026-11" fixtures, and the tables of rules other implementations test
+ * against (`fixtures/links.json`).
  */
 export function generateAll(contractDir: string): Record<string, string> {
   const registry = loadCheckedRegistry(contractDir)
@@ -83,6 +101,7 @@ export function generateAll(contractDir: string): Record<string, string> {
   files['dist/json-schema/1.json'] = json(generateJsonSchema(contract1))
   files['dist/json-schema/2026-11.json'] = json(generateJsonSchema(contract202611))
   files['dist/registry.json'] = json(registry)
+  files['fixtures/links.json'] = linkFixture()
 
   const sourceDir = join(contractDir, 'fixtures', '2026-11')
   const fixtureErrors: string[] = []

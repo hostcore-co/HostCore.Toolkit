@@ -165,7 +165,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     usage: 'hct contract generate | check | generate-go …',
     summary: 'generate and check the page contract (toolkit development)',
     description: [
-      'hct contract generate [--contract-dir <dir>] rewrites contract/dist and the contract "1" fixtures. hct contract check fails when they are out of date. hct contract generate-go --kind contract|frontend-prefixes --package <name> --out <path> writes Go source into another project.',
+      'hct contract generate [--contract-dir <dir>] rewrites contract/dist, the contract "1" fixtures and the link rule\'s cases (fixtures/links.json). hct contract check fails when any of them is out of date. hct contract generate-go --kind contract|frontend-prefixes --package <name> --out <path> writes Go source into another project.',
     ],
     flags: [
       { flag: '--contract-dir <dir>', text: 'The contract directory (default: the one in this toolkit).' },

@@ -13,7 +13,7 @@ import {
 /**
  * hct contract — generate and check the page contract.
  *
- *   generate      rewrite contract/dist and the contract "1" fixtures
+ *   generate      rewrite contract/dist, the contract "1" fixtures and fixtures/links.json
  *   check         fail when anything generated is out of date
  *   generate-go   write Go source into another project
  */

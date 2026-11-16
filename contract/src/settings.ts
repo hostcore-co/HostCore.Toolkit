@@ -262,7 +262,45 @@ function onStep(value: number, base: number, step: number): boolean {
   return Math.abs(steps - Math.round(steps)) < 1e-9
 }
 
+/**
+ * What the link rule applies to: the href of a `link` setting, and the value
+ * of a `url` or `image` setting, list item or object-list field.
+ */
+export type LinkKind = 'link' | 'url' | 'image'
+
+/** Why a link's href is refused. */
+export const LINK_HREF_RULE = 'must be a path on this site starting with a single /, a #fragment of this page or an https:// URL'
+/** Why a url or image is refused. */
+export const LINK_URL_RULE = 'must be a path on this site starting with a single / or an https:// URL'
+
+/** C0 control characters and DEL. */
+const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/
+
+/**
+ * The link rule: the forms of link a store can save, and so the forms a
+ * template's default may take. Returns null when `value` is accepted as
+ * `kind`, or a message saying why not.
+ *
+ * Accepted: the empty string (nothing set); an `https://` URL; a path on the
+ * store's own site, starting with `/` but not `//` or `/\`; and, for a link's
+ * href only, a fragment of the same page starting with `#`. A value with a
+ * control character (U+0000 to U+001F, or U+007F) anywhere is refused, since
+ * a browser drops tabs and line breaks inside a URL. Whitespace is not
+ * trimmed: a value that starts with a space does not start with `/` or
+ * `https://`. The scheme is matched as written, in lowercase.
+ */
+export function linkValueError(kind: LinkKind, value: string): string | null {
+  const rule = kind === 'link' ? LINK_HREF_RULE : LINK_URL_RULE
+  if (value === '') return null
+  if (CONTROL_CHARACTER.test(value)) return rule
+  if (value.startsWith('https://')) return null
+  if (kind === 'link' && value.startsWith('#')) return null
+  if (value.startsWith('/') && !value.startsWith('//') && !value.startsWith('/\\')) return null
+  return rule
+}
+
 function scalarError(type: SettingScalarType, bounds: Bounds, value: unknown): string | null {
+  if (type === 'url' || type === 'image') return textError(bounds.max, value) ?? linkValueError(type, value as string)
   if (TEXT_TYPES.has(type)) return textError(bounds.max, value)
   if (type === 'color') {
     return typeof value === 'string' && HEX_COLOR.test(value) ? null : 'must be a hex colour'
@@ -279,7 +317,9 @@ function scalarError(type: SettingScalarType, bounds: Bounds, value: unknown): s
 
 /**
  * Checks a value against its setting. Returns null when it fits, or a
- * message saying why not.
+ * message saying why not. A link's href and every url and image value,
+ * including list items and object-list fields, also follow the link rule
+ * (linkValueError).
  */
 export function settingValueError(entry: SettingSchemaEntry, value: unknown): string | null {
   switch (entry.type) {
@@ -298,7 +338,7 @@ export function settingValueError(entry: SettingSchemaEntry, value: unknown): st
       if (Object.keys(value).length !== 2) return 'must have only label and href'
       const label = textError(entry.max, value.label)
       if (label) return `label ${label}`
-      const href = textError(entry.href_max ?? entry.max, value.href)
+      const href = textError(entry.href_max ?? entry.max, value.href) ?? linkValueError('link', value.href)
       return href ? `href ${href}` : null
     }
     case 'select':

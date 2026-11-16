@@ -115,6 +115,10 @@ with `variant="minimal"`.
 - `settings` are what a store can edit for your template, each with a type,
   limits and a default. The standard ids (`hero.title`, `faq.items`, …)
   keep a store's values when it switches between templates that use them.
+- A link's `href`, a `url` and an `image` are an `https://` URL or a path
+  on the store's own site (`/domains`, never `//…`); a link's `href` may
+  also be a fragment of the page (`#faq`). That is all a store can save, so
+  a default in another form fails `hct validate`.
 
 [`examples/`](examples) has a template that is only `template.json`
 (`minimal`), one with a layout, three pages, settings, public files and

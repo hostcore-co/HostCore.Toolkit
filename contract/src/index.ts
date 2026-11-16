@@ -18,10 +18,14 @@ export {
   type RegistryPage,
 } from './registry'
 export {
+  LINK_HREF_RULE,
+  LINK_URL_RULE,
+  linkValueError,
   STANDARD_SETTINGS,
   settingValueError,
   standardSetting,
   validateSettingSchema,
+  type LinkKind,
   type SettingSchemaEntry,
   type SettingType,
   type SettingValue,
