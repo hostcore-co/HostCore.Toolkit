@@ -86,3 +86,36 @@ describe('where the layout appears', () => {
     expect(pages).toContain('| `checkout` | `/checkout` and below | guarded | your layout, `variant="minimal"`, and your design tokens |')
   })
 })
+
+describe('the generated reference', () => {
+  it('gives every table column a heading', () => {
+    for (const [name, text] of Object.entries(generateDocs())) {
+      const lines = text.split('\n')
+      lines.forEach((line, i) => {
+        if (!lines[i + 1]?.startsWith('| ---')) return
+        const cells = line.slice(1, -1).split(' | ').map((c) => c.trim())
+        expect([name, line, cells.every((c) => c !== '')]).toEqual([name, line, true])
+      })
+    }
+    expect(generateDocs()['sdk.md']).toContain('| name | signature | what it does |')
+  })
+
+  it('divides the tokens page into sections', () => {
+    const headings = generateDocs()['tokens.md']!.split('\n').filter((l) => l.startsWith('#'))
+    expect(headings).toEqual(['# Design tokens', '## Tokens', '## How a value is chosen', '## Value patterns'])
+  })
+})
+
+describe("the README's command list", () => {
+  it('names every command and every option --help lists', async () => {
+    const readme = await readFile(join(REPO, 'README.md'), 'utf8')
+    const list = readme.slice(readme.indexOf('## The commands'), readme.indexOf('## Developing the toolkit'))
+    for (const c of COMMANDS) {
+      expect([c.name, list.includes(`hct ${c.name}`)]).toEqual([c.name, true])
+      for (const f of c.flags) {
+        const flag = f.flag.split(' ')[0]!
+        expect([c.name, flag, list.includes(flag)]).toEqual([c.name, flag, true])
+      }
+    }
+  })
+})

@@ -403,23 +403,27 @@ left exactly as it was. `hct docs` writes the full field-by-field table
 ## The commands
 
 ```
+hct --help             list the commands (hct <command> --help for one)
 hct --version          print the toolkit version
 hct init [dir]         start a new format-2 template (--minimal, --id, --name)
 hct dev [dir]          preview it against the contract fixtures (--port, --payload <file>)
 hct validate [dir]     check a template against the build policy
-hct check [dir]        render every page against every fixture (--dist, --runtime, --json, --budget-*)
-hct build [dir]        validate, build, and emit a manifest (--local-paths, --media-base <url>, --out, --runtime, --sign <key>)
+hct check [dir]        render every page against every fixture (--dist, --runtime, --json, --budget-server, --budget-client-js, --budget-css)
+hct build [dir]        validate, build, and emit a manifest (--local-paths, --media-base <url>, --out, --runtime, --sign <key>, --skip-validation)
 hct push [dir]         build, then upload a new version (--listing, --tag, --changelog, --api, --org)
 hct upgrade [dir]      move a format-1 template to format 2 (--dry-run)
 hct docs --out <dir>   write the reference documentation
 hct runtime build      build the shared React runtime (--out <dir>, --root, --sign)
 hct keygen             generate a signing keypair
-hct contract generate  regenerate contract/dist from the contract definitions
-hct contract check     fail when contract/dist is out of date
+hct contract generate  regenerate contract/dist and the generated fixtures (--contract-dir)
+hct contract check     fail when any of them is out of date (--contract-dir)
+hct contract generate-go  write the Go contract into another project (--kind contract|frontend-prefixes, --package, --out)
 ```
 
 `hct build` runs the policy check first, so a template that reaches for
-something it cannot have fails at build time rather than at render time. Your
+something it cannot have fails at build time rather than at render time.
+`--skip-validation` leaves the check out, for a local build only: the
+platform always runs it. Your
 bundle runs with no filesystem, no network and no module system other than
 the shared React runtime — the check is there to tell you early, not to be
 the only thing enforcing it.

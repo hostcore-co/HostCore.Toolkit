@@ -67,7 +67,9 @@ function cell(text: string): string {
   return text.replace(/\|/g, '\\|').replace(/\n/g, ' ')
 }
 
+/** A Markdown table. Every column has a heading. */
 function table(header: string[], rows: string[][]): string {
+  if (header.some((h) => h.trim() === '')) throw new Error(`a table heading is empty: ${JSON.stringify(header)}`)
   return [`| ${header.join(' | ')} |`, `| ${header.map(() => '---').join(' | ')} |`, ...rows.map((r) => `| ${r.map(cell).join(' | ')} |`)].join('\n')
 }
 
@@ -345,12 +347,14 @@ function tokensPage(): string {
   return [
     '# Design tokens',
     '',
-    'The named values a template styles itself with. The rendering engine writes each token to a CSS custom property on `:root` (and `:host`), so your CSS reads `var(--hc-accent)`. Your template\'s `tokens` in template.json set your values. For the eight colours, a colour the store has changed from the platform default overrides yours; a colour the store has never changed follows yours, and the platform default applies where you declare none. The other tokens are yours where you set them, and a platform default otherwise.',
+    'The named values a template styles itself with. The rendering engine writes each token to a CSS custom property on `:root` (and `:host`), so your CSS reads `var(--hc-accent)`. Set your values in `tokens` in template.json:',
     '',
     '```jsonc',
     '// template.json',
     '{ "tokens": { "color.accent": "#5b8cff", "radius.md": "0.5rem", "font.heading": "\\"Space Grotesk\\", system-ui, sans-serif" } }',
     '```',
+    '',
+    '## Tokens',
     '',
     table(
       ['token', 'CSS property', 'value', 'store theme colour', 'platform default'],
@@ -363,7 +367,19 @@ function tokensPage(): string {
       ]),
     ),
     '',
-    'The value patterns, exactly:',
+    '## How a value is chosen',
+    '',
+    'Every store has its eight theme colours set at all times, to the platform defaults above until its owner changes one. For each colour token:',
+    '',
+    '- a colour the store has changed from its platform default overrides your value;',
+    '- a colour the store has never changed shows your value;',
+    '- where you declare no value, the platform default applies.',
+    '',
+    'A store colour is compared with its default without regard to case. The radius, font and space tokens are your value where you set one, and a platform default otherwise.',
+    '',
+    '## Value patterns',
+    '',
+    'A value must match the pattern of its kind exactly:',
     '',
     table(['kind', 'pattern'], Object.entries(TOKEN_PATTERNS).map(([k, p]) => [k, code(p)])),
     '',
@@ -391,7 +407,7 @@ function sdkPage(): string {
     ...kinds.flatMap(([kind, title]) => [
       `## ${title}`,
       '',
-      table(['name', 'use', ''], SDK.filter((e) => e.kind === kind).map((e) => [code(e.name), code(e.signature), e.text])),
+      table(['name', 'signature', 'what it does'], SDK.filter((e) => e.kind === kind).map((e) => [code(e.name), code(e.signature), e.text])),
       '',
     ]),
     '## Files',
@@ -423,8 +439,8 @@ function cliPage(): string {
   for (const c of COMMANDS) {
     out.push(`## hct ${c.name}`, '', `${c.summary[0]!.toUpperCase()}${c.summary.slice(1)}.`, '', '```', c.usage, '```', '')
     for (const p of c.description) out.push(p, '')
-    if (c.flags.length > 0) out.push(table(['option', ''], c.flags.map((f) => [code(f.flag), f.text])), '')
-    if (c.env && c.env.length > 0) out.push(table(['environment', ''], c.env.map((e) => [code(e.flag), e.text])), '')
+    if (c.flags.length > 0) out.push(table(['option', 'what it does'], c.flags.map((f) => [code(f.flag), f.text])), '')
+    if (c.env && c.env.length > 0) out.push(table(['environment variable', 'what it is'], c.env.map((e) => [code(e.flag), e.text])), '')
   }
   return out.join('\n')
 }
