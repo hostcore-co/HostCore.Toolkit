@@ -10,6 +10,7 @@ export { Link } from './components/Link'
 export type {
   // Store
   StoreBusinessInfo,
+  StoreTheme,
   StorePublicInfo,
   // Catalogue
   Marketing,
@@ -27,6 +28,10 @@ export type {
   StoreContent,
   // Domains
   DomainTLD,
+  OrderFormComponentType,
+  OrderFormOption,
+  OrderFormRegion,
+  OrderFormComponent,
   ServiceOrderFormRow,
   ServicePlanPricing,
   PaymentType,
@@ -38,6 +43,7 @@ export type {
   PageType,
   PageMeta,
   PageData,
+  BasePageData,
   HomePageData,
   GroupPageData,
   GroupPageServiceEntry,
