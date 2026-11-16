@@ -261,6 +261,33 @@ lists each one with its version and where it ended up. The manifest's
 `build_id` is derived from its content, so the same source always gives the
 same id.
 
+### Stylesheets load only from your store
+
+Your stylesheet is also applied to the platform's own pages, checkout and
+sign-in among them, where nothing may load from another site. So every
+`@import` and every `url()` (and `image-set()`) in it must be one of:
+
+- relative: `url(images/grid.svg)`, `@import "./fonts.css"`;
+- root-relative: `url(/images/grid.svg)`;
+- a `data:` URI;
+- a fragment: `url(#clip)`.
+
+An absolute URL (`https://fonts.example.com/…`) or one that starts with
+`//` fails. Put the file in `public/` and reference it relatively instead;
+for a web font, put its font files in `public/` and declare them with
+`@font-face`. `hct validate` checks your `.css` files, and `hct build` and
+`hct check` check the built stylesheet too, since a package or a
+preprocessor can add a URL your own CSS does not have:
+
+```
+src/styles.css:3  [stylesheet-external-url] url("https://images.example.com/hero.jpg") loads from another site. …
+```
+
+The CSS is read the way a browser reads it, so comments, quotes, escapes
+and whitespace make no difference to the result. A build whose stylesheet
+breaks the rule fails rather than recording it, so the manifest has no
+field for it: every manifest's stylesheet stays on the store's own site.
+
 ### In the browser
 
 The client entry hydrates the page when it loads. It also exports

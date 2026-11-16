@@ -373,3 +373,35 @@ export default function Home() {
     expect(found.map((f) => f.rule).sort()).toEqual(['banned-import', 'eval'])
   })
 })
+
+describe('stylesheets', () => {
+  const css = `@import "tailwindcss" source(".");
+@import url("./fonts.css");
+/* url(https://fonts.example.com/inter.woff2) is not loaded from a comment */
+.hero { background: url('/images/grid.svg'), url(data:image/png;base64,AAAA) }
+.mask { clip-path: url(#clip) }
+.logo { background: url("https://images.example.com/logo.png") }
+@import '//fonts.example.com/css';
+`
+
+  it('flags a URL to another site in a format-2 stylesheet, with its file, line and URL', async () => {
+    const found = await findings2({ 'src/styles.css': css, 'public/fonts.css': '@font-face { src: url(fonts/inter.woff2) }' })
+    expect(found.map((f) => [f.file, f.line, f.rule])).toEqual([
+      ['src/styles.css', 6, 'stylesheet-external-url'],
+      ['src/styles.css', 7, 'stylesheet-external-url'],
+    ])
+    expect(found[0]!.message).toStartWith('url("https://images.example.com/logo.png") loads from another site.')
+    expect(found[0]!.message).toContain('put the file in public/ and reference it with a relative or root-relative URL, such as url("/logo.png")')
+    expect(found[1]!.message).toStartWith('@import "//fonts.example.com/css" loads from another site.')
+  })
+
+  it('applies to format-1 stylesheets too', async () => {
+    expect(await rules({ sources: { 'src/styles.css': css } })).toEqual(['stylesheet-external-url', 'stylesheet-external-url'])
+  })
+
+  it('leaves out stylesheets that are not part of the template', async () => {
+    expect(
+      await rules({ sources: { 'node_modules/x/a.css': css, 'dist/client/a.css': css, 'dev/preview.css': css } }),
+    ).toEqual([])
+  })
+})

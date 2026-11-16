@@ -1,5 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { relative } from 'node:path'
+import { readdir, readFile } from 'node:fs/promises'
+import { join, relative, sep } from 'node:path'
 import { Glob } from 'bun'
 import {
   BANNED_IMPORT_PREFIXES,
@@ -8,8 +8,10 @@ import {
   PLATFORM_ALLOWED_PACKAGES,
   PLATFORM_URL_RULES,
   SOURCE_GLOB,
+  STYLESHEET_GLOB,
 } from './policy'
 import { discoverSources } from './sources'
+import { externalStylesheetUrls } from './stylesheet'
 import { isFormat2, type LoadedTemplate } from './template'
 
 export interface Finding {
@@ -40,7 +42,8 @@ const SKIP_DIRECTORIES = ['node_modules/', 'dist/', '.vite/', 'build/']
  *
  * Import specifiers come from Bun's transpiler rather than a regex, so
  * they are the real resolved imports including type-only and re-export
- * forms. The remaining checks are textual and deliberately blunt.
+ * forms. Stylesheets are tokenized as CSS (see stylesheet.ts). The
+ * remaining checks are textual and deliberately blunt.
  */
 export async function validateTemplate(
   template: LoadedTemplate,
@@ -61,10 +64,7 @@ export async function validateTemplate(
   let filesScanned = 0
 
   for await (const relPath of glob.scan({ cwd: template.root, dot: false })) {
-    if (SKIP_DIRECTORIES.some((dir) => relPath.includes(dir))) continue
-    // The dev harness never ships. It stands in for the platform locally,
-    // so it legitimately does things a template may not.
-    if (relPath.startsWith('dev/') || relPath.startsWith('mocks/')) continue
+    if (!ships(relPath)) continue
     if (relPath === 'vite.config.ts') continue
 
     filesScanned++
@@ -77,7 +77,63 @@ export async function validateTemplate(
     }
   }
 
+  for await (const relPath of new Glob(STYLESHEET_GLOB).scan({ cwd: template.root, dot: false })) {
+    if (!ships(relPath)) continue
+    filesScanned++
+    findings.push(...scanStylesheet(await readFile(`${template.root}/${relPath}`, 'utf8'), relPath))
+  }
+
   return { findings, filesScanned }
+}
+
+/**
+ * Whether a file is part of what a template ships. The dev harness stands
+ * in for the platform locally, so it legitimately does things a template
+ * may not.
+ */
+function ships(relPath: string): boolean {
+  if (SKIP_DIRECTORIES.some((dir) => relPath.includes(dir))) return false
+  return !(relPath.startsWith('dev/') || relPath.startsWith('mocks/'))
+}
+
+/**
+ * A stylesheet may only load files from the store's own origin; see
+ * stylesheet.ts. The same rule is applied to the built stylesheet, which
+ * catches a URL a preprocessor or a package brings in.
+ */
+export function scanStylesheet(css: string, file: string): Finding[] {
+  return externalStylesheetUrls(css).map((f) => ({
+    file,
+    line: f.line,
+    rule: STYLESHEET_RULE,
+    message: f.message,
+  }))
+}
+
+/** The rule id of a stylesheet URL that loads from another site. */
+export const STYLESHEET_RULE = 'stylesheet-external-url'
+
+/**
+ * Applies the stylesheet rule to every .css file of a build, by path
+ * relative to the build directory.
+ */
+export async function scanBuiltStylesheets(buildDir: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  const entries = await readdir(buildDir, { withFileTypes: true, recursive: true })
+  const paths = entries
+    .filter((e) => e.isFile() && e.name.endsWith('.css'))
+    .map((e) => relative(buildDir, join(e.parentPath, e.name)).split(sep).join('/'))
+    .sort()
+  for (const path of paths) findings.push(...scanStylesheet(await readFile(join(buildDir, path), 'utf8'), path))
+  return findings
+}
+
+/** Why a build whose stylesheet loads from another site fails. */
+export function formatBuiltStylesheetFindings(findings: Finding[]): string {
+  return [
+    'the built stylesheet loads from another site, which the platform does not accept. When your own CSS has no such URL, a package or a preprocessor added it:',
+    ...findings.map((f) => `  ${f.file}${f.line > 0 ? `:${f.line}` : ''}  [${f.rule}] ${f.message}`),
+  ].join('\n')
 }
 
 /**

@@ -134,6 +134,9 @@ export const BANNED_PATTERNS: readonly BannedPattern[] = [
 /** Files the validator reads. */
 export const SOURCE_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs}'
 
+/** Stylesheets the validator reads. */
+export const STYLESHEET_GLOB = '**/*.css'
+
 /**
  * Packages that only do anything in a browser. In a format-2 server build
  * each is replaced by an inert stand-in that is safe to call during a server

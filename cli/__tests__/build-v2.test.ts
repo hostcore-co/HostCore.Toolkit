@@ -332,6 +332,25 @@ describe('examples/basic', () => {
     expect(ok).toBe(true)
   }, 30_000)
 
+  it('fails when the built stylesheet loads from another site', async () => {
+    const source = join(TMP, 'external-css')
+    await mkdir(join(source, 'src'), { recursive: true })
+    await writeFile(join(source, 'template.json'), JSON.stringify({ id: 'external-css', version: '1.0.0', name: 'External', format: 2, contract: '2026-11', toolchain: 2 }))
+    await writeFile(join(source, 'src', 'layout.tsx'), "import './styles.css'\nexport default function Layout({ children }: any) { return <main>{children}</main> }\n")
+    await writeFile(join(source, 'src', 'styles.css'), 'main { background: url("https://images.example.com/hero.jpg") }\n')
+
+    const validated = await hct(['build', source, '--local-paths', '--out', join(TMP, 'external-css-out'), '--runtime', RUNTIME])
+    expect(validated.code).toBe(1)
+    expect(validated.stderr).toContain('src/styles.css:1  [stylesheet-external-url] url("https://images.example.com/hero.jpg") loads from another site.')
+
+    // Without validation, the check on the built stylesheet still catches it.
+    const built = await hct(['build', source, '--local-paths', '--out', join(TMP, 'external-css-out'), '--runtime', RUNTIME, '--skip-validation'])
+    expect(built.code).toBe(1)
+    expect(built.stderr).toStartWith('the built stylesheet loads from another site')
+    expect(built.stderr).toMatch(/client\/assets\.[\w-]+\.css:1 {2}\[stylesheet-external-url\] url\("https:\/\/images\.example\.com\/hero\.jpg"\) loads from another site\./)
+    expect(await Bun.file(join(TMP, 'external-css-out', 'manifest.json')).exists()).toBe(false)
+  }, 30_000)
+
   it('needs --media-base or --local-paths', async () => {
     const result = await hct(['build', 'examples/basic', '--out', join(TMP, 'nowhere')])
     expect(result.code).toBe(1)

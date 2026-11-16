@@ -11,7 +11,7 @@ import { discoverSources, type TemplateSources } from './sources'
 import { isClientOnly, serverStub } from './stubs'
 import type { LoadedTemplate, TemplateManifestV2 } from './template'
 import { TOOLCHAIN } from './toolchain'
-import { formatFindings, validateTemplate } from './validate'
+import { formatBuiltStylesheetFindings, formatFindings, scanBuiltStylesheets, validateTemplate } from './validate'
 
 /**
  * Builds a format-2 template (bundle protocol 2):
@@ -28,6 +28,10 @@ import { formatFindings, validateTemplate } from './validate'
  * The entries are generated from the files the template has (see
  * sources.ts) and wrap them in the toolkit's own server and client code, so
  * every template renders and hydrates the same way.
+ *
+ * A build whose stylesheet loads anything from another site fails (see
+ * stylesheet.ts), so the stylesheet of every build that has a manifest
+ * stays on the store's own origin.
  */
 
 export interface BuildV2Options {
@@ -359,6 +363,8 @@ async function writeManifest(
 ): Promise<ManifestV2> {
   const paths = await listFiles(outDir)
   checkOutputs(paths, collected)
+  const stylesheet = await scanBuiltStylesheets(outDir)
+  if (stylesheet.length > 0) throw new BuildError(formatBuiltStylesheetFindings(stylesheet))
 
   const files: Record<string, FileEntry> = {}
   for (const path of paths) files[path] = fileEntry(await readFile(join(outDir, path)))

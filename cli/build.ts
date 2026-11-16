@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 import type { InlineConfig, PluginOption } from 'vite'
 import { digest, signManifest, type BundleManifest } from './manifest'
 import type { LoadedTemplate } from './template'
-import { formatFindings, validateTemplate } from './validate'
+import { formatBuiltStylesheetFindings, formatFindings, scanBuiltStylesheets, validateTemplate } from './validate'
 
 /** Where a --local-paths build addresses its own assets. */
 export const ENGINE_ASSET_PREFIX = '/_hc/assets/'
@@ -52,6 +52,9 @@ export class BuildError extends Error {
  *
  *   client/*.js + client/*.css — sent to the browser, and named in the
  *     manifest.
+ *
+ * The built stylesheet may only load files from the store's own origin
+ * (see stylesheet.ts); a build whose stylesheet reaches another site fails.
  *
  * Validation runs first and a failure stops the build. The policy exists so
  * that unvetted code never reaches a bundle, so building anyway "just to
@@ -257,6 +260,8 @@ async function writeManifest(
 
   if (!clientJs) throw new BuildError('client build produced no entry bundle')
   if (!css) throw new BuildError('client build produced no stylesheet')
+  const stylesheet = await scanBuiltStylesheets(outDir)
+  if (stylesheet.length > 0) throw new BuildError(formatBuiltStylesheetFindings(stylesheet))
 
   const clientBytes = await readFile(join(clientDir, clientJs))
   const cssBytes = await readFile(join(clientDir, css))

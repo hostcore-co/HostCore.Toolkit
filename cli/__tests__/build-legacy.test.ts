@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
-import { readFile, readdir, rm } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createContext, runInContext } from 'node:vm'
 import { hct } from './host'
@@ -58,4 +58,22 @@ describe('format 1 (examples/legacy)', () => {
     const fixture = JSON.parse(await readFile(join(REPO, 'contract', 'fixtures', '1', 'home.json'), 'utf8'))
     expect(html).toContain(`<h1>${fixture.content.hero.title}</h1>`)
   })
+
+  it('fails when the built stylesheet loads from another site', async () => {
+    const source = join(`${OUT}-css`, 'legacy')
+    await rm(`${OUT}-css`, { recursive: true, force: true })
+    await mkdir(source, { recursive: true })
+    for (const entry of ['package.json', 'template.json', 'src']) await cp(join(REPO, 'examples', 'legacy', entry), join(source, entry), { recursive: true })
+    // The Vite format 1 builds with is the one the template installed.
+    await symlink(join(REPO, 'examples', 'legacy', 'node_modules'), join(source, 'node_modules'))
+    await writeFile(join(source, 'src', 'styles.css'), 'body { background: url(//images.example.com/bg.png) }\n')
+    try {
+      const result = await hct(['build', source, '--local-paths', '--out', join(`${OUT}-css`, 'dist'), '--skip-validation'])
+      expect(result.code).toBe(1)
+      expect(result.stderr).toContain('the built stylesheet loads from another site')
+      expect(result.stderr).toMatch(/client\/assets\.[\w-]+\.css:1 {2}\[stylesheet-external-url\] url\("\/\/images\.example\.com\/bg\.png"\)/)
+    } finally {
+      await rm(`${OUT}-css`, { recursive: true, force: true })
+    }
+  }, 60_000)
 })

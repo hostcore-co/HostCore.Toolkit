@@ -55,6 +55,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     summary: 'check a template against the build policy',
     description: [
       'Checks template.json, the dependencies, the files under src/ and what the source imports and reaches for. Format 2 also flags hand-built platform URLs and useSetting() ids template.json does not declare.',
+      'Every stylesheet may only load files from the store\'s own site: each @import and url() must be relative, root-relative (/fonts/a.woff2), a data: URI or a fragment (#id). The stylesheet is also used on the platform\'s checkout and sign-in pages, where nothing may load from another site.',
     ],
     flags: [],
   },
@@ -82,6 +83,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     summary: 'validate, build, and emit a manifest',
     description: [
       'Runs hct validate, then builds the template. Format 2 writes manifest.json, server/entry.server.cjs and the client files under client/; format 1 builds exactly as before, with the Vite the template has installed.',
+      'The built stylesheet is checked as well, since a package or a preprocessor can add a URL your own CSS does not have: a build whose stylesheet loads anything from another site fails.',
     ],
     flags: [
       { flag: '--local-paths', text: 'Build for local use: a format-2 build gets an empty media_base, a format-1 build addresses its assets at a platform-local path and needs no $CDN_BASE_URL.' },
