@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { buildTemplate } from './build'
 import { buildFormat2 } from './build-v2'
 import { CommandError, stringFlag, type Flags } from './commands'
-import { isFormat2, loadTemplate, type LoadedTemplate } from './template'
+import { isFormat2, loadTemplate, TEMPLATE_VERSION, type LoadedTemplate } from './template'
 import { zip, type ZipEntry } from './zip'
 
 /**
@@ -22,8 +22,8 @@ import { zip, type ZipEntry } from './zip'
  * when an organisation is named.
  */
 
-/** A version tag the platform accepts: three numbers. */
-export const TAG = /^[0-9]+\.[0-9]+\.[0-9]+$/
+/** A version tag the platform accepts: the same form as template.json's version. */
+export const TAG = TEMPLATE_VERSION
 
 /** Directories that are installs or outputs, never part of a template's source. */
 const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', 'build'])

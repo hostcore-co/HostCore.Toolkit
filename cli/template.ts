@@ -63,7 +63,11 @@ export function isFormat2(
 }
 
 export const TEMPLATE_ID = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
-const TEMPLATE_VERSION = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/
+/**
+ * A version the platform publishes: MAJOR.MINOR.PATCH, three numbers with
+ * no pre-release or build part.
+ */
+export const TEMPLATE_VERSION = /^[0-9]+\.[0-9]+\.[0-9]+$/
 
 export class TemplateError extends Error {
   constructor(message: string) {
@@ -106,7 +110,7 @@ export async function loadTemplate(root: string): Promise<LoadedTemplate> {
     !TEMPLATE_VERSION.test(manifest.version)
   ) {
     throw new TemplateError(
-      `template.json: version must be semver, got ${JSON.stringify(manifest.version)}`,
+      `template.json: version must be a release version, MAJOR.MINOR.PATCH such as 1.2.0, got ${JSON.stringify(manifest.version)}: the platform publishes only that form of semver, with no pre-release or build part`,
     )
   }
   const declaresAllowedPackages = manifest.allowedPackages !== undefined

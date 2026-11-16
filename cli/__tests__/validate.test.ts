@@ -87,6 +87,17 @@ describe('loadTemplate', () => {
     })
     expect(loadTemplate(dir)).rejects.toThrow(/semver/)
   })
+
+  it('refuses a version the platform cannot publish, such as a pre-release', async () => {
+    for (const version of ['1.0.0-beta', '1.0.0-rc.1', '1.0.0+build.5', '1.0', 'v1.0.0']) {
+      const dir = await fixture({ templateJson: { id: 'sample', version, name: 'x', allowedPackages: [] } })
+      expect(loadTemplate(dir)).rejects.toThrow(
+        `template.json: version must be a release version, MAJOR.MINOR.PATCH such as 1.2.0, got ${JSON.stringify(version)}: the platform publishes only that form of semver, with no pre-release or build part`,
+      )
+    }
+    const dir = await fixture({ templateJson: { id: 'sample', version: '10.20.30', name: 'x', allowedPackages: [] } })
+    expect((await loadTemplate(dir)).manifest.version).toBe('10.20.30')
+  })
 })
 
 describe('validateTemplate', () => {

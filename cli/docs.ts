@@ -399,7 +399,7 @@ function sdkPage(): string {
     table(
       ['file', 'default export'],
       [
-        ['`template.json`', 'id, version, name, `"format": 2`, `"contract": "2026-11"`, `"toolchain": 2`, tokens, settings, and optionally allowedPackages: the packages beyond the SDK and React the source may import'],
+        ['`template.json`', 'id, version (`MAJOR.MINOR.PATCH`, no pre-release), name, `"format": 2`, `"contract": "2026-11"`, `"toolchain": 2`, tokens, settings, and optionally allowedPackages: the packages beyond the SDK and React the source may import'],
         ['`src/layout.tsx`', 'the layout: `({ children, variant }: LayoutProps)`; renders `children` (or `<Outlet/>`) exactly once'],
         ['`src/pages/<page id>.tsx`', 'a page: `({ page, data }: PageProps<id>)`; may `export const hydrate = "islands"`'],
         ['`src/islands/<name>.tsx`', 'a component hydrated on its own; wrap it with `island()` where a page uses it'],

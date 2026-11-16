@@ -113,6 +113,9 @@ layout with `variant="minimal"`; the `private` one, the account area
 }
 ```
 
+- `version` is three numbers, `MAJOR.MINOR.PATCH` (`2.1.0`). The platform
+  publishes no other form, so a pre-release such as `2.1.0-beta` fails
+  `hct validate`.
 - `allowedPackages`, when present, lists the packages your source may
   import besides `@hostcore/toolkit`, `react` and `react-dom`, which any
   template may import. Each must be one the platform allows (`clsx`,
