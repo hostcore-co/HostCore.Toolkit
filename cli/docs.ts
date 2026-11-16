@@ -277,7 +277,7 @@ function settingsPage(): string {
   return [
     '# Settings',
     '',
-    'Settings are what a store can edit for your template. Declare each one in `template.json` `settings`, read it with `useSetting(id)`, and the store\'s value (or your default) arrives in the page payload. When a store switches template, values whose id and type both match carry over.',
+    'Settings are what a store can edit for your template. Declare each one in `template.json` `settings`, read it with `useSetting(id)`, and the store\'s value (or your default) arrives in the page payload\'s `settings`. That object also always holds every standard setting id, with the store\'s value or the standard default, whether or not your template declares it; a setting of your own with neither a value nor a default is absent. When a store switches template, values whose id and type both match carry over.',
     '',
     '```jsonc',
     '{ "id": "hero.title", "type": "text", "label": "Headline", "description": "Shown above the fold.", "max": 160, "default": "Hosting that stays out of your way" }',

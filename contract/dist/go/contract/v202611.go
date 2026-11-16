@@ -414,8 +414,11 @@ type V202611PageEnvelope struct {
 	Store V202611Store `json:"store"`
 	// The groups and links a layout needs.
 	Nav V202611Nav `json:"nav"`
-	// The store's values for the template's settings, by setting id. A setting the
-	// store has not set is absent; use its default.
+	// The values of the settings, by setting id. Every standard setting id is
+	// always present, with the store's value or the setting's default. Each
+	// setting the template declares is present when it has a value: the store's,
+	// or else the default the template declares. A declared setting with neither
+	// is absent.
 	Settings map[string]any `json:"settings"`
 	// The endpoints the page may call from the browser.
 	Actions V202611Actions `json:"actions"`

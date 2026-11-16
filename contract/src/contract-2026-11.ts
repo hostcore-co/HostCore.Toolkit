@@ -314,7 +314,7 @@ d.define(
     store: doc('The store the page belongs to.', t.ref('Store')),
     nav: doc('The groups and links a layout needs.', t.ref('Nav')),
     settings: doc(
-      "The store's values for the template's settings, by setting id. A setting the store has not set is absent; use its default.",
+      "The values of the settings, by setting id. Every standard setting id is always present, with the store's value or the setting's default. Each setting the template declares is present when it has a value: the store's, or else the default the template declares. A declared setting with neither is absent.",
       t.record(t.json()),
     ),
     actions: doc('The endpoints the page may call from the browser.', t.ref('Actions')),

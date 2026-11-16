@@ -454,8 +454,11 @@ export interface PageEnvelope<P extends ContractPageId = ContractPageId> {
   /** The groups and links a layout needs. */
   nav: Nav
   /**
-   * The store's values for the template's settings, by setting id. A setting
-   * the store has not set is absent; use its default.
+   * The values of the settings, by setting id. Every standard setting id is
+   * always present, with the store's value or the setting's default. Each
+   * setting the template declares is present when it has a value: the store's,
+   * or else the default the template declares. A declared setting with neither
+   * is absent.
    */
   settings: Record<string, JsonValue>
   /** The endpoints the page may call from the browser. */
