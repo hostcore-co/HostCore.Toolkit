@@ -5,6 +5,11 @@
 // and the design tokens.
 package contract
 
+import (
+	"regexp"
+	"strings"
+)
+
 // PageID identifies a page in the page registry.
 type PageID string
 
@@ -238,8 +243,9 @@ var TokenPatterns = []struct {
 }
 
 // Token is one design token and the CSS custom property the rendering engine
-// writes it to. ThemeKey names the store theme colour that overrides it, or is
-// empty.
+// writes it to. ThemeKey names the store theme colour it corresponds to, or is
+// empty; see EffectiveTokens for when that colour overrides the template's
+// value.
 type Token struct {
 	Name     string    `json:"name"`
 	Property string    `json:"property"`
@@ -263,4 +269,77 @@ var Tokens = []Token{
 	{Name: "font.body", Property: "--hc-font-body", Kind: TokenKindFont},
 	{Name: "font.heading", Property: "--hc-font-heading", Kind: TokenKindFont},
 	{Name: "space.unit", Property: "--hc-space-unit", Kind: TokenKindSpace},
+}
+
+// ThemeKeys are the eight colours of a store's theme.
+var ThemeKeys = []string{
+	"background",
+	"surface",
+	"surface_raised",
+	"border",
+	"text",
+	"text_muted",
+	"accent",
+	"accent_strong",
+}
+
+// ThemeTokens maps each store theme colour to the design token it corresponds
+// to.
+var ThemeTokens = map[string]string{
+	"background":     "color.background",
+	"surface":        "color.surface",
+	"surface_raised": "color.surface-raised",
+	"border":         "color.border",
+	"text":           "color.text",
+	"text_muted":     "color.text-muted",
+	"accent":         "color.accent",
+	"accent_strong":  "color.accent-strong",
+}
+
+// PlatformTheme is the platform default palette. Every store has all eight
+// colours set, to these until its owner changes one; a colour equal to its
+// default, compared without regard to case, counts as unchanged.
+var PlatformTheme = map[string]string{
+	"background":     "#141517",
+	"surface":        "#111214",
+	"surface_raised": "#191A1C",
+	"border":         "#27282A",
+	"text":           "#FFFFFF",
+	"text_muted":     "#A2A3A7",
+	"accent":         "#34D0FF",
+	"accent_strong":  "#1F9DFF",
+}
+
+var hexColour = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
+
+// EffectiveTokens returns the value of every token that has one, by token name,
+// from a template's tokens and a store's theme. Each of the eight colours is
+// the store's colour when the store has changed it: it is a hex colour that
+// differs from its PlatformTheme value without regard to case. Otherwise it is
+// the template's value for the token, or the PlatformTheme value where the
+// template has none. A theme colour that is missing, empty or not a hex colour
+// counts as unchanged. The other tokens appear only where the template sets
+// them; keys of template that are not tokens are ignored.
+func EffectiveTokens(template, theme map[string]string) map[string]string {
+	values := make(map[string]string)
+	for _, token := range Tokens {
+		own, declared := template[token.Name]
+		if token.ThemeKey == "" {
+			if declared {
+				values[token.Name] = own
+			}
+			continue
+		}
+		fallback := PlatformTheme[token.ThemeKey]
+		store := theme[token.ThemeKey]
+		switch {
+		case hexColour.MatchString(store) && !strings.EqualFold(store, fallback):
+			values[token.Name] = store
+		case declared:
+			values[token.Name] = own
+		default:
+			values[token.Name] = fallback
+		}
+	}
+	return values
 }

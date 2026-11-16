@@ -1,6 +1,6 @@
 import type { NormalisedRegistry } from '../registry'
 import { STANDARD_SETTINGS, type SettingSchemaEntry, type SettingValue } from '../settings'
-import { TOKEN_PATTERNS, TOKENS } from '../tokens'
+import { PLATFORM_THEME, THEME_KEYS, THEME_TOKENS, TOKEN_PATTERNS, TOKENS } from '../tokens'
 import { alignRows, goComment, goFileHeader, goString, type GoRow } from './go'
 import { goIdentifier } from './text'
 
@@ -75,6 +75,8 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
     packageName,
     `Package ${packageName} is the storefront page contract: the shapes of page payloads for each contract version, the page registry, the standard template settings and the design tokens.`,
   )
+
+  lines.push('import (', '\t"regexp"', '\t"strings"', ')', '')
 
   const tiers = [...new Set(registry.pages.map((p) => p.tier))]
   const upstreams = [...new Set(registry.pages.map((p) => p.upstream))]
@@ -272,7 +274,7 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
 
   lines.push(
     ...goComment(
-      "Token is one design token and the CSS custom property the rendering engine writes it to. ThemeKey names the store theme colour that overrides it, or is empty.",
+      "Token is one design token and the CSS custom property the rendering engine writes it to. ThemeKey names the store theme colour it corresponds to, or is empty; see EffectiveTokens for when that colour overrides the template's value.",
     ),
   )
   lines.push('type Token struct {')
@@ -300,7 +302,59 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
     if (tk.theme_key) parts.push(`ThemeKey: ${goString(tk.theme_key)}`)
     lines.push(`\t{${parts.join(', ')}},`)
   }
-  lines.push('}')
+  lines.push('}', '')
+
+  lines.push(...goComment("ThemeKeys are the eight colours of a store's theme."))
+  lines.push('var ThemeKeys = []string{')
+  for (const key of THEME_KEYS) lines.push(`\t${goString(key)},`)
+  lines.push('}', '')
+
+  lines.push(...goComment('ThemeTokens maps each store theme colour to the design token it corresponds to.'))
+  lines.push('var ThemeTokens = map[string]string{')
+  lines.push(...alignRows(THEME_KEYS.map((k) => ({ cells: [`${goString(k)}:`, `${goString(THEME_TOKENS[k])},`] })), '\t'))
+  lines.push('}', '')
+
+  lines.push(
+    ...goComment(
+      'PlatformTheme is the platform default palette. Every store has all eight colours set, to these until its owner changes one; a colour equal to its default, compared without regard to case, counts as unchanged.',
+    ),
+  )
+  lines.push('var PlatformTheme = map[string]string{')
+  lines.push(...alignRows(THEME_KEYS.map((k) => ({ cells: [`${goString(k)}:`, `${goString(PLATFORM_THEME[k])},`] })), '\t'))
+  lines.push('}', '')
+
+  lines.push('var hexColour = regexp.MustCompile(`' + TOKEN_PATTERNS.color + '`)', '')
+
+  lines.push(
+    ...goComment(
+      "EffectiveTokens returns the value of every token that has one, by token name, from a template's tokens and a store's theme. Each of the eight colours is the store's colour when the store has changed it: it is a hex colour that differs from its PlatformTheme value without regard to case. Otherwise it is the template's value for the token, or the PlatformTheme value where the template has none. A theme colour that is missing, empty or not a hex colour counts as unchanged. The other tokens appear only where the template sets them; keys of template that are not tokens are ignored.",
+    ),
+  )
+  lines.push(
+    'func EffectiveTokens(template, theme map[string]string) map[string]string {',
+    '\tvalues := make(map[string]string)',
+    '\tfor _, token := range Tokens {',
+    '\t\town, declared := template[token.Name]',
+    '\t\tif token.ThemeKey == "" {',
+    '\t\t\tif declared {',
+    '\t\t\t\tvalues[token.Name] = own',
+    '\t\t\t}',
+    '\t\t\tcontinue',
+    '\t\t}',
+    '\t\tfallback := PlatformTheme[token.ThemeKey]',
+    '\t\tstore := theme[token.ThemeKey]',
+    '\t\tswitch {',
+    '\t\tcase hexColour.MatchString(store) && !strings.EqualFold(store, fallback):',
+    '\t\t\tvalues[token.Name] = store',
+    '\t\tcase declared:',
+    '\t\t\tvalues[token.Name] = own',
+    '\t\tdefault:',
+    '\t\t\tvalues[token.Name] = fallback',
+    '\t\t}',
+    '\t}',
+    '\treturn values',
+    '}',
+  )
 
   return `${lines.join('\n')}\n`
 }

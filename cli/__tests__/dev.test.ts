@@ -59,6 +59,8 @@ beforeAll(async () => {
   const payload = JSON.parse(await readFile(join(FIXTURES, 'catalog.group.json'), 'utf8'))
   payload.data.group.name = 'My Own Group'
   payload.data.group.marketing.title = ''
+  payload.store.theme.border = '#333333'
+  payload.store.theme.accent = '#34d0ff'
   await writeFile(join(TMP, 'payload.json'), JSON.stringify(payload))
   const { NODE_ENV: _test, ...env } = process.env
   proc = Bun.spawn([process.execPath, join(REPO, 'cli', 'index.ts'), 'dev', TEMPLATE, '--port', '0', '--payload', join(TMP, 'payload.json')], {
@@ -78,6 +80,19 @@ afterAll(async () => {
 })
 
 describe('hct dev', () => {
+  it("writes the template's colours where the store has not changed its own", async () => {
+    const page = await get('/page/home/home')
+    expect(page.text).toContain('--hc-accent:#5b8cff')
+    expect(page.text).toContain('--hc-background:#141517')
+    expect(page.text).toContain('--hc-radius-md:0.5rem')
+  })
+
+  it('writes a colour the store has changed over the template', async () => {
+    const page = await get('/page/_/payload')
+    expect(page.text).toContain('--hc-border:#333333')
+    expect(page.text).toContain('--hc-accent:#5b8cff')
+  })
+
   it('lists every page id and every fixture for it', async () => {
     const index = await get('/')
     expect(index.status).toBe(200)
@@ -105,7 +120,8 @@ describe('hct dev', () => {
     for (const file of Object.values(map.imports) as string[]) expect((await get(file)).status).toBe(200)
     const css = /<link rel="stylesheet" href="([^"]+)">/.exec(page.text)![1]!
     expect((await get(css)).headers.get('content-type')).toContain('text/css')
-    expect(page.text).toContain('--hc-accent:#34D0FF')
+    // The fixture's store has the platform default accent, so the template's own accent shows.
+    expect(page.text).toContain('--hc-accent:#5b8cff')
   })
 
   it('renders exactly what the server bundle renders', async () => {

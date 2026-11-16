@@ -30,5 +30,16 @@ export {
   type SettingType,
   type SettingValue,
 } from './settings'
-export { TOKENS, TOKEN_PATTERNS, validateTokens, type TokenDefinition, type TokenKind } from './tokens'
+export {
+  effectiveTokens,
+  PLATFORM_THEME,
+  THEME_KEYS,
+  THEME_TOKENS,
+  TOKENS,
+  TOKEN_PATTERNS,
+  validateTokens,
+  type ThemeKey,
+  type TokenDefinition,
+  type TokenKind,
+} from './tokens'
 export type { Contract, Schema } from './dsl'

@@ -36,16 +36,16 @@ d.define(
 
 d.define(
   'StoreTheme',
-  "is the store's eight colours. Every value is a hex colour and is always set. The rendering engine writes them to the color.* design tokens.",
+  "is the store's eight colours. Every value is a hex colour and is always set: a colour the owner has never changed is the platform default palette. A colour the store has changed overrides the template's matching color.* design token; one it has not changed gives way to the template's token, and to the platform default where the template declares none.",
   t.object({
-    background: doc('The page background. Also --hc-background.', t.string()),
-    surface: doc('Cards and panels on the page. Also --hc-surface.', t.string()),
-    surface_raised: doc('Inputs and controls on those cards. Also --hc-surface-raised.', t.string()),
-    border: doc('Borders and dividers. Also --hc-border.', t.string()),
-    text: doc('Body text. Also --hc-text.', t.string()),
-    text_muted: doc('Secondary text. Also --hc-text-muted.', t.string()),
-    accent: doc('The brand colour, for buttons and links. Also --hc-accent.', t.string()),
-    accent_strong: doc('A stronger brand colour, for hover states and gradients. Also --hc-accent-strong.', t.string()),
+    background: doc('The page background (token color.background, --hc-background).', t.string()),
+    surface: doc('Cards and panels on the page (token color.surface, --hc-surface).', t.string()),
+    surface_raised: doc('Inputs and controls on those cards (token color.surface-raised, --hc-surface-raised).', t.string()),
+    border: doc('Borders and dividers (token color.border, --hc-border).', t.string()),
+    text: doc('Body text (token color.text, --hc-text).', t.string()),
+    text_muted: doc('Secondary text (token color.text-muted, --hc-text-muted).', t.string()),
+    accent: doc('The brand colour, for buttons and links (token color.accent, --hc-accent).', t.string()),
+    accent_strong: doc('A stronger brand colour, for hover states and gradients (token color.accent-strong, --hc-accent-strong).', t.string()),
   }),
 )
 

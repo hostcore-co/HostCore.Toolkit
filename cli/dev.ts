@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, normalize, resolve, sep } from 'node:path'
 import { matchPath, PAGES } from '../contract/dist/ts/registry'
 import { validate } from '../contract/src/validate'
-import { TOKENS } from '../contract/src/tokens'
+import { effectiveTokens, TOKENS } from '../contract/src/tokens'
 import { buildFormat2 } from './build-v2'
 import { readFixtures } from './check'
 import { CommandError, stringFlag, type Flags } from './commands'
@@ -67,15 +67,11 @@ function standIn(title: string, detail: string): string {
   return `<div data-hc-dev-standin style="${STANDIN_STYLE}"><strong>${escapeHtml(title)}</strong><br><span>${escapeHtml(detail)}</span></div>`
 }
 
+/** The design tokens as the rendering engine writes them, from the template's tokens and the payload's store theme. */
 function tokensCss(templateTokens: Record<string, string>, payload: Record<string, any>): string {
-  const values: Record<string, string> = {}
-  for (const token of TOKENS) {
-    const fromTemplate = templateTokens[token.name]
-    if (fromTemplate !== undefined) values[token.property] = fromTemplate
-    const fromStore = token.theme_key ? payload.store?.theme?.[token.theme_key] : undefined
-    if (typeof fromStore === 'string' && fromStore !== '') values[token.property] = fromStore
-  }
-  return `:root,:host{${Object.entries(values).map(([p, v]) => `${p}:${v}`).join(';')}}`
+  const values = effectiveTokens(templateTokens, payload.store?.theme)
+  const declarations = TOKENS.filter((t) => t.name in values).map((t) => `${t.property}:${values[t.name]}`)
+  return `:root,:host{${declarations.join(';')}}`
 }
 
 const TOOLBAR_STYLE =

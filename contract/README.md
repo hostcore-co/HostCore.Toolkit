@@ -11,6 +11,7 @@ registry.json            the page registry
 fixtures/2026-11/*.json  example payloads, written by hand
 fixtures/1/*.json        the same payloads downgraded to contract "1" (generated)
 fixtures/links.json      the cases of the link rule (generated)
+fixtures/tokens.json     the cases of the colour rule (generated)
 dist/                    generated, committed; copy these files, do not edit them
   ts/contract-1.ts  ts/contract-2026-11.ts  ts/registry.ts
   go/contract/v1.go  go/contract/v202611.go  go/contract/registry.go
@@ -19,7 +20,7 @@ dist/                    generated, committed; copy these files, do not edit the
 ```
 
 ```bash
-hct contract generate     # rewrite dist/, fixtures/1/ and fixtures/links.json
+hct contract generate     # rewrite dist/, fixtures/1/, links.json and tokens.json
 hct contract check        # exit 1 if anything generated is out of date
 hct contract generate-go --kind contract --package <name> --out <dir>
 hct contract generate-go --kind frontend-prefixes --package <name> --out <file>
@@ -143,9 +144,42 @@ being `link`, `url` or `image`.
 | `font.body` `font.heading` | `--hc-font-body` `--hc-font-heading` | font-family list, `^[A-Za-z0-9 ,'"-]{1,200}$` |
 | `space.unit` | `--hc-space-unit` | `<number>px` or `<number>rem` |
 
-A value resolves from the platform default, then the template's `tokens`,
-then the store's theme (the eight colours), last one winning. A `color`
-setting takes the same two forms; `#rgba` and `#rrggbbaa` are refused.
+A store has all eight theme colours set at all times: to the platform
+default palette until its owner changes one. So a token's value is:
+
+- for a colour the store has changed from the platform default, the store's
+  colour, whatever the template declares;
+- for a colour the store has never changed, the template's value;
+- where the template declares no value, the platform default.
+
+A store colour equal to its default compared without regard to case counts
+as unchanged (`#34d0ff` is the default accent; `#fff` is not the default
+text colour, `#FFFFFF` is). The radius, font and space tokens are the
+template's value where it sets one, and otherwise a platform default the
+rendering engine sets.
+
+| theme key | token | platform default |
+| --- | --- | --- |
+| `background` | `color.background` | `#141517` |
+| `surface` | `color.surface` | `#111214` |
+| `surface_raised` | `color.surface-raised` | `#191A1C` |
+| `border` | `color.border` | `#27282A` |
+| `text` | `color.text` | `#FFFFFF` |
+| `text_muted` | `color.text-muted` | `#A2A3A7` |
+| `accent` | `color.accent` | `#34D0FF` |
+| `accent_strong` | `color.accent-strong` | `#1F9DFF` |
+
+`effectiveTokens(template, theme)` in `src/tokens.ts` computes the result
+(by token name), with `THEME_KEYS`, `THEME_TOKENS` and `PLATFORM_THEME`
+beside it; the generated `dist/ts/registry.ts` carries the same, and the Go
+package has `ThemeKeys`, `ThemeTokens`, `PlatformTheme` and
+`EffectiveTokens(template, theme map[string]string) map[string]string`.
+`fixtures/tokens.json` (generated from `src/token-cases.ts`, each case
+checked) is an array of `{ name, template, theme, tokens }` that every
+implementation tests against.
+
+A `color` setting takes the same two forms as a colour token; `#rgba` and
+`#rrggbbaa` are refused.
 
 ## The page registry
 

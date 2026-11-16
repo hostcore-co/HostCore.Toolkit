@@ -6,7 +6,7 @@ import type { Contract, Definition, Field, Schema } from '../contract/src/dsl'
 import { TOOLKIT_CONTRACT_DIR } from '../contract/src/generate'
 import { normaliseRegistry, readRegistry } from '../contract/src/registry'
 import { SETTING_SCALAR_TYPES, SETTING_TYPES, STANDARD_SETTINGS, type SettingSchemaEntry, type SettingType } from '../contract/src/settings'
-import { TOKEN_PATTERNS, TOKENS } from '../contract/src/tokens'
+import { PLATFORM_THEME, TOKEN_PATTERNS, TOKENS, type ThemeKey } from '../contract/src/tokens'
 import { COMMANDS, CommandError, stringFlag, type Flags } from './commands'
 import { FIELD_MOVES, HAND_BUILT_URLS, HOOK_MOVES, NEW_IN_2026_11 } from './legacy-map'
 
@@ -337,7 +337,7 @@ function tokensPage(): string {
   return [
     '# Design tokens',
     '',
-    'The named values a template styles itself with. The rendering engine writes each token to a CSS custom property on `:root` (and `:host`), so your CSS reads `var(--hc-accent)`. A value resolves from the platform default, then your template\'s `tokens` in template.json, then the store\'s theme, which sets the eight colours; the last one set wins.',
+    'The named values a template styles itself with. The rendering engine writes each token to a CSS custom property on `:root` (and `:host`), so your CSS reads `var(--hc-accent)`. Your template\'s `tokens` in template.json set your values. For the eight colours, a colour the store has changed from the platform default overrides yours; a colour the store has never changed follows yours, and the platform default applies where you declare none. The other tokens are yours where you set them, and a platform default otherwise.',
     '',
     '```jsonc',
     '// template.json',
@@ -345,8 +345,14 @@ function tokensPage(): string {
     '```',
     '',
     table(
-      ['token', 'CSS property', 'value', 'set by the store theme'],
-      TOKENS.map((t) => [code(t.name), code(t.property), TOKEN_RULES[t.kind]!, t.theme_key ? code(`theme.${t.theme_key}`) : 'no']),
+      ['token', 'CSS property', 'value', 'store theme colour', 'platform default'],
+      TOKENS.map((t) => [
+        code(t.name),
+        code(t.property),
+        TOKEN_RULES[t.kind]!,
+        t.theme_key ? code(`theme.${t.theme_key}`) : 'none',
+        t.theme_key ? code(PLATFORM_THEME[t.theme_key as ThemeKey]) : 'set by the rendering engine',
+      ]),
     ),
     '',
     'The value patterns, exactly:',

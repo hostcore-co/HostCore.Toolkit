@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'bun:test'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import type { StoreTheme } from '../dist/ts/contract-2026-11'
+import * as generated from '../dist/ts/registry'
+import { TOKEN_CASES } from '../src/token-cases'
 import { readRegistry } from '../src/registry'
 import { settingValueError, STANDARD_SETTINGS, validateSettingSchema, type SettingSchemaEntry } from '../src/settings'
-import { TOKENS, validateTokens } from '../src/tokens'
+import { effectiveTokens, PLATFORM_THEME, THEME_KEYS, THEME_TOKENS, TOKENS, validateTokens } from '../src/tokens'
 
 describe('settings', () => {
   it('declares the standard settings validly, with defaults that fit', () => {
@@ -280,5 +284,58 @@ describe('standard link defaults', () => {
   it('point at the home page or at the path of a page in the registry', () => {
     expect(pagePaths).toContain('/')
     for (const [at, href] of links) expect([at, pagePaths.includes(href)]).toEqual([at, true])
+  })
+})
+
+describe('effective design tokens', () => {
+  const fixture = JSON.parse(readFileSync(join(import.meta.dir, '..', 'fixtures', 'tokens.json'), 'utf8')) as {
+    name: string
+    template: Record<string, string>
+    theme: Record<string, string>
+    tokens: Record<string, string>
+  }[]
+
+  it('agree with fixtures/tokens.json, in the contract and in the generated registry module', () => {
+    expect(fixture.map((c) => c.name)).toEqual(TOKEN_CASES.map((c) => c.name))
+    for (const c of fixture) {
+      expect([c.name, effectiveTokens(c.template, c.theme)]).toEqual([c.name, c.tokens])
+      expect([c.name, generated.effectiveTokens(c.template, c.theme)]).toEqual([c.name, c.tokens])
+    }
+  })
+
+  it('pin the three cases: a changed store colour, an unchanged one, and no template value', () => {
+    const template = { 'color.accent': '#5b8cff' }
+    expect(effectiveTokens(template, { ...PLATFORM_THEME, accent: '#ff5500' })['color.accent']).toBe('#ff5500')
+    expect(effectiveTokens(template, PLATFORM_THEME)['color.accent']).toBe('#5b8cff')
+    expect(effectiveTokens({}, PLATFORM_THEME)['color.accent']).toBe('#34D0FF')
+    expect(effectiveTokens({}, null)['color.accent']).toBe('#34D0FF')
+  })
+
+  it('map every theme key to its colour token, with the platform palette', () => {
+    expect(THEME_KEYS.map((k) => THEME_TOKENS[k])).toEqual(TOKENS.filter((t) => t.theme_key).map((t) => t.name))
+    expect(TOKENS.filter((t) => t.theme_key).map((t) => t.theme_key)).toEqual([...THEME_KEYS])
+    expect(PLATFORM_THEME).toEqual({
+      background: '#141517',
+      surface: '#111214',
+      surface_raised: '#191A1C',
+      border: '#27282A',
+      text: '#FFFFFF',
+      text_muted: '#A2A3A7',
+      accent: '#34D0FF',
+      accent_strong: '#1F9DFF',
+    })
+    for (const key of THEME_KEYS) expect(validateTokens({ [THEME_TOKENS[key]]: PLATFORM_THEME[key] })).toEqual([])
+  })
+
+  it('accept a store theme as the contract types it', () => {
+    const theme: StoreTheme = { ...PLATFORM_THEME, text: '#000000' }
+    expect(effectiveTokens({}, theme)['color.text']).toBe('#000000')
+  })
+
+  it('leave out the tokens the template does not set, other than colours', () => {
+    expect(Object.keys(effectiveTokens({ 'space.unit': '4px', 'not.a-token': '1px' }, PLATFORM_THEME))).toEqual([
+      ...TOKENS.filter((t) => t.theme_key).map((t) => t.name),
+      'space.unit',
+    ])
   })
 })

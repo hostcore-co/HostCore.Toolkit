@@ -7,6 +7,8 @@ import { downgrade } from '../downgrade'
 import { LINK_CASES } from '../link-cases'
 import { normaliseRegistry, readRegistry, validateRegistry } from '../registry'
 import { linkValueError } from '../settings'
+import { TOKEN_CASES } from '../token-cases'
+import { effectiveTokens } from '../tokens'
 import { validate } from '../validate'
 import { generateGoContract } from './go'
 import { generateGoFrontendPrefixes, generateGoRegistry } from './go-registry'
@@ -76,11 +78,31 @@ function linkFixture(): string {
   return `[\n${rows.join(',\n')}\n]\n`
 }
 
+function sameEntries(a: Record<string, string>, b: Record<string, string>): boolean {
+  const keys = Object.keys(a)
+  return keys.length === Object.keys(b).length && keys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && a[k] === b[k])
+}
+
+/**
+ * The cases of effectiveTokens as `fixtures/tokens.json`, each checked
+ * against it first. `tokens` is written in the order of the token table.
+ */
+function tokenFixture(): string {
+  const cases = TOKEN_CASES.map((c) => {
+    const tokens = effectiveTokens(c.template, c.theme)
+    if (!sameEntries(tokens, c.tokens)) {
+      throw new ContractError(`effectiveTokens disagrees with the case "${c.name}": got ${JSON.stringify(tokens)}`)
+    }
+    return { name: c.name, template: c.template, theme: c.theme, tokens }
+  })
+  return json(cases)
+}
+
 /**
  * Every generated file, keyed by path relative to the contract directory:
  * `dist/`, the contract "1" fixtures, which are the reference downgrade of
  * the "2026-11" fixtures, and the tables of rules other implementations test
- * against (`fixtures/links.json`).
+ * against (`fixtures/links.json`, `fixtures/tokens.json`).
  */
 export function generateAll(contractDir: string): Record<string, string> {
   const registry = loadCheckedRegistry(contractDir)
@@ -102,6 +124,7 @@ export function generateAll(contractDir: string): Record<string, string> {
   files['dist/json-schema/2026-11.json'] = json(generateJsonSchema(contract202611))
   files['dist/registry.json'] = json(registry)
   files['fixtures/links.json'] = linkFixture()
+  files['fixtures/tokens.json'] = tokenFixture()
 
   const sourceDir = join(contractDir, 'fixtures', '2026-11')
   const fixtureErrors: string[] = []

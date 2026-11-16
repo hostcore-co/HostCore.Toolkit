@@ -108,8 +108,10 @@ with `variant="minimal"`.
 }
 ```
 
-- `tokens` set your defaults for the design tokens; the store's own colours
-  override the eight `color.*` ones. They reach your CSS as custom
+- `tokens` set your values for the design tokens. Of the eight `color.*`
+  ones, a colour the store has changed from the platform default overrides
+  yours; a colour it has never changed shows yours, and where you set none
+  the platform default applies. They reach your CSS as custom
   properties (`--hc-accent`, `--hc-radius-md`, …). See
   [`contract/README.md`](contract/README.md) for the full list.
 - `settings` are what a store can edit for your template, each with a type,
