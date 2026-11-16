@@ -5,7 +5,9 @@ import toolkitPackage from '../package.json' with { type: 'json' }
  *
  * A line is a set of package majors (line 2: Vite 8, React 19); a revision
  * is one exact set of versions within a line. Every format-2 manifest and
- * runtime records the toolchain it was built with.
+ * runtime records the toolchain it was built with: this line, and the
+ * revision the build environment names with --toolchain-revision, which is
+ * `revision` here when it names none.
  */
 export const TOOLCHAIN = { line: 2, revision: 0 } as const
 

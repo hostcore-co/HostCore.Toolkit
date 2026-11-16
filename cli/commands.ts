@@ -21,6 +21,10 @@ export interface CommandDoc {
   env?: FlagDoc[]
 }
 
+/** What --toolchain-revision does, for hct build and hct runtime build. */
+const TOOLCHAIN_REVISION_TEXT =
+  "For the platform's builders, not authors: the revision of the toolchain line the build environment provides, a non-negative whole number recorded in the toolchain field of manifest.json (format 2) or runtime.json (default: this toolkit's revision). A build's id covers it; a runtime's id depends only on its files."
+
 export const COMMANDS: readonly CommandDoc[] = [
   {
     name: 'init',
@@ -80,7 +84,7 @@ export const COMMANDS: readonly CommandDoc[] = [
   },
   {
     name: 'build',
-    usage: 'hct build [dir] [--local-paths | --media-base <url>] [--out <dir>] [--runtime <dir>] [--sign <base64-key>] [--skip-validation]',
+    usage: 'hct build [dir] [--local-paths | --media-base <url>] [--out <dir>] [--runtime <dir>] [--sign <base64-key>] [--skip-validation] [--toolchain-revision <n>]',
     summary: 'validate, build, and emit a manifest',
     description: [
       'Runs hct validate, then builds the template. Format 2 writes manifest.json, server/entry.server.cjs and the client files under client/; format 1 builds exactly as before, with the Vite the template has installed.',
@@ -93,6 +97,7 @@ export const COMMANDS: readonly CommandDoc[] = [
       { flag: '--runtime <dir>', text: 'Format 2: build against the runtime hct runtime build wrote to <dir> instead of building it again. Its React must be the template\'s.' },
       { flag: '--sign <base64-key>', text: 'Raw base64 ed25519 private key (default: $TEMPLATE_SIGNING_PRIVATE_KEY).' },
       { flag: '--skip-validation', text: 'Build without the policy check (local only).' },
+      { flag: '--toolchain-revision <n>', text: TOOLCHAIN_REVISION_TEXT },
     ],
     env: [
       { flag: 'CDN_BASE_URL', text: "Format 1: where a published template's client assets are served from. Required unless --local-paths." },
@@ -142,7 +147,7 @@ export const COMMANDS: readonly CommandDoc[] = [
   },
   {
     name: 'runtime build',
-    usage: 'hct runtime build --out <dir> [--root <dir>] [--sign <base64-key>]',
+    usage: 'hct runtime build --out <dir> [--root <dir>] [--sign <base64-key>] [--toolchain-revision <n>]',
     summary: 'build the shared React runtime format-2 builds use',
     description: [
       'Writes server.cjs, the browser modules client bundles import by bare name, and runtime.json. The same installed packages always give the same files and runtime_id.',
@@ -151,6 +156,7 @@ export const COMMANDS: readonly CommandDoc[] = [
       { flag: '--out <dir>', text: 'Where to write the runtime.' },
       { flag: '--root <dir>', text: 'Where react and vite are resolved from (default: the current directory).' },
       { flag: '--sign <base64-key>', text: 'Sign runtime.json (default: $TEMPLATE_SIGNING_PRIVATE_KEY).' },
+      { flag: '--toolchain-revision <n>', text: TOOLCHAIN_REVISION_TEXT },
     ],
   },
   {

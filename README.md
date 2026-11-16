@@ -425,11 +425,11 @@ hct init [dir]         start a new format-2 template (--minimal, --id, --name)
 hct dev [dir]          preview it against the contract fixtures (--port, --payload <file>)
 hct validate [dir]     check a template against the build policy
 hct check [dir]        render every page against every fixture (--dist, --runtime, --json, --budget-server, --budget-client-js, --budget-css)
-hct build [dir]        validate, build, and emit a manifest (--local-paths, --media-base <url>, --out, --runtime, --sign <key>, --skip-validation)
+hct build [dir]        validate, build, and emit a manifest (--local-paths, --media-base <url>, --out, --runtime, --sign <key>, --skip-validation, --toolchain-revision <n>)
 hct push [dir]         build, then upload a new version (--listing, --tag, --changelog, --api, --org)
 hct upgrade [dir]      move a format-1 template to format 2 (--dry-run)
 hct docs --out <dir>   write the reference documentation
-hct runtime build      build the shared React runtime (--out <dir>, --root, --sign)
+hct runtime build      build the shared React runtime (--out <dir>, --root, --sign, --toolchain-revision <n>)
 hct keygen             generate a signing keypair
 hct contract generate  regenerate contract/dist and the generated fixtures (--contract-dir)
 hct contract check     fail when any of them is out of date (--contract-dir)
@@ -439,7 +439,17 @@ hct contract generate-go  write the Go contract into another project (--kind con
 `hct build` runs the policy check first, so a template that reaches for
 something it cannot have fails at build time rather than at render time.
 `--skip-validation` leaves the check out, for a local build only: the
-platform always runs it. Your
+platform always runs it.
+
+`--toolchain-revision <n>` is for whoever runs builds for the platform, and
+an author never needs it. A build records the toolchain it was built with
+(`toolchain: { line, revision }` in `manifest.json` and `runtime.json`);
+the line is the toolkit's, but the revision belongs to the environment
+that installed the packages, which can move to a later revision of the
+same line when a dependency is patched. The flag records that revision (a
+whole number, by default this toolkit's own). It is part of what a
+build's `build_id` covers; a runtime's `runtime_id` depends only on its
+files, so the same runtime files on two revisions are one runtime. Your
 bundle runs with no filesystem, no network and no module system other than
 the shared React runtime — the check is there to tell you early, not to be
 the only thing enforcing it.

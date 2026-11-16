@@ -131,7 +131,16 @@ function outputsOf(result: unknown): OutputChunkLike[] {
 }
 
 /** Builds the runtime in memory. */
-export async function buildRuntime(rootDir: string, signingKey?: string): Promise<BuiltRuntime> {
+/**
+ * Builds the runtime from the React installed at `rootDir`. `toolchainRevision`
+ * is the revision of the toolchain line the build environment provides,
+ * recorded in runtime.json; the runtime_id depends only on the files.
+ */
+export async function buildRuntime(
+  rootDir: string,
+  signingKey?: string,
+  toolchainRevision: number = TOOLCHAIN.revision,
+): Promise<BuiltRuntime> {
   const root = resolve(rootDir)
   reactVersion(root)
   // Vite chooses production builds from NODE_ENV, and only sets it when unset.
@@ -228,7 +237,7 @@ export async function buildRuntime(rootDir: string, signingKey?: string): Promis
   for (const path of Object.keys(files).sort()) entries[path] = fileEntry(files[path]!)
   let json: RuntimeJson = {
     runtime_id: runtimeId(entries),
-    toolchain: { ...TOOLCHAIN },
+    toolchain: { line: TOOLCHAIN.line, revision: toolchainRevision },
     files: entries,
     inventory: inventory.entries(),
   }

@@ -44,6 +44,11 @@ export interface BuildV2Options {
   skipValidation?: boolean
   /** A directory written by `hct runtime build` to build against, instead of building the runtime here. */
   runtimeDir?: string
+  /**
+   * The revision of the toolchain line the build environment provides,
+   * recorded in the manifest's toolchain (default: TOOLCHAIN.revision).
+   */
+  toolchainRevision?: number
 }
 
 export interface BuildV2Result {
@@ -382,7 +387,7 @@ async function writeManifest(
     built_at: new Date().toISOString(),
     protocol: 2,
     contract: m.contract,
-    toolchain: { ...TOOLCHAIN },
+    toolchain: { line: TOOLCHAIN.line, revision: options.toolchainRevision ?? TOOLCHAIN.revision },
     runtime: { id: runtime.runtime_id },
     entry: { server: 'server/entry.server.cjs', client_js: clientJs[0]!, css: css[0] ?? '' },
     files,

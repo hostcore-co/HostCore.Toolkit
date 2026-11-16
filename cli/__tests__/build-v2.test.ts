@@ -420,3 +420,37 @@ describe('render-time errors', () => {
     )
   }, 30_000)
 })
+
+describe('--toolchain-revision', () => {
+  it("records the build environment's revision in a build and a runtime", async () => {
+    const revised = join(TMP, 'runtime-r3')
+    const made = await hct(['runtime', 'build', '--out', revised, '--toolchain-revision', '3'])
+    expect(made.code).toBe(0)
+    const before = await readJson<RuntimeJson>(join(RUNTIME, 'runtime.json'))
+    const after = await readJson<RuntimeJson>(join(revised, 'runtime.json'))
+    expect(before.toolchain).toEqual({ line: 2, revision: 0 })
+    expect(after.toolchain).toEqual({ line: 2, revision: 3 })
+    // The same runtime files on another revision are the same runtime.
+    expect(after.runtime_id).toBe(before.runtime_id)
+    expect(after.files).toEqual(before.files)
+
+    const plain = await build('examples/minimal', join(TMP, 'minimal-r0'), '--runtime', RUNTIME)
+    const stamped = await build('examples/minimal', join(TMP, 'minimal-r3'), '--runtime', RUNTIME, '--toolchain-revision', '3')
+    expect(plain.toolchain).toEqual({ line: 2, revision: 0 })
+    expect(stamped.toolchain).toEqual({ line: 2, revision: 3 })
+    expect(stamped.files).toEqual(plain.files)
+    expect(stamped.build_id).not.toBe(plain.build_id)
+    expect(stamped.build_id).toBe(buildId(stamped))
+  }, 120_000)
+
+  it('takes only a non-negative whole number', async () => {
+    for (const value of ['-1', '1.5', 'two', '01']) {
+      const result = await hct(['build', 'examples/minimal', '--local-paths', '--out', join(TMP, 'never'), '--toolchain-revision', value])
+      expect([value, result.code]).toEqual([value, 1])
+      expect(result.stderr).toContain('--toolchain-revision must be a non-negative whole number')
+    }
+    const runtime = await hct(['runtime', 'build', '--out', join(TMP, 'never-runtime'), '--toolchain-revision'])
+    expect(runtime.code).toBe(1)
+    expect(runtime.stderr).toContain('--toolchain-revision must be a non-negative whole number')
+  }, 60_000)
+})

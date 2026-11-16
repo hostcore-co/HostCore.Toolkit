@@ -13,7 +13,7 @@ import { initCommand } from './init'
 import { pushCommand } from './push'
 import { buildRuntime, RuntimeError, writeRuntime } from './runtime'
 import { isFormat2, loadTemplate, TemplateError } from './template'
-import { TOOLKIT_VERSION } from './toolchain'
+import { TOOLCHAIN, TOOLKIT_VERSION } from './toolchain'
 import { upgradeCommand } from './upgrade'
 import { formatFindings, validateTemplate } from './validate'
 
@@ -110,6 +110,7 @@ async function buildCommand(
       signingKey,
       skipValidation: flags['skip-validation'] === true,
       runtimeDir: typeof flags.runtime === 'string' ? flags.runtime : undefined,
+      toolchainRevision: toolchainRevisionFlag(flags),
     })
     process.stdout.write(
       [
@@ -184,7 +185,7 @@ async function runtimeCommand(
     (flags.sign as string | undefined) ?? process.env.TEMPLATE_SIGNING_PRIVATE_KEY
   const root = resolve(typeof flags.root === 'string' ? flags.root : process.cwd())
   const out = resolve(flags.out)
-  const runtime = await buildRuntime(root, signingKey)
+  const runtime = await buildRuntime(root, signingKey, toolchainRevisionFlag(flags))
   await writeRuntime(runtime, out)
   process.stdout.write(
     [
@@ -195,6 +196,16 @@ async function runtimeCommand(
     ].join('\n'),
   )
   return 0
+}
+
+/** --toolchain-revision <n>: a non-negative whole number, or TOOLCHAIN.revision when absent. */
+function toolchainRevisionFlag(flags: Flags): number {
+  const raw = flags['toolchain-revision']
+  if (raw === undefined) return TOOLCHAIN.revision
+  if (typeof raw !== 'string' || !/^(0|[1-9][0-9]*)$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+    throw new CommandError(`--toolchain-revision must be a non-negative whole number, got ${JSON.stringify(raw === true ? '' : raw)}`)
+  }
+  return Number(raw)
 }
 
 function keygenCommand(): number {
