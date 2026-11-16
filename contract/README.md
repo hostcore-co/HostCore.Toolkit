@@ -251,15 +251,22 @@ Matching (`matchPath` in `dist/ts/registry.ts`):
 
 - one trailing `/` is ignored; an empty segment matches nothing;
 - a path with any segment starting with `_` matches nothing;
-- a `{param}` in first position never captures a reserved slug;
+- a `{param}` in first position never captures the first segment of a
+  page's path (`/domains/x` is no group's service page), but captures any
+  other segment, reserved or not;
 - a prefix page owns its path and everything below it on a `/` boundary
   (`/order` matches `/order/1`, not `/orders`);
 - static segments beat parameters, then the longer pattern wins, then an
   exact page beats a prefix page.
 
-`reserved_slugs` must include the first segment of every static page path;
-group slugs are checked against it, so a store can never create a group that
-shadows a platform page.
+`reserved_slugs` is about what a store may name a group, not about
+matching. It must include the first segment of every static page path,
+and also holds names kept for pages to come (`blog`, `support`, …). The
+platform refuses a reserved name when a group is created or renamed
+(`isReservedSlug`, `IsReservedSlug`), so no new group shadows a page; but a
+group that already has a reserved name keeps its page until a page really
+lives at that path, because matching refuses only segments a page in the
+registry owns.
 
 ### Adding a page
 

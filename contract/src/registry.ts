@@ -180,7 +180,6 @@ export function normaliseRegistry(registry: Registry): NormalisedRegistry {
 export function matchRegistryPath(registry: Registry, pathname: string): PathMatch | null {
   return matchRoute(
     registry.pages.map((p) => ({ id: p.id, path: p.path, prefix: p.prefix ?? false })),
-    registry.reserved_slugs,
     pathname,
   )
 }

@@ -193,7 +193,7 @@ function pagesPage(contractDir: string): string {
     '',
     `## Reserved slugs`,
     '',
-    'A group can never take one of these slugs, so no group page shadows a platform page:',
+    'A store cannot give a new group one of these names: each is the path of a platform page, or kept for one to come. Matching a path is another matter: a group path never captures the first segment of a page in the registry, and captures any other name.',
     '',
     registry.reserved_slugs.map(code).join(', '),
     '',

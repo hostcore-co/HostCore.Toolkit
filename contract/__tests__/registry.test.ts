@@ -89,11 +89,27 @@ describe('matchPath', () => {
     expect(matchPath('/checkout/_x')).toBeNull()
   })
 
-  it('never captures a reserved slug as the first parameter', () => {
-    expect(matchPath('/api')).toBeNull()
-    expect(matchPath('/blog/post')).toBeNull()
-    expect(matchPath('/support')).toBeNull()
+  it('never captures the first segment of a page as the first parameter', () => {
+    expect(matchPath('/domains/acme')).toBeNull()
+    expect(matchPath('/domains')?.id).toBe('domains')
+    expect(matchPath('/checkout')?.id).toBe('checkout')
     expect(matchPath('/games/status')?.id).toBe('catalog.service')
+  })
+
+  it('still matches a group whose slug is reserved but owned by no page', () => {
+    for (const slug of ['support', 'blog', 'api', 'status']) {
+      expect(RESERVED_SLUGS).toContain(slug)
+      expect(PAGES.some((p) => p.path === `/${slug}` || p.path?.startsWith(`/${slug}/`))).toBe(false)
+      expect(matchPath(`/${slug}`)).toEqual({ id: 'catalog.group', params: { group: slug } })
+      expect(matchPath(`/${slug}/rust`)).toEqual({ id: 'catalog.service', params: { group: slug, service: 'rust' } })
+    }
+    expect(isReservedSlug('support')).toBe(true)
+  })
+
+  it('matches nothing for a segment starting with _, reserved or not', () => {
+    expect(matchPath('/_hc')).toBeNull()
+    expect(matchPath('/_hc/boot.js')).toBeNull()
+    expect(matchPath('/games/_x')).toBeNull()
   })
 
   it('ignores one trailing slash and rejects empty segments', () => {

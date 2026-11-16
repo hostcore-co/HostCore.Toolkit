@@ -88,8 +88,11 @@ var Pages = []Page{
 	{ID: PageAdmin, Path: "/admin", Prefix: true, Tier: TierStaff, Upstream: UpstreamFrontend},
 }
 
-// ReservedSlugs are path segments a store may not use as a group slug, because
-// a page of the platform lives there or may in future.
+// ReservedSlugs are names a store may not give a new group, because a page of
+// the platform lives at that path or may in future. Refuse them when a group is
+// created or renamed. Matching a path does not use them: a {group} path refuses
+// only the first segment of a page that exists, so a group named before a name
+// was reserved keeps its page.
 var ReservedSlugs = []string{
 	"_hc",
 	"account",
@@ -117,7 +120,8 @@ var ReservedSlugs = []string{
 	"support",
 }
 
-// IsReservedSlug reports whether a group slug is reserved.
+// IsReservedSlug reports whether a name is reserved, and so may not be given to
+// a new group.
 func IsReservedSlug(slug string) bool {
 	for _, reserved := range ReservedSlugs {
 		if reserved == slug {

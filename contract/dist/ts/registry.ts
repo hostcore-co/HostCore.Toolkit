@@ -181,7 +181,12 @@ export const PAGES: readonly RegistryPage[] = [
   }
 ]
 
-/** Path segments a store may not use as a group slug. */
+/**
+ * Names a store may not give a new group: the first segment of every page
+ * path, and names kept for pages to come. Matching does not use it: a
+ * {group} path refuses only the first segment of a page that exists, so a
+ * group named before a name was reserved keeps its page.
+ */
 export const RESERVED_SLUGS: readonly string[] = [
   "_hc",
   "account",
@@ -233,7 +238,7 @@ export function defaultCachePolicy(id: PageId): CachePolicy | null {
 
 /** Finds the registry page a pathname belongs to. See matchRoute for the rules. */
 export function matchPath(pathname: string): PathMatch<PageId> | null {
-  return matchRoute(PAGES, RESERVED_SLUGS, pathname) as PathMatch<PageId> | null
+  return matchRoute(PAGES, pathname) as PathMatch<PageId> | null
 }
 
 // ─── match ──────────────────────────────────────────────────────────────
@@ -263,22 +268,28 @@ export interface PathMatch<Id extends string = string> {
  *   segment anywhere else ("//") matches nothing.
  * - A pathname with any segment starting with "_" matches nothing. Those
  *   paths belong to the platform.
- * - A `{param}` in first position never captures a reserved slug.
+ * - A `{param}` in first position never captures the first segment of a
+ *   page's path (`domains`, `checkout`, …), so `/domains/x` is not a service
+ *   page of a group called "domains". Any other segment it captures, a
+ *   reserved slug no page uses among them: a reserved slug is a name a
+ *   store may not give a new group, not a path that stops matching.
  * - A prefix page matches its own path and every path below it, on a "/"
  *   boundary: /order matches /order and /order/x but not /orders.
  * - When several pages match, the one whose earliest differing segment is
  *   static wins; then the longer pattern; then an exact page over a prefix
  *   page; then registry order.
  */
-export function matchRoute(
-  pages: readonly RoutePage[],
-  reservedSlugs: readonly string[],
-  pathname: string,
-): PathMatch | null {
+export function matchRoute(pages: readonly RoutePage[], pathname: string): PathMatch | null {
   if (!pathname.startsWith('/')) return null
   const trimmed = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
   const segments = trimmed === '/' ? [] : trimmed.slice(1).split('/')
   if (segments.some((s) => s === '' || s.startsWith('_'))) return null
+
+  const owned = new Set<string>()
+  for (const page of pages) {
+    const first = page.path === null || page.path === '/' ? '' : page.path.slice(1).split('/')[0]!
+    if (first !== '' && !first.startsWith('{')) owned.add(first)
+  }
 
   let best: { match: PathMatch; rank: number[]; prefix: boolean } | null = null
 
@@ -294,7 +305,7 @@ export function matchRoute(
       const part = pattern[i]!
       const segment = segments[i]!
       if (part.startsWith('{')) {
-        if (i === 0 && reservedSlugs.includes(segment)) {
+        if (i === 0 && owned.has(segment)) {
           matched = false
           break
         }
