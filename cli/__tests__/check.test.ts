@@ -51,17 +51,21 @@ describe('hct check --json', () => {
       expect(Object.keys(r)).toEqual(['page', 'fixture', 'kind', 'variant', 'ok', 'html_sha256', 'bytes', 'error'])
       expect(r.ok).toBe(true)
       expect(r.html_sha256).toMatch(/^[0-9a-f]{64}$/)
-      expect(r.bytes).toBeGreaterThan(0)
+      // A slot may render nothing: examples/basic's does for a store with no billing email.
+      if (r.kind !== 'slot') expect(r.bytes).toBeGreaterThan(0)
       expect(r.error).toBe('')
     }
+    expect(basic.results.some((r) => r.kind === 'slot' && r.bytes === 0)).toBe(true)
+    expect(basic.results.some((r) => r.kind === 'slot' && r.bytes > 0)).toBe(true)
   })
 
-  it('renders every implemented page against every fixture for it, as a document and a body, and the layout per variant', async () => {
+  it('renders every implemented page against every fixture for it, as a document and a body, the layout per variant, and every slot against every fixture', async () => {
     const expected: string[] = ['home/home/layout/default', 'home/home/layout/minimal']
     for (const f of await fixturesFor('2026-11')) {
       if (!['home', 'catalog.group', 'catalog.service'].includes(f.page)) continue
       expected.push(`${f.page}/${f.name}/document/`, `${f.page}/${f.name}/body/`)
     }
+    for (const f of await fixturesFor('2026-11')) expected.push(`checkout.summary/${f.name}/slot/`)
     const keys = basic.results.map((r) => `${r.page}/${r.fixture}/${r.kind}/${r.variant}`)
     expect(keys.sort()).toEqual(expected.sort())
   })

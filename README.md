@@ -42,7 +42,7 @@ hct push --listing <id>    # upload it as a new version and get a preview link
   The preview names any field that does not fit the contract.
 - **`hct check [dir]`** builds the template and renders every page it
   implements against every fixture for that page, as a whole document and
-  as a body, and its layout once per variant — what the platform does before
+  as a body, its layout once per variant, and every slot it fills — what the platform does before
   it accepts a version. It prints a line for each render that fails, with
   its page, fixture and kind, and the build's sizes against budgets (server
   bundle 1 MB, client JavaScript 250 KB, stylesheet 100 KB; change them with
@@ -89,6 +89,8 @@ src/layout.tsx              the header, footer and frame around every page
 src/pages/<page-id>.tsx     one file per page: home, catalog.group,
                             catalog.service, domains, not-found
 src/islands/<name>.tsx      components hydrated on their own (see Islands)
+src/slots/<slot-id>.tsx     static content for a place on the platform's
+                            own pages (see Slots)
 public/                     fonts, images and other files, served as they are
 ```
 
@@ -319,6 +321,34 @@ island is hydrated on its own with the same hooks available. Island props
 travel to the browser as JSON, so they must be strings, numbers, booleans,
 null, arrays and plain objects; a function, an element or a `Date` fails the
 render with an error naming the prop.
+
+### Slots
+
+The platform's own pages have named places where your template may put
+static content: a slot. They are listed in the
+[page registry](contract/registry.json) (`slots`); today there is one,
+`checkout.summary`, under the order summary on the checkout pages. Fill one
+with `src/slots/<slot id>.tsx`, named after the id with its dots:
+
+```tsx
+// src/slots/checkout.summary.tsx
+import { useStore } from '@hostcore/toolkit'
+
+export default function CheckoutSummary() {
+  const email = useStore().business.billing_email
+  return email ? <p>Questions about this order? Write to <a href={`mailto:${email}`}>{email}</a>.</p> : null
+}
+```
+
+A slot is rendered on the server only and shown with no script, in a style
+scope of its own with your stylesheet and design tokens. It can read the
+store, the navigation and your settings (`useStore()`, `useNav()`,
+`useSetting()`), never the page's data, its actions, the visitor or the
+cart. `hct validate` refuses a slot id the registry does not have, and in a
+slot: islands, state and effects (`useState`, `useEffect`, …), event
+handlers, scripts, `usePage()` and `useAction()`. A slot may render
+nothing. `hct check` renders every slot against every fixture, and `hct
+dev` shows it in place on the checkout preview.
 
 ### Dependencies
 

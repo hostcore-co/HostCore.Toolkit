@@ -104,4 +104,5 @@ export const NEW_IN_2026_11: readonly { field: string; use: string }[] = [
   { field: 'page.params', use: 'the path parameters the page was matched with' },
   { field: 'redirect', use: 'set when the platform answers with a redirect; a page never renders it' },
   { field: 'settings', use: "the store's values for every setting your template declares" },
+  { field: 'slots (src/slots/<slot id>.tsx)', use: "put static content of your own at a named place on the platform's pages, such as checkout.summary under the order summary at checkout" },
 ]

@@ -158,6 +158,21 @@ describe('hct dev', () => {
     expect(global(page.text).payload.data).toBeUndefined()
   })
 
+  it('shows a slot in place on its page, in a shadow root of its own with no script', async () => {
+    const page = await get('/page/checkout/home?variant=minimal')
+    expect(page.status).toBe(200)
+    const html = root(page.text)
+    const slot = /<div data-hc-slot="checkout\.summary"[^>]*><template shadowrootmode="open">(.*?)<\/template><\/div>/.exec(html)
+    expect(slot).not.toBeNull()
+    expect(slot![1]).toContain('--hc-accent:#5b8cff')
+    expect(slot![1]).toContain('rel="stylesheet"')
+    expect(slot![1]).toContain('Questions about this order? Write to <a href="mailto:billing@acme.test">billing@acme.test</a>.')
+    expect(slot![1]).not.toContain('<script')
+    expect(html.indexOf('data-hc-slot')).toBeGreaterThan(html.indexOf('<hc-outlet>'))
+    expect(html.indexOf('data-hc-slot')).toBeLessThan(html.indexOf('</hc-outlet>'))
+    expect(root((await get('/page/login/home?variant=minimal')).text)).not.toContain('data-hc-slot')
+  })
+
   it('shows the account area with the design tokens and without the layout', async () => {
     const page = await get('/page/dashboard/home')
     expect(page.status).toBe(200)

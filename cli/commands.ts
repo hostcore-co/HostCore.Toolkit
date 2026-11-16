@@ -31,7 +31,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     usage: 'hct init [dir] [--minimal] [--id <id>] [--name <name>]',
     summary: 'start a new format-2 template',
     description: [
-      'Writes a working format-2 template into <dir> (default: the current directory), which must be empty or not exist yet: a layout, three pages, two islands, settings, design tokens and public files. It passes hct validate, hct check and hct build as written.',
+      'Writes a working format-2 template into <dir> (default: the current directory), which must be empty or not exist yet: a layout, three pages, two islands, a slot, settings, design tokens and public files. It passes hct validate, hct check and hct build as written.',
       'Install its dependencies (bun install) before building it.',
     ],
     flags: [
@@ -68,7 +68,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     usage: 'hct check [dir] [--dist <dir>] [--runtime <dir>] [--json] [--budget-server <size>] [--budget-client-js <size>] [--budget-css <size>]',
     summary: 'render every page against every contract fixture',
     description: [
-      'Builds the template into a temporary directory, then renders every page it implements against every contract fixture for that page, as a whole document (when it has a layout) and as a body, and its layout once per variant, the way the platform does before it accepts a build. A format-1 template renders every contract "1" fixture. The bundle runs in an empty context with nothing but the runtime\'s modules.',
+      'Builds the template into a temporary directory, then renders every page it implements against every contract fixture for that page, as a whole document (when it has a layout) and as a body, its layout once per variant, and every slot it fills against every fixture (kind "slot", page the slot id), the way the platform does before it accepts a build. A slot may render nothing; a slot that throws fails. A format-1 template renders every contract "1" fixture. The bundle runs in an empty context with nothing but the runtime\'s modules.',
       'Prints one line per failed render with its page, fixture and kind, then the build\'s sizes against budgets: server bundle 1 MB, client JavaScript 250 KB, stylesheet 100 KB. A build over budget is reported but still passes. Exits 0 only when every render succeeded.',
       'A page that renders nothing fails: when the page\'s own markup (all of a body render, the inside of the outlet in a document render) is empty once HTML comments and whitespace are left out, as when the page component returns null, the render fails with HC_EMPTY_RENDER naming the page, fixture and variant. One element, even an empty one, or any text is enough to pass. The layout is not held to this.',
       'Before rendering, the build itself is checked: every file manifest.json lists must be in the build with the listed digest and size, and nothing else may be (format 2), and the stylesheet may not load from another site. A build that fails this is not rendered.',

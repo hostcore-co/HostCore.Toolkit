@@ -17,6 +17,7 @@ const MANIFEST: ManifestV2 = {
   pages: ['home'],
   layouts: [],
   islands: [],
+  slots: [],
   tokens: { 'color.accent': '#5b8cff' },
   settings: [],
   inventory: [{ name: 'gsap', version: '3.15.1', in: ['client'] }],
@@ -33,13 +34,13 @@ const CANONICAL =
   '"files":{"server/entry.server.cjs":{"bytes":10,"integrity":"sha256-AAAA"}},' +
   '"inventory":[{"in":["client"],"name":"gsap","version":"3.15.1"}],"islands":[],"layouts":[],' +
   '"manifest_version":2,"media_base":"","pages":["home"],"protocol":2,' +
-  `"runtime":{"id":"${'r'.repeat(64)}"},"settings":[],"template_id":"acme",` +
+  `"runtime":{"id":"${'r'.repeat(64)}"},"settings":[],"slots":[],"template_id":"acme",` +
   '"tokens":{"color.accent":"#5b8cff"},"toolchain":{"line":2,"revision":0},"version":"2.1.0"}'
 
 describe('buildId', () => {
   it('is the sha256 of the canonical manifest without the id, the time, the signature and the media base', () => {
     expect(canonicalJson({ ...MANIFEST, build_id: undefined, built_at: undefined, signature: undefined, media_base: '' })).toBe(CANONICAL)
-    expect(buildId(MANIFEST)).toBe('66dd8021b875ac25ddea1c6dea8eb6ec0777bc8530055a081a6a2e6e3eb9ea05')
+    expect(buildId(MANIFEST)).toBe('9a57bfb021080c068f4da307c4095b4b66a40813fc303b5803ebc8c38fca83a1')
     expect(buildId(MANIFEST)).toBe(new Bun.CryptoHasher('sha256').update(CANONICAL).digest('hex'))
   })
 

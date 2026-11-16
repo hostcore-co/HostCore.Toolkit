@@ -88,6 +88,29 @@ var Pages = []Page{
 	{ID: PageAdmin, Path: "/admin", Prefix: true, Tier: TierStaff, Upstream: UpstreamFrontend},
 }
 
+// SlotID identifies a slot: a named place on a page the platform renders, where
+// a template may put static content of its own.
+type SlotID string
+
+const (
+	SlotCheckoutSummary SlotID = "checkout.summary"
+)
+
+// Slot is one slot of the registry. Page is the page it is on; Description says
+// where on the page it appears. A template supplies it as src/slots/<id>.tsx,
+// rendered on the server only, with the store, the settings and the design
+// tokens and nothing of the page, the visitor or the cart.
+type Slot struct {
+	ID          SlotID `json:"id"`
+	Page        PageID `json:"page"`
+	Description string `json:"description"`
+}
+
+// Slots lists every slot in registry order.
+var Slots = []Slot{
+	{ID: SlotCheckoutSummary, Page: PageCheckout, Description: "Under the order summary on the checkout pages."},
+}
+
 // ReservedSlugs are names a store may not give a new group, because a page of
 // the platform lives at that path or may in future. Refuse them when a group is
 // created or renamed. Matching a path does not use them: a {group} path refuses

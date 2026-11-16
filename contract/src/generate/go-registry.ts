@@ -137,6 +137,35 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
   }
   lines.push('}', '')
 
+  lines.push(...goComment('SlotID identifies a slot: a named place on a page the platform renders, where a template may put static content of its own.'))
+  lines.push('type SlotID string', '')
+  if (registry.slots.length > 0) {
+    lines.push(...stringConsts('SlotID', registry.slots.map((s) => s.id), (v) => `Slot${goIdentifier(v)}`), '')
+  }
+  lines.push(
+    ...goComment(
+      'Slot is one slot of the registry. Page is the page it is on; Description says where on the page it appears. A template supplies it as src/slots/<id>.tsx, rendered on the server only, with the store, the settings and the design tokens and nothing of the page, the visitor or the cart.',
+    ),
+  )
+  lines.push('type Slot struct {')
+  lines.push(
+    ...alignRows(
+      [
+        { cells: ['ID', 'SlotID', '`json:"id"`'] },
+        { cells: ['Page', 'PageID', '`json:"page"`'] },
+        { cells: ['Description', 'string', '`json:"description"`'] },
+      ],
+      '\t',
+    ),
+  )
+  lines.push('}', '')
+  lines.push(...goComment('Slots lists every slot in registry order.'))
+  lines.push('var Slots = []Slot{')
+  for (const slot of registry.slots) {
+    lines.push(`\t{ID: Slot${goIdentifier(slot.id)}, Page: ${pageConst(slot.page)}, Description: ${goString(slot.description)}},`)
+  }
+  lines.push('}', '')
+
   lines.push(
     ...goComment(
       'ReservedSlugs are names a store may not give a new group, because a page of the platform lives at that path or may in future. Refuse them when a group is created or renamed. Matching a path does not use them: a {group} path refuses only the first segment of a page that exists, so a group named before a name was reserved keeps its page.',

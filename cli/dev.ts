@@ -2,7 +2,7 @@ import { watch, type FSWatcher } from 'node:fs'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, normalize, resolve, sep } from 'node:path'
-import { matchPath, PAGES } from '../contract/dist/ts/registry'
+import { matchPath, PAGES, SLOTS } from '../contract/dist/ts/registry'
 import { validate } from '../contract/src/validate'
 import { effectiveTokens, TOKENS } from '../contract/src/tokens'
 import { buildFormat2 } from './build-v2'
@@ -236,13 +236,29 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     const status = buildError
       ? `<p style="color:#b91c1c"><strong>The last build failed</strong>; pages show its error until a change builds.</p>`
       : b
-        ? `<p>Build <code>${b.manifest.build_id.slice(0, 12)}</code> · layout: ${hasLayout ? 'yours' : 'the platform default'} · islands: ${b.manifest.islands.join(', ') || 'none'}</p>`
+        ? `<p>Build <code>${b.manifest.build_id.slice(0, 12)}</code> · layout: ${hasLayout ? 'yours' : 'the platform default'} · islands: ${b.manifest.islands.join(', ') || 'none'} · slots: ${b.manifest.slots.map((id) => `${escapeHtml(id)} (on ${escapeHtml(SLOTS.find((x) => x.id === id)?.page ?? '')})`).join(', ') || 'none'}</p>`
         : ''
     return page(
       'hct dev',
       '',
       `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Platform pages</h2><p>${platformPagesSentence(platformLink)}</p></main>`,
     )
+  }
+
+  /**
+   * The slots the template fills on a platform page, each as a live store
+   * shows it: rendered on the server, in a shadow root of its own with the
+   * template's stylesheet and design tokens, and no script.
+   */
+  function slotsOn(pageId: string, payload: Record<string, any>, env: Record<string, unknown>): string {
+    const b = build!
+    const css = b.manifest.entry.css ? `<link rel="stylesheet" href="${BUILD_BASE}${b.manifest.entry.css.replace(/^client\//, '')}">` : ''
+    return SLOTS.filter((slot) => slot.page === pageId && b.bundle.slots.includes(slot.id))
+      .map((slot) => {
+        const { html } = JSON.parse(b.bundle.render(JSON.stringify({ kind: 'slot', slot: slot.id, payload, env }))) as { html: string }
+        return `<div data-hc-slot="${escapeHtml(slot.id)}" title="${escapeHtml(`slot ${slot.id}: ${slot.description}`)}"><template shadowrootmode="open"><style>${tokensCss(tokens, payload)}</style>${css}${html}</template></div>`
+      })
+      .join('')
   }
 
   function preview(pageId: string, fixtureName: string, payload: Record<string, any>, variant: 'default' | 'minimal', problems: string[]): Response {
@@ -261,7 +277,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     const render = (kind: 'document' | 'layout' | 'body') =>
       (JSON.parse(b.bundle.render(JSON.stringify({ kind, page: pageId, variant, payload, env }))) as { html: string }).html
 
-    const missing = platformPage
+    let missing = platformPage
       ? standIn(`The platform's ${pageId} page appears here`, 'It is the platform\'s own page, drawn inside your layout\'s minimal variant.')
       : standIn("The platform's default page appears here", `This template does not implement ${pageId}; the platform's default template renders it.`)
     let rootHtml: string
@@ -269,6 +285,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     let mount: string | null = null
     let shown: string
     try {
+      if (chrome === 'minimal-layout') missing += slotsOn(pageId, payload, env)
       if (chrome !== null && chrome !== 'minimal-layout') {
         rootHtml =
           chrome === 'tokens'

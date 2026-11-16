@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { PAGES } from '../contract/dist/ts/registry'
+import { PAGES, SLOTS } from '../contract/dist/ts/registry'
 
 /**
  * What a format-2 template is made of, found by file name:
@@ -8,6 +8,9 @@ import { PAGES } from '../contract/dist/ts/registry'
  *   src/layout.tsx            the layout (optional)
  *   src/pages/<page-id>.tsx   one file per page it implements (optional)
  *   src/islands/<name>.tsx    components hydrated on their own (optional)
+ *   src/slots/<slot-id>.tsx   static content for a slot on a platform page,
+ *                             named after the slot id with its dots
+ *                             (src/slots/checkout.summary.tsx) (optional)
  *
  * `.jsx`, `.ts` and `.js` work in place of `.tsx`. Files in subdirectories
  * of pages/ and islands/ are ordinary modules, free for helpers.
@@ -24,6 +27,8 @@ export interface TemplateSources {
   islands: Record<string, string>
   /** How each implemented page is hydrated. */
   hydrate: Record<string, Hydrate>
+  /** Absolute path of each slot, by slot id, in registry order. */
+  slots: Record<string, string>
 }
 
 export interface SourceProblem {
@@ -33,6 +38,9 @@ export interface SourceProblem {
 }
 
 export const SOURCE_EXTENSIONS = ['.tsx', '.jsx', '.ts', '.js'] as const
+
+/** The slots a template can fill, in registry order. */
+export const SLOT_IDS: readonly string[] = SLOTS.map((s) => s.id)
 
 /** The pages a template can implement, in registry order. */
 export const TEMPLATE_PAGE_IDS: readonly string[] = PAGES.filter((p) => p.upstream === 'engine').map((p) => p.id)
@@ -100,7 +108,7 @@ export async function discoverSources(root: string): Promise<{
 }> {
   const problems: SourceProblem[] = []
   const src = join(root, 'src')
-  const sources: TemplateSources = { layout: null, pages: {}, islands: {}, hydrate: {} }
+  const sources: TemplateSources = { layout: null, pages: {}, islands: {}, hydrate: {}, slots: {} }
 
   const needsDefault = async (path: string, file: string, what: string) => {
     const source = await readFile(path, 'utf8')
@@ -178,6 +186,31 @@ export async function discoverSources(root: string): Promise<{
     }
     sources.islands[island] = join(src, 'islands', name)
     await needsDefault(sources.islands[island], file, `island "${island}"`)
+  }
+
+  const slots: Record<string, string> = {}
+  for (const name of await filesIn(join(src, 'slots'))) {
+    const split = splitExtension(name)
+    if (!split) continue
+    const [id] = split
+    const file = `src/slots/${name}`
+    if (!SLOT_IDS.includes(id)) {
+      problems.push({
+        file,
+        rule: 'unknown-slot',
+        message: `"${id}" is not a slot. Slot files are named after the slot id: ${SLOT_IDS.map((x) => `${x}.tsx`).join(', ')}`,
+      })
+      continue
+    }
+    if (slots[id]) {
+      problems.push({ file, rule: 'duplicate-source', message: `slot "${id}" has more than one file` })
+      continue
+    }
+    slots[id] = join(src, 'slots', name)
+    await needsDefault(slots[id], file, `slot "${id}"`)
+  }
+  for (const id of SLOT_IDS) {
+    if (slots[id]) sources.slots[id] = slots[id]
   }
 
   return { sources, problems }

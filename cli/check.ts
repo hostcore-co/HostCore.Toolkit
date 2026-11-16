@@ -19,7 +19,8 @@ import { scanBuiltStylesheets } from './validate'
  *
  * A format-2 build renders every page it implements against every fixture
  * for that page, as a whole document (when it has a layout) and as a body,
- * and its layout once per variant. A format-1 build renders every contract
+ * and its layout once per variant, and every slot it fills against every
+ * fixture. A format-1 build renders every contract
  * "1" fixture. Each render is reported with the sha256 of its HTML, so two
  * builds render the same when their results have the same keys and hashes.
  *
@@ -31,11 +32,14 @@ import { scanBuiltStylesheets } from './validate'
  */
 
 /**
+ * `slot` is a slot rendered with a fixture's store and settings: its `page`
+ * is the slot id. An empty slot passes.
+ *
  * `build` is a problem with the build itself rather than a render: its
  * `page`, `fixture` and `variant` are "", and `error` starts with
  * HC_BUILD_FILES or HC_STYLESHEET_EXTERNAL.
  */
-export type CheckKind = 'document' | 'layout' | 'body' | 'legacy' | 'build'
+export type CheckKind = 'document' | 'layout' | 'body' | 'slot' | 'legacy' | 'build'
 
 /** One render, or one problem with the build. `variant` is set only for kind "layout". */
 export interface CheckResult {
@@ -199,6 +203,16 @@ export function checkBundle(bundle: LoadedBundle, fixtures: Fixture[]): CheckRes
       results.push(
         rendered({ page: payload.page.id, fixture: layoutFixture.name, kind: 'layout', variant }, () =>
           render('layout', payload.page.id, variant, payload),
+        ),
+      )
+    }
+  }
+  for (const slot of bundle.slots) {
+    for (const fixture of fixtures) {
+      const payload = JSON.parse(fixture.json) as Record<string, any>
+      results.push(
+        rendered({ page: slot, fixture: fixture.name, kind: 'slot', variant: '' }, () =>
+          htmlOf(bundle.render(JSON.stringify({ kind: 'slot', slot, payload, env: envFor(payload, 'slot') }))),
         ),
       )
     }

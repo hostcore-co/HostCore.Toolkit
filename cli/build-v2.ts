@@ -155,15 +155,19 @@ function serverEntry(sources: TemplateSources, defaults: Record<string, unknown>
   if (sources.layout) lines.push(`import * as layout from ${json(sources.layout)}`)
   const pages = Object.entries(sources.pages)
   pages.forEach(([, path], i) => lines.push(`import * as page${i} from ${json(path)}`))
+  const slots = Object.entries(sources.slots)
+  slots.forEach(([, path], i) => lines.push(`import * as slot${i} from ${json(path)}`))
   lines.push(
     'const server = createServer({',
     `  layout: ${sources.layout ? 'layout' : 'null'},`,
     `  pages: { ${pages.map(([id], i) => `${json(id)}: page${i}`).join(', ')} },`,
+    `  slots: { ${slots.map(([id], i) => `${json(id)}: slot${i}`).join(', ')} },`,
     `  defaults: ${json(defaults)},`,
     '})',
     'export const protocol = 2',
     'export const pages = server.pages',
     'export const layouts = server.layouts',
+    'export const slots = server.slots',
     'export const render = server.render',
   )
   return lines.join('\n')
@@ -394,6 +398,7 @@ async function writeManifest(
     pages: Object.keys(sources.pages),
     layouts: sources.layout ? ['default', 'minimal'] : [],
     islands: Object.keys(sources.islands).sort(),
+    slots: Object.keys(sources.slots),
     tokens: m.tokens,
     settings: m.settings,
     inventory: collected.inventory.entries(),

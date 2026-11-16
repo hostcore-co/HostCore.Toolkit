@@ -19,6 +19,8 @@ export interface PageContextValue {
   /** Declared defaults from template.json, by setting id. */
   defaults: Readonly<Record<string, SettingValue>>
   outlet: OutletState | null
+  /** The slot being rendered, when this render is one. */
+  slot?: string
 }
 
 export const PageContext = createContext<PageContextValue | null>(null)

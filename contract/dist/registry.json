@@ -142,6 +142,13 @@
       "requires": null
     }
   ],
+  "slots": [
+    {
+      "id": "checkout.summary",
+      "page": "checkout",
+      "description": "Under the order summary on the checkout pages."
+    }
+  ],
   "reserved_slugs": [
     "_hc",
     "account",

@@ -7,7 +7,7 @@ import type { TokenDefinition } from './tokens'
 /**
  * What a template can observe of a contract version, as plain data: every
  * type with its fields, enum values and optionality, the page data types,
- * and for a contract format-2 templates use, the page registry, the design
+ * and for a contract format-2 templates use, the page registry and its slots, the design
  * tokens, the standard settings and the link rule. `hct contract check`
  * compares it with the frozen baseline in `baselines/<version>.json` and
  * classifies every difference with diffSurface.
@@ -64,6 +64,8 @@ export interface ContractSurface {
   /** Page id → the type of its data. */
   page_data: Record<string, string>
   registry?: Record<string, SurfacePage>
+  /** Slot id → the page it is on. */
+  slots?: Record<string, string>
   tokens?: Record<string, SurfaceToken>
   standard_settings?: Record<string, SurfaceSetting>
   /** `<kind> <value as JSON>` → whether the link rule accepts it. */
@@ -137,6 +139,7 @@ export function contractSurface(contract: Contract, sources?: SurfaceSources): C
       { path: p.path, prefix: p.prefix, tier: p.tier, upstream: p.upstream, requires: p.requires },
     ]),
   )
+  surface.slots = sorted(sources.registry.slots.map((slot): [string, string] => [slot.id, slot.page]))
   surface.tokens = sorted(
     sources.tokens.map((t): [string, SurfaceToken] => [t.name, { property: t.property, kind: t.kind, pattern: sources.tokenPatterns[t.kind]! }]),
   )
@@ -279,6 +282,15 @@ export function diffSurface(before: ContractSurface, after: ContractSurface): Co
         if (!same(b[key], a[key])) out.push(removed(at, `its ${key} changed from ${JSON.stringify(b[key])} to ${JSON.stringify(a[key])}`))
       }
     }
+  }
+
+  for (const id of keys(before.slots, after.slots)) {
+    const at = `slot ${id}`
+    const b = before.slots?.[id]
+    const a = after.slots?.[id]
+    if (b === undefined) out.push(added(at, 'a slot was added'))
+    else if (a === undefined) out.push(removed(at, 'the slot was removed'))
+    else if (a !== b) out.push(removed(at, `it moved from page ${b} to page ${a}`))
   }
 
   for (const name of keys(before.tokens, after.tokens)) {
