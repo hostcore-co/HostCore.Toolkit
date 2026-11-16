@@ -8,6 +8,7 @@ import { checkCommand } from './check'
 import { BOOLEAN_FLAGS, commandHelp, CommandError, findCommand, overviewHelp, type Flags } from './commands'
 import { contractCommand } from './contract'
 import { devCommand } from './dev'
+import { docsCommand } from './docs'
 import { initCommand } from './init'
 import { pushCommand } from './push'
 import { buildRuntime, RuntimeError, writeRuntime } from './runtime'
@@ -46,6 +47,8 @@ async function main(argv: string[]): Promise<number> {
       return contractCommand(positional, flags)
     case 'runtime':
       return runtimeCommand(positional, flags)
+    case 'docs':
+      return docsCommand(flags)
     case 'validate':
       return validateCommand(root)
     case 'build':
