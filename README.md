@@ -60,8 +60,10 @@ hct push --listing <id>    # upload it as a new version and get a preview link
   environment, and pass `--listing <id>` (or set `HOSTCORE_LISTING`). The
   version is `template.json`'s `version` unless you pass `--tag`;
   `--changelog` says what changed. Everything but `node_modules/`, `dist/`,
-  `build/` and names starting with a dot is uploaded, and the template needs
-  a `package.json`.
+  `build/` and names starting with a dot is uploaded. A template without a
+  `package.json` (one that is only `template.json`, say) has nothing
+  installed to build it with, so it is uploaded without building it first,
+  and you get the platform's answer.
 - **`hct upgrade [dir]`** moves a format-1 template to format 2 (below).
 - **`hct docs --out <dir>`** writes the reference as Markdown: every page and
   its data, every type and field of the contract, settings, design tokens,

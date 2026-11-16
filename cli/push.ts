@@ -10,7 +10,9 @@ import { zip, type ZipEntry } from './zip'
 /**
  * hct push — uploads a template's source as a new version of a marketplace
  * listing, after building it here so that a template that does not build
- * is never uploaded.
+ * is never uploaded. A template without a package.json has nothing
+ * installed to build with here, so it is uploaded as it is and the
+ * platform's answer reported.
  *
  *   POST <api>/api/v1/developer/modules/<listing>/submissions
  *     multipart/form-data: archive (the source as a zip), tag, changelog
@@ -170,12 +172,13 @@ function readConfig(flags: Flags, version: string): PushConfig {
 export async function pushCommand(root: string, flags: Flags): Promise<number> {
   const template = await loadTemplate(root)
   const config = readConfig(flags, template.manifest.version)
-  if (!(await exists(join(root, 'package.json')))) {
-    throw new CommandError('the platform builds a template from its package.json; add one beside template.json (hct init writes one)')
-  }
 
-  process.stdout.write(`building ${template.manifest.id}@${config.tag}…\n`)
-  await buildOnce(template)
+  if (await exists(join(root, 'package.json'))) {
+    process.stdout.write(`building ${template.manifest.id}@${config.tag}…\n`)
+    await buildOnce(template)
+  } else {
+    process.stdout.write(`${template.manifest.id}@${config.tag} has no package.json, so nothing is installed to build it with here; uploading it as it is\n`)
+  }
 
   const files = await sourceFiles(root)
   const archive = zip(files)

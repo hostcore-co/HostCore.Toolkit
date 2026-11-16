@@ -183,15 +183,31 @@ describe('hct push', () => {
     expect(unknown.stderr).toContain('(404 not_found): no such listing. Check the listing id')
   }, 30_000)
 
-  it('refuses to start without its configuration, a tag the platform accepts, or a package.json', async () => {
+  it('refuses to start without its configuration or a tag the platform accepts', async () => {
     const missing = await hct(['push', TEMPLATE], undefined, { HOSTCORE_API_URL: '', HOSTCORE_TOKEN: '', HOSTCORE_LISTING: '' })
     expect(missing.code).toBe(1)
     expect(missing.stderr).toContain('push needs --api <url> or HOSTCORE_API_URL, HOSTCORE_TOKEN, --listing <id> or HOSTCORE_LISTING')
     const tag = await hct(['push', TEMPLATE, '--listing', 'mod_acme', '--tag', '1.0.0-beta.1'], undefined, env())
     expect(tag.code).toBe(1)
     expect(tag.stderr).toContain('the version tag must look like 1.2.3')
-    const bare = await hct(['push', join(REPO, 'examples', 'minimal'), '--listing', 'mod_acme'], undefined, env())
+  })
+
+  it('uploads a template without a package.json as it is, and reports what the platform answers', async () => {
+    requests = []
+    uploadAnswer = { status: 422, body: { error: { code: 'invalid_archive', message: 'the archive has no package.json' } } }
+    const bare = await hct(['push', join(REPO, 'examples', 'minimal'), '--listing', 'mod_acme', '--tag', '0.3.0'], undefined, env())
     expect(bare.code).toBe(1)
-    expect(bare.stderr).toContain('add one beside template.json')
+    expect(bare.stdout).toContain('has no package.json, so nothing is installed to build it with here; uploading it as it is')
+    expect(bare.stdout).not.toContain('building')
+    expect(bare.stderr).toContain('the upload failed (422 invalid_archive): the archive has no package.json')
+    expect(requests.map((r) => r.path)).toEqual(['/api/v1/developer/modules/mod_acme/submissions'])
+    expect(Object.keys(requests[0]!.form!.files)).toEqual(['template.json'])
+
+    requests = []
+    uploadAnswer = { status: 201, body: submission('ready', [{ id: 'tokens', title: 'Design tokens', status: 'pass', detail: '' }]) }
+    const accepted = await hct(['push', join(REPO, 'examples', 'minimal'), '--listing', 'mod_acme', '--tag', '0.3.0'], undefined, env())
+    expect(accepted.code).toBe(0)
+    expect(accepted.stdout).toContain('version 0.3.0 uploaded (submission sub_1): ready')
+    expect(accepted.stdout).toContain('preview: https://preview.example.com/p/abc')
   })
 })

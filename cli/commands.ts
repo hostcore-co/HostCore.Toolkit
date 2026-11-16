@@ -105,7 +105,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     summary: 'build, then upload the template as a new version',
     description: [
       "Builds the template to make sure it builds, then uploads its source (every file except node_modules/, dist/, build/ and names starting with a dot) as a new version of your marketplace listing. Prints the platform's checks and, when the build succeeded there, a preview link.",
-      'The template needs a package.json beside template.json. The version tag is template.json\'s version unless --tag says otherwise, and has the form 1.2.3.',
+      'A template without a package.json (one that is only template.json, for example) is uploaded without building it here, since nothing is installed to build it with. The version tag is template.json\'s version unless --tag says otherwise, and has the form 1.2.3.',
     ],
     flags: [
       { flag: '--listing <id>', text: 'The listing to add the version to (default: $HOSTCORE_LISTING).' },
