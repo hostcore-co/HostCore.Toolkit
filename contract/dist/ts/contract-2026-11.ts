@@ -16,16 +16,25 @@ export type ContractVersion = '2026-11'
  * legal pages. Any of them may be empty.
  */
 export interface StoreBusiness {
+  /** The first line of the street address. */
   address_line1: string
+  /** The second line of the street address. */
   address_line2: string
+  /** The city. */
   city: string
+  /** The state, province or region. */
   state: string
+  /** The country. */
   country: string
+  /** The postal or ZIP code. */
   postal_code: string
+  /** The company registration number. */
   business_number: string
   /** The VAT or GST registration number. */
   tax_number: string
+  /** The phone number customers may call. */
   phone_number: string
+  /** The address billing questions go to. */
   billing_email: string
 }
 
@@ -34,13 +43,24 @@ export interface StoreBusiness {
  * always set. The rendering engine writes them to the color.* design tokens.
  */
 export interface StoreTheme {
+  /** The page background. Also --hc-background. */
   background: string
+  /** Cards and panels on the page. Also --hc-surface. */
   surface: string
+  /** Inputs and controls on those cards. Also --hc-surface-raised. */
   surface_raised: string
+  /** Borders and dividers. Also --hc-border. */
   border: string
+  /** Body text. Also --hc-text. */
   text: string
+  /** Secondary text. Also --hc-text-muted. */
   text_muted: string
+  /** The brand colour, for buttons and links. Also --hc-accent. */
   accent: string
+  /**
+   * A stronger brand colour, for hover states and gradients. Also
+   * --hc-accent-strong.
+   */
   accent_strong: string
 }
 
@@ -49,16 +69,21 @@ export interface StoreTheme {
  * has not set it.
  */
 export interface Store {
+  /** The store's name. */
   name: string
   /** The domain the store is served on. */
   domain: string
+  /** The logo image URL, or empty. */
   logo_url: string
+  /** The favicon URL, or empty. */
   favicon_url: string
   /** A BCP 47 language tag such as "en". */
   locale: string
   /** The ISO 4217 code every catalogue price is in. */
   currency: string
+  /** The business details the store publishes. */
   business: StoreBusiness
+  /** The store's colours. */
   theme: StoreTheme
   /**
    * Where the store sends visitors from its root when it runs its own front
@@ -73,27 +98,43 @@ export interface Store {
 
 /** MarketingFeature is one bullet of store-written marketing copy. */
 export interface MarketingFeature {
+  /**
+   * The name of an icon the store picked, or empty. Render your own icon for
+   * names you know.
+   */
   icon: string
+  /** The bullet text. */
   text: string
 }
 
 /** Marketing is store-authored copy attached to a group or service. */
 export interface Marketing {
+  /** A headline. May be empty. */
   title: string
+  /** A paragraph. May be empty. */
   description: string
+  /** Bullets, in display order. Empty when the store wrote none. */
   features: MarketingFeature[]
 }
 
 /** Group is a group of services. */
 export interface Group {
+  /** A stable id, unique within the store. */
   id: string
+  /** The display name. */
   name: string
+  /**
+   * The path segment of the group's page. Link with url, never by building a
+   * path from it.
+   */
   slug: string
   /** The group's catalogue page. */
   url: string
+  /** A short description. May be empty. */
   description: string
   /** An image URL, or empty. */
   image: string
+  /** Copy the store wrote for the group page. */
   marketing: Marketing
 }
 
@@ -115,19 +156,29 @@ export const ServiceTypeFallback = 'other'
 
 /** Service is one product a store sells. */
 export interface Service {
+  /** A stable id, unique within the store. */
   id: string
+  /** The id of the group the service is in. */
   group_id: string
+  /** The display name. */
   name: string
+  /**
+   * The path segment of the service's page. Link with url, never by building a
+   * path from it.
+   */
   slug: string
   /**
    * Where a card for this service links: its plan listing, or checkout when
    * single_plan is true.
    */
   url: string
+  /** A short description. May be empty. */
   description: string
   /** An image URL, or empty. */
   image: string
+  /** What kind of product it is. */
   type: ServiceType
+  /** Copy the store wrote for the service page. */
   marketing: Marketing
   /**
    * True when the service has exactly one orderable plan, so it has no plan
@@ -149,6 +200,7 @@ export interface Price {
   amount_minor: number
   /** An ISO 4217 code. */
   currency: string
+  /** The billing cycle this price is for. */
   interval: PriceInterval
 }
 
@@ -167,7 +219,9 @@ export const OrderFormComponentTypeValues = ['string', 'checkbox', 'radio', 'sli
  * inside a location region.
  */
 export interface OrderFormOption {
+  /** What the customer sees. */
   label: string
+  /** What is recorded when it is chosen. */
   value: string
   /** An add-on price in minor units (cents). */
   price: number
@@ -178,10 +232,15 @@ export interface OrderFormOption {
  * as a country holding its cities.
  */
 export interface OrderFormRegion {
+  /** The position among the regions, lowest first. */
   order: number
+  /** What the customer sees, such as a country. */
   label: string
+  /** True for the region selected at first. */
   default: boolean
+  /** The value selected at first within the region, or empty. */
   default_value: string
+  /** The choices inside the region. */
   children: OrderFormOption[]
 }
 
@@ -190,12 +249,17 @@ export interface OrderFormRegion {
  * Only the keys relevant to its type are present.
  */
 export interface OrderFormComponent {
+  /** The position on the form, lowest first. */
   order: number
+  /** The kind of input. */
   type: OrderFormComponentType
+  /** What the customer sees. */
   label: string
+  /** Help text under the input. May be empty. */
   description: string
   /** The name the answer is recorded under. */
   key: string
+  /** True when the customer must answer it. */
   required: boolean
   /** Set on string components. */
   placeholder?: string
@@ -215,10 +279,18 @@ export interface OrderFormComponent {
 
 /** Plan is one way to buy a service. */
 export interface Plan {
+  /** A stable id, unique within the store. */
   id: string
+  /** The id of the service the plan belongs to. */
   service_id: string
+  /** The display name. */
   name: string
+  /**
+   * The plan's path segment at checkout. Link with checkout_url, never by
+   * building a path from it.
+   */
   slug: string
+  /** A short description. May be empty. */
   description: string
   /** An image URL, or empty. */
   image: string
@@ -230,6 +302,10 @@ export interface Plan {
   original_price: Price | null
   /** Days of free trial. Zero unless payment_type is free_trial. */
   trial_days: number
+  /**
+   * Whether the plan is free, starts with a free trial, or is paid every
+   * cycle.
+   */
   payment_type: PaymentType
   /**
    * How an order is fulfilled: "module" (automatically) or "manual" (by the
@@ -245,6 +321,7 @@ export interface Plan {
  * advertised from.
  */
 export interface ServiceCard {
+  /** The service the tile shows. */
   service: Service
   /**
    * The cheapest plan, compared per month so a yearly plan does not win by
@@ -258,10 +335,15 @@ export interface ServiceCard {
  * year in major units; zero means the store does not offer that operation.
  */
 export interface DomainTld {
+  /** The extension, without a leading dot: "com". */
   tld: string
+  /** True for extensions the store highlights. */
   featured: boolean
+  /** The price to register a domain for one year. */
   register: number
+  /** The price to transfer a domain in. */
   transfer: number
+  /** The price to renew a domain for one year. */
   renew: number
 }
 
@@ -270,6 +352,7 @@ export interface DomainTld {
  * matched with.
  */
 export interface PageRef<P extends ContractPageId = ContractPageId> {
+  /** The page id, such as "catalog.service". */
   id: P
   /**
    * Path parameters by name, such as {"group": "games"}. Empty for a page
@@ -283,6 +366,7 @@ export interface PageRef<P extends ContractPageId = ContractPageId> {
  * rendering the page.
  */
 export interface Redirect {
+  /** Where to send the visitor: a path on the store, or an absolute URL. */
   location: string
   /** One of 301, 302, 307 or 308. */
   status: number
@@ -290,10 +374,13 @@ export interface Redirect {
 
 /** PageMeta is what goes in the document head. */
 export interface PageMeta {
+  /** The document title. */
   title: string
+  /** The meta description. */
   description: string
   /** An image URL, or empty. */
   og_image: string
+  /** True when search engines should not index the page. */
   no_index: boolean
 }
 
@@ -302,9 +389,13 @@ export interface PageMeta {
  * offer is empty.
  */
 export interface NavLinks {
+  /** The store's home page. */
   home: string
+  /** The login page. */
   login: string
+  /** The signup page. */
   signup: string
+  /** The customer's account area. */
   account: string
   /** Empty when the store sells no domains. */
   domains: string
@@ -318,12 +409,15 @@ export interface NavLinks {
 export interface Nav {
   /** The store's enabled groups, in display order. */
   groups: Group[]
+  /** Every platform link a layout renders. */
   links: NavLinks
 }
 
 /** Action is an endpoint a page may call from the browser. */
 export interface Action {
+  /** The HTTP method to call it with. */
   method: 'GET' | 'POST'
+  /** The endpoint, as a path on the store. */
   url: string
 }
 
@@ -338,21 +432,27 @@ export interface Actions {
 
 /** PageEnvelope is every page response. */
 export interface PageEnvelope<P extends ContractPageId = ContractPageId> {
+  /** The contract version the response is in: "2026-11". */
   contract: ContractVersion
+  /** Which page this is, and the path parameters it was matched with. */
   page: PageRef<P>
   /**
    * Set when the engine should redirect instead of rendering. A single-plan
    * service page redirects to checkout and still carries its data.
    */
   redirect: Redirect | null
+  /** What goes in the document head. */
   meta: PageMeta
+  /** The store the page belongs to. */
   store: Store
+  /** The groups and links a layout needs. */
   nav: Nav
   /**
    * The store's values for the template's settings, by setting id. A setting
    * the store has not set is absent; use its default.
    */
   settings: Record<string, JsonValue>
+  /** The endpoints the page may call from the browser. */
   actions: Actions
   /**
    * The page-specific data. Absent only when redirect is set and the page has
@@ -363,11 +463,13 @@ export interface PageEnvelope<P extends ContractPageId = ContractPageId> {
 
 /** HomeData is the data of the home page. */
 export interface HomeData {
+  /** The store's enabled groups, in display order. The same list as nav.groups. */
   groups: Group[]
 }
 
 /** CatalogGroupData is the data of a group's catalogue page. */
 export interface CatalogGroupData {
+  /** The group the page is for. */
   group: Group
   /** Services with at least one orderable plan. */
   services: ServiceCard[]
@@ -375,7 +477,9 @@ export interface CatalogGroupData {
 
 /** CatalogServiceData is the data of a service's plan listing. */
 export interface CatalogServiceData {
+  /** The group the service is in. */
   group: Group
+  /** The service the page is for. */
   service: Service
   /** Every orderable plan. */
   plans: Plan[]
@@ -383,6 +487,7 @@ export interface CatalogServiceData {
 
 /** DomainsData is the data of the domains page. */
 export interface DomainsData {
+  /** Every extension the store sells, in display order. */
   tlds: DomainTld[]
   /** An ISO 4217 code. */
   currency: string

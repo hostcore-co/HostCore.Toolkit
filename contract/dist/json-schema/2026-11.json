@@ -159,24 +159,31 @@
       "type": "object",
       "properties": {
         "address_line1": {
+          "description": "The first line of the street address.",
           "type": "string"
         },
         "address_line2": {
+          "description": "The second line of the street address.",
           "type": "string"
         },
         "city": {
+          "description": "The city.",
           "type": "string"
         },
         "state": {
+          "description": "The state, province or region.",
           "type": "string"
         },
         "country": {
+          "description": "The country.",
           "type": "string"
         },
         "postal_code": {
+          "description": "The postal or ZIP code.",
           "type": "string"
         },
         "business_number": {
+          "description": "The company registration number.",
           "type": "string"
         },
         "tax_number": {
@@ -184,9 +191,11 @@
           "type": "string"
         },
         "phone_number": {
+          "description": "The phone number customers may call.",
           "type": "string"
         },
         "billing_email": {
+          "description": "The address billing questions go to.",
           "type": "string"
         }
       },
@@ -209,27 +218,35 @@
       "type": "object",
       "properties": {
         "background": {
+          "description": "The page background. Also --hc-background.",
           "type": "string"
         },
         "surface": {
+          "description": "Cards and panels on the page. Also --hc-surface.",
           "type": "string"
         },
         "surface_raised": {
+          "description": "Inputs and controls on those cards. Also --hc-surface-raised.",
           "type": "string"
         },
         "border": {
+          "description": "Borders and dividers. Also --hc-border.",
           "type": "string"
         },
         "text": {
+          "description": "Body text. Also --hc-text.",
           "type": "string"
         },
         "text_muted": {
+          "description": "Secondary text. Also --hc-text-muted.",
           "type": "string"
         },
         "accent": {
+          "description": "The brand colour, for buttons and links. Also --hc-accent.",
           "type": "string"
         },
         "accent_strong": {
+          "description": "A stronger brand colour, for hover states and gradients. Also --hc-accent-strong.",
           "type": "string"
         }
       },
@@ -250,6 +267,7 @@
       "type": "object",
       "properties": {
         "name": {
+          "description": "The store's name.",
           "type": "string"
         },
         "domain": {
@@ -257,9 +275,11 @@
           "type": "string"
         },
         "logo_url": {
+          "description": "The logo image URL, or empty.",
           "type": "string"
         },
         "favicon_url": {
+          "description": "The favicon URL, or empty.",
           "type": "string"
         },
         "locale": {
@@ -271,9 +291,11 @@
           "type": "string"
         },
         "business": {
+          "description": "The business details the store publishes.",
           "$ref": "#/$defs/StoreBusiness"
         },
         "theme": {
+          "description": "The store's colours.",
           "$ref": "#/$defs/StoreTheme"
         },
         "root_redirect_url": {
@@ -309,9 +331,11 @@
       "type": "object",
       "properties": {
         "icon": {
+          "description": "The name of an icon the store picked, or empty. Render your own icon for names you know.",
           "type": "string"
         },
         "text": {
+          "description": "The bullet text.",
           "type": "string"
         }
       },
@@ -326,12 +350,15 @@
       "type": "object",
       "properties": {
         "title": {
+          "description": "A headline. May be empty.",
           "type": "string"
         },
         "description": {
+          "description": "A paragraph. May be empty.",
           "type": "string"
         },
         "features": {
+          "description": "Bullets, in display order. Empty when the store wrote none.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/MarketingFeature"
@@ -350,12 +377,15 @@
       "type": "object",
       "properties": {
         "id": {
+          "description": "A stable id, unique within the store.",
           "type": "string"
         },
         "name": {
+          "description": "The display name.",
           "type": "string"
         },
         "slug": {
+          "description": "The path segment of the group's page. Link with url, never by building a path from it.",
           "type": "string"
         },
         "url": {
@@ -363,6 +393,7 @@
           "type": "string"
         },
         "description": {
+          "description": "A short description. May be empty.",
           "type": "string"
         },
         "image": {
@@ -370,6 +401,7 @@
           "type": "string"
         },
         "marketing": {
+          "description": "Copy the store wrote for the group page.",
           "$ref": "#/$defs/Marketing"
         }
       },
@@ -410,15 +442,19 @@
       "type": "object",
       "properties": {
         "id": {
+          "description": "A stable id, unique within the store.",
           "type": "string"
         },
         "group_id": {
+          "description": "The id of the group the service is in.",
           "type": "string"
         },
         "name": {
+          "description": "The display name.",
           "type": "string"
         },
         "slug": {
+          "description": "The path segment of the service's page. Link with url, never by building a path from it.",
           "type": "string"
         },
         "url": {
@@ -426,6 +462,7 @@
           "type": "string"
         },
         "description": {
+          "description": "A short description. May be empty.",
           "type": "string"
         },
         "image": {
@@ -433,9 +470,11 @@
           "type": "string"
         },
         "type": {
+          "description": "What kind of product it is.",
           "$ref": "#/$defs/ServiceType"
         },
         "marketing": {
+          "description": "Copy the store wrote for the service page.",
           "$ref": "#/$defs/Marketing"
         },
         "single_plan": {
@@ -483,6 +522,7 @@
           "type": "string"
         },
         "interval": {
+          "description": "The billing cycle this price is for.",
           "$ref": "#/$defs/PriceInterval"
         }
       },
@@ -518,9 +558,11 @@
       "type": "object",
       "properties": {
         "label": {
+          "description": "What the customer sees.",
           "type": "string"
         },
         "value": {
+          "description": "What is recorded when it is chosen.",
           "type": "string"
         },
         "price": {
@@ -540,18 +582,23 @@
       "type": "object",
       "properties": {
         "order": {
+          "description": "The position among the regions, lowest first.",
           "type": "integer"
         },
         "label": {
+          "description": "What the customer sees, such as a country.",
           "type": "string"
         },
         "default": {
+          "description": "True for the region selected at first.",
           "type": "boolean"
         },
         "default_value": {
+          "description": "The value selected at first within the region, or empty.",
           "type": "string"
         },
         "children": {
+          "description": "The choices inside the region.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/OrderFormOption"
@@ -572,15 +619,19 @@
       "type": "object",
       "properties": {
         "order": {
+          "description": "The position on the form, lowest first.",
           "type": "integer"
         },
         "type": {
+          "description": "The kind of input.",
           "$ref": "#/$defs/OrderFormComponentType"
         },
         "label": {
+          "description": "What the customer sees.",
           "type": "string"
         },
         "description": {
+          "description": "Help text under the input. May be empty.",
           "type": "string"
         },
         "key": {
@@ -588,6 +639,7 @@
           "type": "string"
         },
         "required": {
+          "description": "True when the customer must answer it.",
           "type": "boolean"
         },
         "placeholder": {
@@ -640,18 +692,23 @@
       "type": "object",
       "properties": {
         "id": {
+          "description": "A stable id, unique within the store.",
           "type": "string"
         },
         "service_id": {
+          "description": "The id of the service the plan belongs to.",
           "type": "string"
         },
         "name": {
+          "description": "The display name.",
           "type": "string"
         },
         "slug": {
+          "description": "The plan's path segment at checkout. Link with checkout_url, never by building a path from it.",
           "type": "string"
         },
         "description": {
+          "description": "A short description. May be empty.",
           "type": "string"
         },
         "image": {
@@ -682,6 +739,7 @@
           "type": "integer"
         },
         "payment_type": {
+          "description": "Whether the plan is free, starts with a free trial, or is paid every cycle.",
           "$ref": "#/$defs/PaymentType"
         },
         "provisioning": {
@@ -718,6 +776,7 @@
       "type": "object",
       "properties": {
         "service": {
+          "description": "The service the tile shows.",
           "$ref": "#/$defs/Service"
         },
         "from": {
@@ -736,18 +795,23 @@
       "type": "object",
       "properties": {
         "tld": {
+          "description": "The extension, without a leading dot: \"com\".",
           "type": "string"
         },
         "featured": {
+          "description": "True for extensions the store highlights.",
           "type": "boolean"
         },
         "register": {
+          "description": "The price to register a domain for one year.",
           "type": "number"
         },
         "transfer": {
+          "description": "The price to transfer a domain in.",
           "type": "number"
         },
         "renew": {
+          "description": "The price to renew a domain for one year.",
           "type": "number"
         }
       },
@@ -765,6 +829,7 @@
       "type": "object",
       "properties": {
         "id": {
+          "description": "The page id, such as \"catalog.service\".",
           "type": "string"
         },
         "params": {
@@ -786,6 +851,7 @@
       "type": "object",
       "properties": {
         "location": {
+          "description": "Where to send the visitor: a path on the store, or an absolute URL.",
           "type": "string"
         },
         "status": {
@@ -804,9 +870,11 @@
       "type": "object",
       "properties": {
         "title": {
+          "description": "The document title.",
           "type": "string"
         },
         "description": {
+          "description": "The meta description.",
           "type": "string"
         },
         "og_image": {
@@ -814,6 +882,7 @@
           "type": "string"
         },
         "no_index": {
+          "description": "True when search engines should not index the page.",
           "type": "boolean"
         }
       },
@@ -830,15 +899,19 @@
       "type": "object",
       "properties": {
         "home": {
+          "description": "The store's home page.",
           "type": "string"
         },
         "login": {
+          "description": "The login page.",
           "type": "string"
         },
         "signup": {
+          "description": "The signup page.",
           "type": "string"
         },
         "account": {
+          "description": "The customer's account area.",
           "type": "string"
         },
         "domains": {
@@ -877,6 +950,7 @@
           }
         },
         "links": {
+          "description": "Every platform link a layout renders.",
           "$ref": "#/$defs/NavLinks"
         }
       },
@@ -891,12 +965,14 @@
       "type": "object",
       "properties": {
         "method": {
+          "description": "The HTTP method to call it with.",
           "enum": [
             "GET",
             "POST"
           ]
         },
         "url": {
+          "description": "The endpoint, as a path on the store.",
           "type": "string"
         }
       },
@@ -923,9 +999,11 @@
       "type": "object",
       "properties": {
         "contract": {
+          "description": "The contract version the response is in: \"2026-11\".",
           "$ref": "#/$defs/ContractVersion"
         },
         "page": {
+          "description": "Which page this is, and the path parameters it was matched with.",
           "$ref": "#/$defs/PageRef"
         },
         "redirect": {
@@ -940,12 +1018,15 @@
           ]
         },
         "meta": {
+          "description": "What goes in the document head.",
           "$ref": "#/$defs/PageMeta"
         },
         "store": {
+          "description": "The store the page belongs to.",
           "$ref": "#/$defs/Store"
         },
         "nav": {
+          "description": "The groups and links a layout needs.",
           "$ref": "#/$defs/Nav"
         },
         "settings": {
@@ -954,6 +1035,7 @@
           "additionalProperties": {}
         },
         "actions": {
+          "description": "The endpoints the page may call from the browser.",
           "$ref": "#/$defs/Actions"
         },
         "data": {
@@ -977,6 +1059,7 @@
       "type": "object",
       "properties": {
         "groups": {
+          "description": "The store's enabled groups, in display order. The same list as nav.groups.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/Group"
@@ -993,6 +1076,7 @@
       "type": "object",
       "properties": {
         "group": {
+          "description": "The group the page is for.",
           "$ref": "#/$defs/Group"
         },
         "services": {
@@ -1014,9 +1098,11 @@
       "type": "object",
       "properties": {
         "group": {
+          "description": "The group the service is in.",
           "$ref": "#/$defs/Group"
         },
         "service": {
+          "description": "The service the page is for.",
           "$ref": "#/$defs/Service"
         },
         "plans": {
@@ -1039,6 +1125,7 @@
       "type": "object",
       "properties": {
         "tlds": {
+          "description": "Every extension the store sells, in display order.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/DomainTld"

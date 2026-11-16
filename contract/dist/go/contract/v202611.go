@@ -8,16 +8,25 @@ const V202611Contract = "2026-11"
 // V202611StoreBusiness is the business details a store publishes, for footers
 // and legal pages. Any of them may be empty.
 type V202611StoreBusiness struct {
-	AddressLine1   string `json:"address_line1"`
-	AddressLine2   string `json:"address_line2"`
-	City           string `json:"city"`
-	State          string `json:"state"`
-	Country        string `json:"country"`
-	PostalCode     string `json:"postal_code"`
+	// The first line of the street address.
+	AddressLine1 string `json:"address_line1"`
+	// The second line of the street address.
+	AddressLine2 string `json:"address_line2"`
+	// The city.
+	City string `json:"city"`
+	// The state, province or region.
+	State string `json:"state"`
+	// The country.
+	Country string `json:"country"`
+	// The postal or ZIP code.
+	PostalCode string `json:"postal_code"`
+	// The company registration number.
 	BusinessNumber string `json:"business_number"`
 	// The VAT or GST registration number.
-	TaxNumber    string `json:"tax_number"`
-	PhoneNumber  string `json:"phone_number"`
+	TaxNumber string `json:"tax_number"`
+	// The phone number customers may call.
+	PhoneNumber string `json:"phone_number"`
+	// The address billing questions go to.
 	BillingEmail string `json:"billing_email"`
 }
 
@@ -25,30 +34,44 @@ type V202611StoreBusiness struct {
 // and is always set. The rendering engine writes them to the color.* design
 // tokens.
 type V202611StoreTheme struct {
-	Background    string `json:"background"`
-	Surface       string `json:"surface"`
+	// The page background. Also --hc-background.
+	Background string `json:"background"`
+	// Cards and panels on the page. Also --hc-surface.
+	Surface string `json:"surface"`
+	// Inputs and controls on those cards. Also --hc-surface-raised.
 	SurfaceRaised string `json:"surface_raised"`
-	Border        string `json:"border"`
-	Text          string `json:"text"`
-	TextMuted     string `json:"text_muted"`
-	Accent        string `json:"accent"`
-	AccentStrong  string `json:"accent_strong"`
+	// Borders and dividers. Also --hc-border.
+	Border string `json:"border"`
+	// Body text. Also --hc-text.
+	Text string `json:"text"`
+	// Secondary text. Also --hc-text-muted.
+	TextMuted string `json:"text_muted"`
+	// The brand colour, for buttons and links. Also --hc-accent.
+	Accent string `json:"accent"`
+	// A stronger brand colour, for hover states and gradients. Also
+	// --hc-accent-strong.
+	AccentStrong string `json:"accent_strong"`
 }
 
 // V202611Store is the store a page belongs to. Any URL may be empty when the
 // store has not set it.
 type V202611Store struct {
+	// The store's name.
 	Name string `json:"name"`
 	// The domain the store is served on.
-	Domain     string `json:"domain"`
-	LogoURL    string `json:"logo_url"`
+	Domain string `json:"domain"`
+	// The logo image URL, or empty.
+	LogoURL string `json:"logo_url"`
+	// The favicon URL, or empty.
 	FaviconURL string `json:"favicon_url"`
 	// A BCP 47 language tag such as "en".
 	Locale string `json:"locale"`
 	// The ISO 4217 code every catalogue price is in.
-	Currency string               `json:"currency"`
+	Currency string `json:"currency"`
+	// The business details the store publishes.
 	Business V202611StoreBusiness `json:"business"`
-	Theme    V202611StoreTheme    `json:"theme"`
+	// The store's colours.
+	Theme V202611StoreTheme `json:"theme"`
 	// Where the store sends visitors from its root when it runs its own front end.
 	// Usually empty.
 	RootRedirectURL string `json:"root_redirect_url"`
@@ -60,27 +83,39 @@ type V202611Store struct {
 
 // V202611MarketingFeature is one bullet of store-written marketing copy.
 type V202611MarketingFeature struct {
+	// The name of an icon the store picked, or empty. Render your own icon for
+	// names you know.
 	Icon string `json:"icon"`
+	// The bullet text.
 	Text string `json:"text"`
 }
 
 // V202611Marketing is store-authored copy attached to a group or service.
 type V202611Marketing struct {
-	Title       string                    `json:"title"`
-	Description string                    `json:"description"`
-	Features    []V202611MarketingFeature `json:"features"`
+	// A headline. May be empty.
+	Title string `json:"title"`
+	// A paragraph. May be empty.
+	Description string `json:"description"`
+	// Bullets, in display order. Empty when the store wrote none.
+	Features []V202611MarketingFeature `json:"features"`
 }
 
 // V202611Group is a group of services.
 type V202611Group struct {
-	ID   string `json:"id"`
+	// A stable id, unique within the store.
+	ID string `json:"id"`
+	// The display name.
 	Name string `json:"name"`
+	// The path segment of the group's page. Link with url, never by building a
+	// path from it.
 	Slug string `json:"slug"`
 	// The group's catalogue page.
-	URL         string `json:"url"`
+	URL string `json:"url"`
+	// A short description. May be empty.
 	Description string `json:"description"`
 	// An image URL, or empty.
-	Image     string           `json:"image"`
+	Image string `json:"image"`
+	// Copy the store wrote for the group page.
 	Marketing V202611Marketing `json:"marketing"`
 }
 
@@ -104,18 +139,26 @@ const V202611ServiceTypeFallback = V202611ServiceTypeOther
 
 // V202611Service is one product a store sells.
 type V202611Service struct {
-	ID      string `json:"id"`
+	// A stable id, unique within the store.
+	ID string `json:"id"`
+	// The id of the group the service is in.
 	GroupID string `json:"group_id"`
-	Name    string `json:"name"`
-	Slug    string `json:"slug"`
+	// The display name.
+	Name string `json:"name"`
+	// The path segment of the service's page. Link with url, never by building a
+	// path from it.
+	Slug string `json:"slug"`
 	// Where a card for this service links: its plan listing, or checkout when
 	// single_plan is true.
-	URL         string `json:"url"`
+	URL string `json:"url"`
+	// A short description. May be empty.
 	Description string `json:"description"`
 	// An image URL, or empty.
-	Image     string             `json:"image"`
-	Type      V202611ServiceType `json:"type"`
-	Marketing V202611Marketing   `json:"marketing"`
+	Image string `json:"image"`
+	// What kind of product it is.
+	Type V202611ServiceType `json:"type"`
+	// Copy the store wrote for the service page.
+	Marketing V202611Marketing `json:"marketing"`
 	// True when the service has exactly one orderable plan, so it has no plan
 	// listing.
 	SinglePlan bool `json:"single_plan"`
@@ -138,7 +181,8 @@ type V202611Price struct {
 	// The same amount in minor units (cents), for arithmetic.
 	AmountMinor int64 `json:"amount_minor"`
 	// An ISO 4217 code.
-	Currency string               `json:"currency"`
+	Currency string `json:"currency"`
+	// The billing cycle this price is for.
 	Interval V202611PriceInterval `json:"interval"`
 }
 
@@ -167,7 +211,9 @@ const (
 // V202611OrderFormOption is one choice on a radio, slider or dropdown
 // component, or inside a location region.
 type V202611OrderFormOption struct {
+	// What the customer sees.
 	Label string `json:"label"`
+	// What is recorded when it is chosen.
 	Value string `json:"value"`
 	// An add-on price in minor units (cents).
 	Price int64 `json:"price"`
@@ -176,23 +222,33 @@ type V202611OrderFormOption struct {
 // V202611OrderFormRegion is a top-level group inside a location-multi-dropdown,
 // such as a country holding its cities.
 type V202611OrderFormRegion struct {
-	Order        int                      `json:"order"`
-	Label        string                   `json:"label"`
-	Default      bool                     `json:"default"`
-	DefaultValue string                   `json:"default_value"`
-	Children     []V202611OrderFormOption `json:"children"`
+	// The position among the regions, lowest first.
+	Order int `json:"order"`
+	// What the customer sees, such as a country.
+	Label string `json:"label"`
+	// True for the region selected at first.
+	Default bool `json:"default"`
+	// The value selected at first within the region, or empty.
+	DefaultValue string `json:"default_value"`
+	// The choices inside the region.
+	Children []V202611OrderFormOption `json:"children"`
 }
 
 // V202611OrderFormComponent is one field a customer fills in when ordering a
 // plan. Only the keys relevant to its type are present.
 type V202611OrderFormComponent struct {
-	Order       int                           `json:"order"`
-	Type        V202611OrderFormComponentType `json:"type"`
-	Label       string                        `json:"label"`
-	Description string                        `json:"description"`
+	// The position on the form, lowest first.
+	Order int `json:"order"`
+	// The kind of input.
+	Type V202611OrderFormComponentType `json:"type"`
+	// What the customer sees.
+	Label string `json:"label"`
+	// Help text under the input. May be empty.
+	Description string `json:"description"`
 	// The name the answer is recorded under.
-	Key      string `json:"key"`
-	Required bool   `json:"required"`
+	Key string `json:"key"`
+	// True when the customer must answer it.
+	Required bool `json:"required"`
 	// Set on string components.
 	Placeholder string `json:"placeholder,omitempty"`
 	// Set on string components.
@@ -211,10 +267,16 @@ type V202611OrderFormComponent struct {
 
 // V202611Plan is one way to buy a service.
 type V202611Plan struct {
-	ID          string `json:"id"`
-	ServiceID   string `json:"service_id"`
-	Name        string `json:"name"`
-	Slug        string `json:"slug"`
+	// A stable id, unique within the store.
+	ID string `json:"id"`
+	// The id of the service the plan belongs to.
+	ServiceID string `json:"service_id"`
+	// The display name.
+	Name string `json:"name"`
+	// The plan's path segment at checkout. Link with checkout_url, never by
+	// building a path from it.
+	Slug string `json:"slug"`
+	// A short description. May be empty.
 	Description string `json:"description"`
 	// An image URL, or empty.
 	Image string `json:"image"`
@@ -225,7 +287,8 @@ type V202611Plan struct {
 	// A struck-through earlier price, or null.
 	OriginalPrice *V202611Price `json:"original_price"`
 	// Days of free trial. Zero unless payment_type is free_trial.
-	TrialDays   int                `json:"trial_days"`
+	TrialDays int `json:"trial_days"`
+	// Whether the plan is free, starts with a free trial, or is paid every cycle.
 	PaymentType V202611PaymentType `json:"payment_type"`
 	// How an order is fulfilled: "module" (automatically) or "manual" (by the
 	// store's staff).
@@ -237,6 +300,7 @@ type V202611Plan struct {
 // V202611ServiceCard is what a catalogue tile shows: a service and the plan it
 // is advertised from.
 type V202611ServiceCard struct {
+	// The service the tile shows.
 	Service V202611Service `json:"service"`
 	// The cheapest plan, compared per month so a yearly plan does not win by being
 	// billed less often.
@@ -246,16 +310,22 @@ type V202611ServiceCard struct {
 // V202611DomainTld is one extension on the domain pricing table. Prices are for
 // one year in major units; zero means the store does not offer that operation.
 type V202611DomainTld struct {
-	TLD      string  `json:"tld"`
-	Featured bool    `json:"featured"`
+	// The extension, without a leading dot: "com".
+	TLD string `json:"tld"`
+	// True for extensions the store highlights.
+	Featured bool `json:"featured"`
+	// The price to register a domain for one year.
 	Register float64 `json:"register"`
+	// The price to transfer a domain in.
 	Transfer float64 `json:"transfer"`
-	Renew    float64 `json:"renew"`
+	// The price to renew a domain for one year.
+	Renew float64 `json:"renew"`
 }
 
 // V202611PageRef is the page a response is for, with the path parameters it was
 // matched with.
 type V202611PageRef struct {
+	// The page id, such as "catalog.service".
 	ID string `json:"id"`
 	// Path parameters by name, such as {"group": "games"}. Empty for a page
 	// without any.
@@ -265,6 +335,7 @@ type V202611PageRef struct {
 // V202611Redirect tells the rendering engine to answer with a redirect instead
 // of rendering the page.
 type V202611Redirect struct {
+	// Where to send the visitor: a path on the store, or an absolute URL.
 	Location string `json:"location"`
 	// One of 301, 302, 307 or 308.
 	Status int `json:"status"`
@@ -272,19 +343,26 @@ type V202611Redirect struct {
 
 // V202611PageMeta is what goes in the document head.
 type V202611PageMeta struct {
-	Title       string `json:"title"`
+	// The document title.
+	Title string `json:"title"`
+	// The meta description.
 	Description string `json:"description"`
 	// An image URL, or empty.
 	OGImage string `json:"og_image"`
-	NoIndex bool   `json:"no_index"`
+	// True when search engines should not index the page.
+	NoIndex bool `json:"no_index"`
 }
 
 // V202611NavLinks is every platform link a layout renders. A link the store
 // does not offer is empty.
 type V202611NavLinks struct {
-	Home    string `json:"home"`
-	Login   string `json:"login"`
-	Signup  string `json:"signup"`
+	// The store's home page.
+	Home string `json:"home"`
+	// The login page.
+	Login string `json:"login"`
+	// The signup page.
+	Signup string `json:"signup"`
+	// The customer's account area.
 	Account string `json:"account"`
 	// Empty when the store sells no domains.
 	Domains string `json:"domains"`
@@ -297,14 +375,17 @@ type V202611NavLinks struct {
 // V202611Nav is what a layout needs to render navigation on every page.
 type V202611Nav struct {
 	// The store's enabled groups, in display order.
-	Groups []V202611Group  `json:"groups"`
-	Links  V202611NavLinks `json:"links"`
+	Groups []V202611Group `json:"groups"`
+	// Every platform link a layout renders.
+	Links V202611NavLinks `json:"links"`
 }
 
 // V202611Action is an endpoint a page may call from the browser.
 type V202611Action struct {
+	// The HTTP method to call it with.
 	Method string `json:"method"`
-	URL    string `json:"url"`
+	// The endpoint, as a path on the store.
+	URL string `json:"url"`
 }
 
 // V202611Actions is the endpoints a page may call. An action the store does not
@@ -316,18 +397,24 @@ type V202611Actions struct {
 
 // V202611PageEnvelope is every page response.
 type V202611PageEnvelope struct {
-	Contract string         `json:"contract"`
-	Page     V202611PageRef `json:"page"`
+	// The contract version the response is in: "2026-11".
+	Contract string `json:"contract"`
+	// Which page this is, and the path parameters it was matched with.
+	Page V202611PageRef `json:"page"`
 	// Set when the engine should redirect instead of rendering. A single-plan
 	// service page redirects to checkout and still carries its data.
 	Redirect *V202611Redirect `json:"redirect"`
-	Meta     V202611PageMeta  `json:"meta"`
-	Store    V202611Store     `json:"store"`
-	Nav      V202611Nav       `json:"nav"`
+	// What goes in the document head.
+	Meta V202611PageMeta `json:"meta"`
+	// The store the page belongs to.
+	Store V202611Store `json:"store"`
+	// The groups and links a layout needs.
+	Nav V202611Nav `json:"nav"`
 	// The store's values for the template's settings, by setting id. A setting the
 	// store has not set is absent; use its default.
 	Settings map[string]any `json:"settings"`
-	Actions  V202611Actions `json:"actions"`
+	// The endpoints the page may call from the browser.
+	Actions V202611Actions `json:"actions"`
 	// The page-specific data. Absent only when redirect is set and the page has
 	// nothing to carry.
 	Data any `json:"data,omitempty"`
@@ -335,11 +422,13 @@ type V202611PageEnvelope struct {
 
 // V202611HomeData is the data of the home page.
 type V202611HomeData struct {
+	// The store's enabled groups, in display order. The same list as nav.groups.
 	Groups []V202611Group `json:"groups"`
 }
 
 // V202611CatalogGroupData is the data of a group's catalogue page.
 type V202611CatalogGroupData struct {
+	// The group the page is for.
 	Group V202611Group `json:"group"`
 	// Services with at least one orderable plan.
 	Services []V202611ServiceCard `json:"services"`
@@ -347,7 +436,9 @@ type V202611CatalogGroupData struct {
 
 // V202611CatalogServiceData is the data of a service's plan listing.
 type V202611CatalogServiceData struct {
-	Group   V202611Group   `json:"group"`
+	// The group the service is in.
+	Group V202611Group `json:"group"`
+	// The service the page is for.
 	Service V202611Service `json:"service"`
 	// Every orderable plan.
 	Plans []V202611Plan `json:"plans"`
@@ -355,6 +446,7 @@ type V202611CatalogServiceData struct {
 
 // V202611DomainsData is the data of the domains page.
 type V202611DomainsData struct {
+	// Every extension the store sells, in display order.
 	TLDs []V202611DomainTld `json:"tlds"`
 	// An ISO 4217 code.
 	Currency string `json:"currency"`
