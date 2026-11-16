@@ -434,6 +434,11 @@ export const SETTING_FIELD_ID_PATTERN = '^[a-z][a-z0-9_]*$'
 /** A colour is `#rgb` or `#rrggbb`. */
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 
+/**
+ * The standard settings. A link default here is `/` or the path of a page in
+ * the page registry, and a test holds it to that, so a page that moves cannot
+ * leave a default pointing nowhere.
+ */
 export const STANDARD_SETTINGS: readonly SettingSchemaEntry[] = [
   { id: 'hero.title', type: 'text', label: 'Headline', max: 160, default: 'Game servers and web hosting, online in minutes' },
   {

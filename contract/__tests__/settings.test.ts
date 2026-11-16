@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { join } from 'node:path'
+import { readRegistry } from '../src/registry'
 import { settingValueError, STANDARD_SETTINGS, validateSettingSchema, type SettingSchemaEntry } from '../src/settings'
 import { TOKENS, validateTokens } from '../src/tokens'
 
@@ -251,5 +253,32 @@ describe('standard setting limits', () => {
     expect(byId('hero.highlights').max).toBe(6)
     expect(byId('features.cards').max).toBe(12)
     expect(byId('faq.items').max).toBe(24)
+  })
+})
+
+describe('standard link defaults', () => {
+  const registry = readRegistry(join(import.meta.dir, '..'))
+  const pagePaths = registry.pages.map((p) => p.path).filter((p): p is string => p !== null && !p.includes('{'))
+
+  /** Every href and url among the standard settings' defaults, by where it is. */
+  const links = STANDARD_SETTINGS.flatMap((s): [string, string][] => {
+    if (s.type === 'link') return [[s.id, (s.default as { href: string }).href]]
+    if (s.type === 'url') return [[s.id, s.default as string]]
+    if (s.type === 'list' && s.of === 'url') return (s.default as string[]).map((v, i): [string, string] => [`${s.id}[${i}]`, v])
+    if (s.type === 'object-list') {
+      return (s.fields ?? [])
+        .filter((f) => f.type === 'url')
+        .flatMap((f) => (s.default as Record<string, string>[]).map((row, i): [string, string] => [`${s.id}[${i}].${f.id}`, row[f.id]!]))
+    }
+    return []
+  })
+
+  it('exist', () => {
+    expect(links.map(([at]) => at)).toEqual(['hero.primary_cta', 'hero.secondary_cta'])
+  })
+
+  it('point at the home page or at the path of a page in the registry', () => {
+    expect(pagePaths).toContain('/')
+    for (const [at, href] of links) expect([at, pagePaths.includes(href)]).toEqual([at, true])
   })
 })
