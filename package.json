@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./entry.server": "./src/entries/entry.server.tsx",
-    "./entry.client": "./src/entries/entry.client.tsx"
+    "./entry.client": "./src/entries/entry.client.tsx",
+    "./contract": "./contract/src/index.ts"
   },
   "bin": {
     "hct": "./cli/index.ts"
@@ -16,6 +17,7 @@
   "files": [
     "src",
     "cli",
+    "contract",
     "README.md"
   ],
   "scripts": {

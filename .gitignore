@@ -90,6 +90,8 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+# The generated contract is committed: consumers copy it from here.
+!contract/dist/
 
 # Gatsby files
 .cache/

@@ -1,0 +1,122 @@
+{
+  "page_type": "home",
+  "meta": {
+    "title": "Acme Hosting",
+    "description": ""
+  },
+  "store": {
+    "store_name": "Acme Hosting",
+    "website_domain": "acme.test",
+    "logo_url": "https://cdn.example.com/acme/logo.svg",
+    "favicon_url": "https://cdn.example.com/acme/favicon.ico",
+    "terms_of_service_url": "https://acme.test/legal/terms",
+    "privacy_policy_url": "https://acme.test/legal/privacy",
+    "root_redirect_url": "",
+    "login_image_url": "https://cdn.example.com/acme/login.jpg",
+    "signup_image_url": "",
+    "business_info": {
+      "address_line1": "1 Example Street",
+      "address_line2": "Suite 2",
+      "city": "Springfield",
+      "state": "OR",
+      "country": "US",
+      "postal_code": "97403",
+      "business_number": "EX-1234567",
+      "tax_number": "EX-TAX-0001",
+      "phone_number": "+1 555 0100",
+      "billing_email": "billing@acme.test"
+    },
+    "theme": {
+      "background": "#141517",
+      "surface": "#111214",
+      "surface_raised": "#191A1C",
+      "border": "#27282A",
+      "text": "#FFFFFF",
+      "text_muted": "#A2A3A7",
+      "accent": "#34D0FF",
+      "accent_strong": "#1F9DFF"
+    }
+  },
+  "service_groups": [
+    {
+      "id": "grp_games",
+      "name": "Game Servers",
+      "slug": "games",
+      "description": "Low-latency servers for the games you play.",
+      "image": "https://cdn.example.com/acme/games.jpg",
+      "marketing": {
+        "title": "Game servers",
+        "description": "Your own server, online in minutes.",
+        "features": [
+          {
+            "icon": "bolt",
+            "text": "Instant setup"
+          },
+          {
+            "icon": "shield",
+            "text": "DDoS protection"
+          }
+        ]
+      }
+    }
+  ],
+  "content": {
+    "hero": {
+      "title": "Only the headline is set",
+      "subtitle": "Fast hardware, DDoS protection and automatic setup, with a control panel that puts you in charge of everything you run with us.",
+      "highlights": [
+        "Online in minutes",
+        "DDoS protection included",
+        "Support around the clock"
+      ],
+      "primary_cta": {
+        "label": "Browse plans",
+        "href": "/"
+      },
+      "secondary_cta": {
+        "label": "Find a domain",
+        "href": "/domains"
+      }
+    },
+    "categories": {
+      "title": "What we host",
+      "subtitle": "Game servers, web hosting and everything you need to run them."
+    },
+    "features": {
+      "title": "Why host with us",
+      "subtitle": "The things you would want from a host, standard on every plan.",
+      "cards": [
+        {
+          "title": "Online in minutes",
+          "description": "Your service is set up automatically the moment your payment clears. No queue, no waiting on a technician."
+        },
+        {
+          "title": "Hardware built for low latency",
+          "description": "Current-generation CPUs and NVMe storage, on networks chosen for the routes your players and visitors actually take."
+        },
+        {
+          "title": "DDoS protection as standard",
+          "description": "Always-on filtering across the whole network, included at no extra cost rather than sold as an upgrade."
+        },
+        {
+          "title": "Full control of your service",
+          "description": "Start, stop, reinstall, back up and reconfigure whenever you like, straight from your control panel."
+        },
+        {
+          "title": "One-click mods and apps",
+          "description": "Modpacks, plugins and the web applications you already use install in a couple of clicks."
+        },
+        {
+          "title": "Support that answers",
+          "description": "Real people on tickets at any hour, whether it is a config question or something genuinely broken."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "subtitle": "",
+      "items": []
+    }
+  },
+  "domains_enabled": true
+}

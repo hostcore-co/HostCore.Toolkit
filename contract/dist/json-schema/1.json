@@ -1,0 +1,1117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Storefront page contract 1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/HomePageData"
+    },
+    {
+      "$ref": "#/$defs/GroupPageData"
+    },
+    {
+      "$ref": "#/$defs/ServicePageData"
+    },
+    {
+      "$ref": "#/$defs/DomainsPageData"
+    },
+    {
+      "$ref": "#/$defs/NotFoundPageData"
+    }
+  ],
+  "$defs": {
+    "StoreBusinessInfo": {
+      "description": "StoreBusinessInfo is the business details a store publishes, for footers and legal pages. Any of them may be empty.",
+      "type": "object",
+      "properties": {
+        "address_line1": {
+          "type": "string"
+        },
+        "address_line2": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "business_number": {
+          "type": "string"
+        },
+        "tax_number": {
+          "description": "The VAT or GST registration number.",
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "billing_email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "address_line1",
+        "address_line2",
+        "city",
+        "state",
+        "country",
+        "postal_code",
+        "business_number",
+        "tax_number",
+        "phone_number",
+        "billing_email"
+      ],
+      "additionalProperties": false
+    },
+    "StoreTheme": {
+      "description": "StoreTheme is the palette the store has chosen. Every value is a hex colour, and every colour is always set: a store that never chose one gets the platform default.",
+      "type": "object",
+      "properties": {
+        "background": {
+          "description": "The page.",
+          "type": "string"
+        },
+        "surface": {
+          "description": "Cards on the page.",
+          "type": "string"
+        },
+        "surface_raised": {
+          "description": "Inputs and controls on those cards.",
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "text_muted": {
+          "type": "string"
+        },
+        "accent": {
+          "description": "The first stop of the brand gradient.",
+          "type": "string"
+        },
+        "accent_strong": {
+          "description": "The second stop of the brand gradient.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "background",
+        "surface",
+        "surface_raised",
+        "border",
+        "text",
+        "text_muted",
+        "accent",
+        "accent_strong"
+      ],
+      "additionalProperties": false
+    },
+    "StorePublicInfo": {
+      "description": "StorePublicInfo is the store a page belongs to. Any URL may be empty when the store has not set it.",
+      "type": "object",
+      "properties": {
+        "store_name": {
+          "type": "string"
+        },
+        "website_domain": {
+          "type": "string"
+        },
+        "logo_url": {
+          "type": "string"
+        },
+        "favicon_url": {
+          "type": "string"
+        },
+        "terms_of_service_url": {
+          "type": "string"
+        },
+        "privacy_policy_url": {
+          "type": "string"
+        },
+        "root_redirect_url": {
+          "type": "string"
+        },
+        "login_image_url": {
+          "description": "Artwork beside the login and forgot-password forms. Empty means the platform image.",
+          "type": "string"
+        },
+        "signup_image_url": {
+          "description": "Artwork above the signup form. Empty means the platform image.",
+          "type": "string"
+        },
+        "business_info": {
+          "$ref": "#/$defs/StoreBusinessInfo"
+        },
+        "theme": {
+          "$ref": "#/$defs/StoreTheme"
+        }
+      },
+      "required": [
+        "store_name",
+        "website_domain",
+        "logo_url",
+        "favicon_url",
+        "terms_of_service_url",
+        "privacy_policy_url",
+        "root_redirect_url",
+        "login_image_url",
+        "signup_image_url",
+        "business_info",
+        "theme"
+      ],
+      "additionalProperties": false
+    },
+    "MarketingFeature": {
+      "description": "MarketingFeature is one bullet of store-written marketing copy.",
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "icon",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "Marketing": {
+      "description": "Marketing is store-authored copy attached to a group or service.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "features": {
+          "description": "Never null; empty when the store wrote none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MarketingFeature"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "features"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceGroup": {
+      "description": "ServiceGroup is a group of services, as the navigation and catalogue pages list it.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "image": {
+          "description": "An image URL, or empty.",
+          "type": "string"
+        },
+        "marketing": {
+          "$ref": "#/$defs/Marketing"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "slug",
+        "description",
+        "image",
+        "marketing"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceType": {
+      "description": "ServiceType is what kind of product a service is. Templates use it to pick a layout: a game-server catalogue and a web-hosting price table are different pages.",
+      "enum": [
+        "game-server",
+        "web-hosting",
+        "dedicated-server",
+        "vps",
+        "other"
+      ]
+    },
+    "Service": {
+      "description": "Service is one product a store sells, with its plans listed separately.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "description": "The service's marketing description.",
+          "type": "string"
+        },
+        "image": {
+          "description": "An image URL, or empty.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ServiceType"
+        },
+        "marketing": {
+          "$ref": "#/$defs/Marketing"
+        },
+        "single_plan": {
+          "description": "True when the service has exactly one orderable plan. Link it straight to /checkout/{slug} instead of /{group}/{slug}; the rendering engine redirects its service page there anyway.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "group_id",
+        "name",
+        "slug",
+        "description",
+        "image",
+        "type",
+        "marketing",
+        "single_plan"
+      ],
+      "additionalProperties": false
+    },
+    "PriceInterval": {
+      "description": "PriceInterval is a plan's billing cycle. A plan leads with the shortest cycle it has enabled.",
+      "enum": [
+        "month",
+        "quarter",
+        "semi_annual",
+        "year"
+      ]
+    },
+    "Price": {
+      "description": "Price is a price normalised for display.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Major units, ready to render.",
+          "type": "number"
+        },
+        "currency": {
+          "description": "An ISO 4217 code.",
+          "type": "string"
+        },
+        "interval": {
+          "$ref": "#/$defs/PriceInterval"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "interval"
+      ],
+      "additionalProperties": false
+    },
+    "ServicePlanPricing": {
+      "description": "ServicePlanPricing is the price a plan leads with.",
+      "type": "object",
+      "properties": {
+        "price": {
+          "$ref": "#/$defs/Price"
+        },
+        "original_price": {
+          "description": "A struck-through earlier price. Absent when there is none.",
+          "$ref": "#/$defs/Price"
+        }
+      },
+      "required": [
+        "price"
+      ],
+      "additionalProperties": false
+    },
+    "PaymentType": {
+      "description": "PaymentType is how a plan is paid for.",
+      "enum": [
+        "free",
+        "free_trial",
+        "recurring"
+      ]
+    },
+    "OrderFormComponentType": {
+      "description": "OrderFormComponentType is the kind of input an order form component renders.",
+      "enum": [
+        "string",
+        "checkbox",
+        "radio",
+        "slider",
+        "dropdown",
+        "location-multi-dropdown"
+      ]
+    },
+    "OrderFormOption": {
+      "description": "OrderFormOption is one choice on a radio, slider or dropdown component, or inside a location region.",
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "price": {
+          "description": "An add-on price in minor units (cents).",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "label",
+        "value",
+        "price"
+      ],
+      "additionalProperties": false
+    },
+    "OrderFormRegion": {
+      "description": "OrderFormRegion is a top-level group inside a location-multi-dropdown, such as a country holding its cities.",
+      "type": "object",
+      "properties": {
+        "order": {
+          "type": "integer"
+        },
+        "label": {
+          "type": "string"
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "default_value": {
+          "type": "string"
+        },
+        "children": {
+          "description": "May be null.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/OrderFormOption"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "order",
+        "label",
+        "default",
+        "default_value",
+        "children"
+      ],
+      "additionalProperties": false
+    },
+    "OrderFormComponent": {
+      "description": "OrderFormComponent is one field a customer fills in when ordering a plan. Only the keys relevant to its type are present.",
+      "type": "object",
+      "properties": {
+        "order": {
+          "type": "integer"
+        },
+        "type": {
+          "$ref": "#/$defs/OrderFormComponentType"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "key": {
+          "description": "The name the answer is recorded under.",
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "placeholder": {
+          "description": "Set on string components.",
+          "type": "string"
+        },
+        "regex": {
+          "description": "Set on string components.",
+          "type": "string"
+        },
+        "default_value": {
+          "description": "Set on checkbox components.",
+          "type": "boolean"
+        },
+        "price": {
+          "description": "Set on checkbox components: an add-on price in minor units (cents).",
+          "type": "integer"
+        },
+        "children": {
+          "description": "Set on radio, slider and dropdown components.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OrderFormOption"
+          }
+        },
+        "dropdown": {
+          "description": "Set on location-multi-dropdown components.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OrderFormRegion"
+          }
+        },
+        "preset_id": {
+          "description": "Set when the component is a copy of a store-wide preset.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "order",
+        "type",
+        "label",
+        "description",
+        "key",
+        "required"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceOrderFormRow": {
+      "description": "ServiceOrderFormRow is one component of a plan's order form.",
+      "$ref": "#/$defs/OrderFormComponent"
+    },
+    "ServicePlan": {
+      "description": "ServicePlan is one way to buy a service.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "service_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "image": {
+          "description": "An image URL, or empty.",
+          "type": "string"
+        },
+        "pricing": {
+          "$ref": "#/$defs/ServicePlanPricing"
+        },
+        "trial_days": {
+          "description": "Days of free trial. Zero unless payment_type is free_trial.",
+          "type": "integer"
+        },
+        "payment_type": {
+          "$ref": "#/$defs/PaymentType"
+        },
+        "provisioning": {
+          "description": "How an order is fulfilled: \"module\" (automatically) or \"manual\" (by the store's staff).",
+          "type": "string"
+        },
+        "order_form": {
+          "description": "May be null when the plan has no order form.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ServiceOrderFormRow"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "service_id",
+        "name",
+        "slug",
+        "description",
+        "image",
+        "pricing",
+        "trial_days",
+        "payment_type",
+        "provisioning",
+        "order_form"
+      ],
+      "additionalProperties": false
+    },
+    "Cta": {
+      "description": "Cta is a call-to-action link.",
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "href": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "href"
+      ],
+      "additionalProperties": false
+    },
+    "HeroContent": {
+      "description": "HeroContent is the copy at the top of the home page.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "highlights": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "primary_cta": {
+          "$ref": "#/$defs/Cta"
+        },
+        "secondary_cta": {
+          "$ref": "#/$defs/Cta"
+        }
+      },
+      "required": [
+        "title",
+        "subtitle",
+        "highlights",
+        "primary_cta",
+        "secondary_cta"
+      ],
+      "additionalProperties": false
+    },
+    "Section": {
+      "description": "Section is the heading pair above a block of content.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "subtitle"
+      ],
+      "additionalProperties": false
+    },
+    "FeatureCard": {
+      "description": "FeatureCard is one card in the features block.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "FeaturesContent": {
+      "description": "FeaturesContent is the features block.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FeatureCard"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "subtitle",
+        "cards"
+      ],
+      "additionalProperties": false
+    },
+    "FaqEntry": {
+      "description": "FaqEntry is one question and its answer.",
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string"
+        },
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "answer"
+      ],
+      "additionalProperties": false
+    },
+    "FaqContent": {
+      "description": "FaqContent is the FAQ block.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FaqEntry"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "subtitle",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "StoreContent": {
+      "description": "StoreContent is the copy a store edits in its admin panel. It is on every page, so a template can render the section headings and FAQ wherever it likes.",
+      "type": "object",
+      "properties": {
+        "hero": {
+          "$ref": "#/$defs/HeroContent"
+        },
+        "categories": {
+          "$ref": "#/$defs/Section"
+        },
+        "features": {
+          "$ref": "#/$defs/FeaturesContent"
+        },
+        "faq": {
+          "$ref": "#/$defs/FaqContent"
+        }
+      },
+      "required": [
+        "hero",
+        "categories",
+        "features",
+        "faq"
+      ],
+      "additionalProperties": false
+    },
+    "DomainTLD": {
+      "description": "DomainTLD is one extension on the domain pricing table. Prices are for one year in major units; zero means the store does not offer that operation.",
+      "type": "object",
+      "properties": {
+        "tld": {
+          "type": "string"
+        },
+        "featured": {
+          "type": "boolean"
+        },
+        "register": {
+          "type": "number"
+        },
+        "transfer": {
+          "type": "number"
+        },
+        "renew": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "tld",
+        "featured",
+        "register",
+        "transfer",
+        "renew"
+      ],
+      "additionalProperties": false
+    },
+    "PageType": {
+      "description": "PageType is which page a payload is for.",
+      "enum": [
+        "home",
+        "group",
+        "service",
+        "domains",
+        "not-found"
+      ]
+    },
+    "PageMeta": {
+      "description": "PageMeta is what goes in the document head.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "og_image": {
+          "description": "Absent when empty.",
+          "type": "string"
+        },
+        "no_index": {
+          "description": "Absent unless true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "title",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "BasePageData": {
+      "description": "BasePageData is what every page carries: a layout renders the store and its navigation on every route.",
+      "type": "object",
+      "properties": {
+        "page_type": {
+          "$ref": "#/$defs/PageType"
+        },
+        "meta": {
+          "$ref": "#/$defs/PageMeta"
+        },
+        "store": {
+          "$ref": "#/$defs/StorePublicInfo"
+        },
+        "service_groups": {
+          "description": "The store's enabled groups, in display order. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServiceGroup"
+          }
+        },
+        "content": {
+          "$ref": "#/$defs/StoreContent"
+        },
+        "domains_enabled": {
+          "description": "Whether the store sells domains. On every page because the navigation is, so a template never links to a domains page that would 404.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "page_type",
+        "meta",
+        "store",
+        "service_groups",
+        "content",
+        "domains_enabled"
+      ],
+      "additionalProperties": false
+    },
+    "HomePageData": {
+      "description": "HomePageData is the payload for \"/\".",
+      "type": "object",
+      "properties": {
+        "page_type": {
+          "const": "home"
+        },
+        "meta": {
+          "$ref": "#/$defs/PageMeta"
+        },
+        "store": {
+          "$ref": "#/$defs/StorePublicInfo"
+        },
+        "service_groups": {
+          "description": "The store's enabled groups, in display order. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServiceGroup"
+          }
+        },
+        "content": {
+          "$ref": "#/$defs/StoreContent"
+        },
+        "domains_enabled": {
+          "description": "Whether the store sells domains. On every page because the navigation is, so a template never links to a domains page that would 404.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "page_type",
+        "meta",
+        "store",
+        "service_groups",
+        "content",
+        "domains_enabled"
+      ],
+      "additionalProperties": false
+    },
+    "GroupPageServiceEntry": {
+      "description": "GroupPageServiceEntry pairs a service with the cheapest plan a visitor could buy it on, which is what a catalogue tile shows.",
+      "type": "object",
+      "properties": {
+        "service": {
+          "$ref": "#/$defs/Service"
+        },
+        "cheapest_plan": {
+          "description": "The lowest price compared per month, so a yearly plan does not win by being billed less often.",
+          "$ref": "#/$defs/ServicePlan"
+        }
+      },
+      "required": [
+        "service",
+        "cheapest_plan"
+      ],
+      "additionalProperties": false
+    },
+    "GroupPageData": {
+      "description": "GroupPageData is the payload for \"/{group}\".",
+      "type": "object",
+      "properties": {
+        "page_type": {
+          "const": "group"
+        },
+        "meta": {
+          "$ref": "#/$defs/PageMeta"
+        },
+        "store": {
+          "$ref": "#/$defs/StorePublicInfo"
+        },
+        "service_groups": {
+          "description": "The store's enabled groups, in display order. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServiceGroup"
+          }
+        },
+        "content": {
+          "$ref": "#/$defs/StoreContent"
+        },
+        "domains_enabled": {
+          "description": "Whether the store sells domains. On every page because the navigation is, so a template never links to a domains page that would 404.",
+          "type": "boolean"
+        },
+        "group": {
+          "$ref": "#/$defs/ServiceGroup"
+        },
+        "services": {
+          "description": "Services with at least one orderable plan. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GroupPageServiceEntry"
+          }
+        }
+      },
+      "required": [
+        "page_type",
+        "meta",
+        "store",
+        "service_groups",
+        "content",
+        "domains_enabled",
+        "group",
+        "services"
+      ],
+      "additionalProperties": false
+    },
+    "ServicePageData": {
+      "description": "ServicePageData is the payload for \"/{group}/{service}\".",
+      "type": "object",
+      "properties": {
+        "page_type": {
+          "const": "service"
+        },
+        "meta": {
+          "$ref": "#/$defs/PageMeta"
+        },
+        "store": {
+          "$ref": "#/$defs/StorePublicInfo"
+        },
+        "service_groups": {
+          "description": "The store's enabled groups, in display order. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServiceGroup"
+          }
+        },
+        "content": {
+          "$ref": "#/$defs/StoreContent"
+        },
+        "domains_enabled": {
+          "description": "Whether the store sells domains. On every page because the navigation is, so a template never links to a domains page that would 404.",
+          "type": "boolean"
+        },
+        "service": {
+          "$ref": "#/$defs/Service"
+        },
+        "plans": {
+          "description": "Every orderable plan. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServicePlan"
+          }
+        }
+      },
+      "required": [
+        "page_type",
+        "meta",
+        "store",
+        "service_groups",
+        "content",
+        "domains_enabled",
+        "service",
+        "plans"
+      ],
+      "additionalProperties": false
+    },
+    "DomainsPageData": {
+      "description": "DomainsPageData is the payload for \"/domains\". It exists only when the store sells domains.",
+      "type": "object",
+      "properties": {
+        "page_type": {
+          "const": "domains"
+        },
+        "meta": {
+          "$ref": "#/$defs/PageMeta"
+        },
+        "store": {
+          "$ref": "#/$defs/StorePublicInfo"
+        },
+        "service_groups": {
+          "description": "The store's enabled groups, in display order. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServiceGroup"
+          }
+        },
+        "content": {
+          "$ref": "#/$defs/StoreContent"
+        },
+        "domains_enabled": {
+          "description": "Whether the store sells domains. On every page because the navigation is, so a template never links to a domains page that would 404.",
+          "type": "boolean"
+        },
+        "tlds": {
+          "description": "Empty when the store sells domains but has added no extensions. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DomainTLD"
+          }
+        },
+        "currency": {
+          "description": "An ISO 4217 code.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_type",
+        "meta",
+        "store",
+        "service_groups",
+        "content",
+        "domains_enabled",
+        "tlds",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "NotFoundPageData": {
+      "description": "NotFoundPageData is the payload for a path no page matches.",
+      "type": "object",
+      "properties": {
+        "page_type": {
+          "const": "not-found"
+        },
+        "meta": {
+          "$ref": "#/$defs/PageMeta"
+        },
+        "store": {
+          "$ref": "#/$defs/StorePublicInfo"
+        },
+        "service_groups": {
+          "description": "The store's enabled groups, in display order. Never null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServiceGroup"
+          }
+        },
+        "content": {
+          "$ref": "#/$defs/StoreContent"
+        },
+        "domains_enabled": {
+          "description": "Whether the store sells domains. On every page because the navigation is, so a template never links to a domains page that would 404.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "page_type",
+        "meta",
+        "store",
+        "service_groups",
+        "content",
+        "domains_enabled"
+      ],
+      "additionalProperties": false
+    },
+    "PageData": {
+      "description": "PageData is any page payload, told apart by page_type.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/HomePageData"
+        },
+        {
+          "$ref": "#/$defs/GroupPageData"
+        },
+        {
+          "$ref": "#/$defs/ServicePageData"
+        },
+        {
+          "$ref": "#/$defs/DomainsPageData"
+        },
+        {
+          "$ref": "#/$defs/NotFoundPageData"
+        }
+      ]
+    }
+  }
+}

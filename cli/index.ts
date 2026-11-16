@@ -2,6 +2,8 @@
 import { generateKeyPairSync } from 'node:crypto'
 import { resolve } from 'node:path'
 import { buildTemplate, BuildError } from './build'
+import { CONTRACT_USAGE, contractCommand } from './contract'
+import { ContractError } from '../contract/src/generate'
 import { loadTemplate, TemplateError } from './template'
 import { formatFindings, validateTemplate } from './validate'
 
@@ -17,6 +19,7 @@ import { formatFindings, validateTemplate } from './validate'
  *   hct build               validate, build, and emit a signed manifest
  *   hct dev                 run the template's local dev server
  *   hct keygen              generate a signing keypair
+ *   hct contract            generate and check the page data contract
  */
 
 const USAGE = `hct — HostCore template toolchain
@@ -26,7 +29,7 @@ Usage:
   hct build [dir] [--local-paths] [--out <dir>] [--sign <base64-key>]
   hct dev [dir]
   hct keygen
-
+${CONTRACT_USAGE}
 Options:
   --local-paths        Address assets at a platform-local path instead of a
                        CDN, so no $CDN_BASE_URL is needed. Use it to build and
@@ -35,6 +38,11 @@ Options:
   --sign <base64-key>  Raw base64 ed25519 private key.
                        Defaults to $TEMPLATE_SIGNING_PRIVATE_KEY.
   --skip-validation    Build without the policy check (local only)
+  --contract-dir <dir> The contract directory to generate or check
+                       (default: the one in this toolkit)
+  --kind <kind>        What generate-go writes: the contract package, or
+                       the list of paths the platform front end serves
+  --package <name>     The Go package name of generate-go output
 
 Environment:
   CDN_BASE_URL         Where a published template's client assets are served
@@ -56,6 +64,8 @@ async function main(argv: string[]): Promise<number> {
   }
 
   const { positional, flags } = parseArgs(rest)
+  if (command === 'contract') return contractCommand(positional, flags)
+
   const root = resolve(positional[0] ?? process.cwd())
 
   switch (command) {
@@ -196,7 +206,7 @@ function parseArgs(argv: string[]): {
 main(process.argv.slice(2))
   .then((code) => process.exit(code))
   .catch((e: unknown) => {
-    if (e instanceof TemplateError || e instanceof BuildError) {
+    if (e instanceof TemplateError || e instanceof BuildError || e instanceof ContractError) {
       process.stderr.write(`${e.message}\n`)
       process.exit(1)
     }

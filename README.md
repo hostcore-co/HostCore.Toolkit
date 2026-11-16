@@ -25,9 +25,11 @@ export function HomePage() {
 }
 ```
 
-`src/types.ts` is the whole contract — if a field is not in there, it is not
-something your template can read. It changes on major versions only, because a
-change to it breaks every published template.
+The types are generated from the contract in [`contract/`](contract/README.md)
+— if a field is not in there, it is not something your template can read. A
+contract version is frozen once published: a change that would break a
+template ships as a new version instead, and templates written against the
+old one keep receiving exactly what they were written against.
 
 ## The commands
 
@@ -36,6 +38,8 @@ hct validate [dir]     check a template against the build policy
 hct build [dir]        validate, build, and emit a signed manifest
 hct dev [dir]          run the template's local dev server
 hct keygen             generate a signing keypair
+hct contract generate  regenerate contract/dist from the contract definitions
+hct contract check     fail when contract/dist is out of date
 ```
 
 `hct build` runs the policy check first, so a template that reaches for
@@ -52,4 +56,5 @@ dependencies, not from here — you control which versions build your template.
 bun install
 bun run check
 bun test
+bun cli/index.ts contract check
 ```

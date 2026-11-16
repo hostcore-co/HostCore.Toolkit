@@ -1,0 +1,171 @@
+{
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "cache": {
+        "ttl": 3600,
+        "swr": 86400
+      },
+      "requires": null
+    },
+    {
+      "id": "domains",
+      "path": "/domains",
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "cache": {
+        "ttl": 3600,
+        "swr": 86400
+      },
+      "requires": "domains"
+    },
+    {
+      "id": "catalog.group",
+      "path": "/{group}",
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "cache": {
+        "ttl": 3600,
+        "swr": 86400
+      },
+      "requires": null
+    },
+    {
+      "id": "catalog.service",
+      "path": "/{group}/{service}",
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "cache": {
+        "ttl": 3600,
+        "swr": 86400
+      },
+      "requires": null
+    },
+    {
+      "id": "not-found",
+      "path": null,
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "cache": {
+        "ttl": 0,
+        "swr": 0
+      },
+      "requires": null
+    },
+    {
+      "id": "checkout",
+      "path": "/checkout",
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    },
+    {
+      "id": "login",
+      "path": "/login",
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    },
+    {
+      "id": "signup",
+      "path": "/signup",
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    },
+    {
+      "id": "forgotpassword",
+      "path": "/forgotpassword",
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    },
+    {
+      "id": "auth",
+      "path": "/auth",
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    },
+    {
+      "id": "connect",
+      "path": "/connect",
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    },
+    {
+      "id": "order",
+      "path": "/order",
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    },
+    {
+      "id": "dashboard",
+      "path": "/dashboard",
+      "prefix": true,
+      "tier": "private",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    },
+    {
+      "id": "admin",
+      "path": "/admin",
+      "prefix": true,
+      "tier": "staff",
+      "upstream": "frontend",
+      "cache": null,
+      "requires": null
+    }
+  ],
+  "reserved_slugs": [
+    "_hc",
+    "account",
+    "admin",
+    "api",
+    "auth",
+    "blog",
+    "cart",
+    "checkout",
+    "connect",
+    "contact",
+    "dashboard",
+    "domains",
+    "forgotpassword",
+    "help",
+    "kb",
+    "legal",
+    "login",
+    "oauth",
+    "order",
+    "pages",
+    "search",
+    "signup",
+    "status",
+    "support"
+  ]
+}
