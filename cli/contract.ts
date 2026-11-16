@@ -1,7 +1,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import {
+  acceptBaselines,
+  baselineReports,
   DEFAULT_GO_PACKAGE,
+  NEW_VERSION_ADVICE,
   generateAll,
   generateFrontendPrefixes,
   generateGoFiles,
@@ -14,12 +17,15 @@ import {
  * hct contract — generate and check the page contract.
  *
  *   generate      rewrite contract/dist, the contract "1" fixtures, fixtures/links.json and fixtures/tokens.json
- *   check         fail when anything generated is out of date
+ *   check         fail when anything generated is out of date, or the
+ *                 contract differs from its frozen baselines
+ *   accept        record additive contract changes in the baselines
  *   generate-go   write Go source into another project
  */
 
 export const CONTRACT_USAGE = `  hct contract generate [--contract-dir <dir>]
   hct contract check [--contract-dir <dir>]
+  hct contract accept [--contract-dir <dir>]
   hct contract generate-go --kind contract --package <name> --out <dir>
   hct contract generate-go --kind frontend-prefixes --package <name> --out <file>
 `
@@ -48,7 +54,37 @@ export async function contractCommand(
         )
         return 1
       }
-      process.stdout.write('the generated contract is up to date\n')
+      const reports = baselineReports(contractDir)
+      const missing = reports.filter((r) => !r.hasBaseline).map((r) => r.version)
+      const breaking = reports.flatMap((r) => r.changes.filter((c) => c.kind === 'breaking').map((c) => `contract ${r.version}: ${c.at}: ${c.what}`))
+      const additive = reports.flatMap((r) => r.changes.filter((c) => c.kind === 'additive').map((c) => `contract ${r.version}: ${c.at}: ${c.what}`))
+      if (breaking.length > 0) {
+        process.stderr.write(`the contract has breaking changes:\n  ${breaking.join('\n  ')}\n${NEW_VERSION_ADVICE}\n`)
+        if (additive.length > 0) process.stderr.write(`It also has additive changes:\n  ${additive.join('\n  ')}\n`)
+        return 1
+      }
+      if (additive.length > 0 || missing.length > 0) {
+        process.stderr.write(
+          [
+            ...(missing.length > 0 ? [`no baseline for contract ${missing.join(', ')}`] : []),
+            ...(additive.length > 0 ? [`the contract has additive changes not yet in its baseline:\n  ${additive.join('\n  ')}`] : []),
+            'Review them, then run `hct contract accept` to record them in contract/baselines/.',
+            '',
+          ].join('\n'),
+        )
+        return 1
+      }
+      process.stdout.write('the generated contract is up to date, and matches its baselines\n')
+      return 0
+    }
+    case 'accept': {
+      const reports = acceptBaselines(contractDir)
+      for (const r of reports) {
+        if (!r.hasBaseline) process.stdout.write(`recorded a first baseline for contract ${r.version}\n`)
+        else if (r.changes.length > 0) {
+          process.stdout.write(`recorded ${r.changes.length} additive change(s) in the baseline of contract ${r.version}:\n  ${r.changes.map((c) => `${c.at}: ${c.what}`).join('\n  ')}\n`)
+        } else process.stdout.write(`contract ${r.version} matches its baseline\n`)
+      }
       return 0
     }
     case 'generate-go':

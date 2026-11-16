@@ -436,7 +436,8 @@ hct docs --out <dir>   write the reference documentation
 hct runtime build      build the shared React runtime (--out <dir>, --root, --sign, --toolchain-revision <n>)
 hct keygen             generate a signing keypair
 hct contract generate  regenerate contract/dist and the generated fixtures (--contract-dir)
-hct contract check     fail when any of them is out of date (--contract-dir)
+hct contract check     fail when any of them is out of date, or the contract differs from its baselines (--contract-dir)
+hct contract accept    record additive contract changes in the baselines (--contract-dir)
 hct contract generate-go  write the Go contract into another project (--kind contract|frontend-prefixes, --package, --out)
 ```
 
@@ -469,6 +470,13 @@ bun run check
 bun test
 bun cli/index.ts contract check
 ```
+
+`hct contract check` also compares the contract with its frozen
+baselines and fails on a change that would break a template; see
+[`contract/README.md`](contract/README.md#baselines). The same steps, and
+validating, checking and building each example, run on every push and pull
+request on both supported Bun versions
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 The examples are workspaces of this package, so `bun install` installs
 their dependencies too, including the older Vite `examples/legacy` builds

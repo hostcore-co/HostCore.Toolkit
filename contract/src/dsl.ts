@@ -149,6 +149,12 @@ export interface Contract {
   pages: Record<string, string>
   /** The named type a whole response has, when it is not the page type itself. */
   envelope?: string
+  /**
+   * Named types a template sends rather than reads, such as a request body.
+   * A change to one is classified the other way round from data a template
+   * reads: a field becoming required breaks it.
+   */
+  inputs?: readonly string[]
 }
 
 // ─── Constructors ──────────────────────────────────────────────────────────

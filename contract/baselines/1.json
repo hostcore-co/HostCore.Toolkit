@@ -1,0 +1,870 @@
+{
+  "contract": "1",
+  "types": {
+    "BasePageData": {
+      "kind": "object",
+      "fields": {
+        "content": {
+          "type": "StoreContent",
+          "optional": false
+        },
+        "domains_enabled": {
+          "type": "boolean",
+          "optional": false
+        },
+        "meta": {
+          "type": "PageMeta",
+          "optional": false
+        },
+        "page_type": {
+          "type": "PageType",
+          "optional": false
+        },
+        "service_groups": {
+          "type": "ServiceGroup[]",
+          "optional": false
+        },
+        "store": {
+          "type": "StorePublicInfo",
+          "optional": false
+        }
+      }
+    },
+    "Cta": {
+      "kind": "object",
+      "fields": {
+        "href": {
+          "type": "string",
+          "optional": false
+        },
+        "label": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "DomainTLD": {
+      "kind": "object",
+      "fields": {
+        "featured": {
+          "type": "boolean",
+          "optional": false
+        },
+        "register": {
+          "type": "number",
+          "optional": false
+        },
+        "renew": {
+          "type": "number",
+          "optional": false
+        },
+        "tld": {
+          "type": "string",
+          "optional": false
+        },
+        "transfer": {
+          "type": "number",
+          "optional": false
+        }
+      }
+    },
+    "DomainsPageData": {
+      "kind": "object",
+      "fields": {
+        "content": {
+          "type": "StoreContent",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "domains_enabled": {
+          "type": "boolean",
+          "optional": false
+        },
+        "meta": {
+          "type": "PageMeta",
+          "optional": false
+        },
+        "page_type": {
+          "type": "\"domains\"",
+          "optional": false
+        },
+        "service_groups": {
+          "type": "ServiceGroup[]",
+          "optional": false
+        },
+        "store": {
+          "type": "StorePublicInfo",
+          "optional": false
+        },
+        "tlds": {
+          "type": "DomainTLD[]",
+          "optional": false
+        }
+      }
+    },
+    "FaqContent": {
+      "kind": "object",
+      "fields": {
+        "items": {
+          "type": "FaqEntry[]",
+          "optional": false
+        },
+        "subtitle": {
+          "type": "string",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "FaqEntry": {
+      "kind": "object",
+      "fields": {
+        "answer": {
+          "type": "string",
+          "optional": false
+        },
+        "question": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "FeatureCard": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "FeaturesContent": {
+      "kind": "object",
+      "fields": {
+        "cards": {
+          "type": "FeatureCard[]",
+          "optional": false
+        },
+        "subtitle": {
+          "type": "string",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "GroupPageData": {
+      "kind": "object",
+      "fields": {
+        "content": {
+          "type": "StoreContent",
+          "optional": false
+        },
+        "domains_enabled": {
+          "type": "boolean",
+          "optional": false
+        },
+        "group": {
+          "type": "ServiceGroup",
+          "optional": false
+        },
+        "meta": {
+          "type": "PageMeta",
+          "optional": false
+        },
+        "page_type": {
+          "type": "\"group\"",
+          "optional": false
+        },
+        "service_groups": {
+          "type": "ServiceGroup[]",
+          "optional": false
+        },
+        "services": {
+          "type": "GroupPageServiceEntry[]",
+          "optional": false
+        },
+        "store": {
+          "type": "StorePublicInfo",
+          "optional": false
+        }
+      }
+    },
+    "GroupPageServiceEntry": {
+      "kind": "object",
+      "fields": {
+        "cheapest_plan": {
+          "type": "ServicePlan",
+          "optional": false
+        },
+        "service": {
+          "type": "Service",
+          "optional": false
+        }
+      }
+    },
+    "HeroContent": {
+      "kind": "object",
+      "fields": {
+        "highlights": {
+          "type": "string[]",
+          "optional": false
+        },
+        "primary_cta": {
+          "type": "Cta",
+          "optional": false
+        },
+        "secondary_cta": {
+          "type": "Cta",
+          "optional": false
+        },
+        "subtitle": {
+          "type": "string",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "HomePageData": {
+      "kind": "object",
+      "fields": {
+        "content": {
+          "type": "StoreContent",
+          "optional": false
+        },
+        "domains_enabled": {
+          "type": "boolean",
+          "optional": false
+        },
+        "meta": {
+          "type": "PageMeta",
+          "optional": false
+        },
+        "page_type": {
+          "type": "\"home\"",
+          "optional": false
+        },
+        "service_groups": {
+          "type": "ServiceGroup[]",
+          "optional": false
+        },
+        "store": {
+          "type": "StorePublicInfo",
+          "optional": false
+        }
+      }
+    },
+    "Marketing": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "features": {
+          "type": "MarketingFeature[]",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "MarketingFeature": {
+      "kind": "object",
+      "fields": {
+        "icon": {
+          "type": "string",
+          "optional": false
+        },
+        "text": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "NotFoundPageData": {
+      "kind": "object",
+      "fields": {
+        "content": {
+          "type": "StoreContent",
+          "optional": false
+        },
+        "domains_enabled": {
+          "type": "boolean",
+          "optional": false
+        },
+        "meta": {
+          "type": "PageMeta",
+          "optional": false
+        },
+        "page_type": {
+          "type": "\"not-found\"",
+          "optional": false
+        },
+        "service_groups": {
+          "type": "ServiceGroup[]",
+          "optional": false
+        },
+        "store": {
+          "type": "StorePublicInfo",
+          "optional": false
+        }
+      }
+    },
+    "OrderFormComponent": {
+      "kind": "object",
+      "fields": {
+        "children": {
+          "type": "OrderFormOption[]",
+          "optional": true
+        },
+        "default_value": {
+          "type": "boolean",
+          "optional": true
+        },
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "dropdown": {
+          "type": "OrderFormRegion[]",
+          "optional": true
+        },
+        "key": {
+          "type": "string",
+          "optional": false
+        },
+        "label": {
+          "type": "string",
+          "optional": false
+        },
+        "order": {
+          "type": "integer",
+          "optional": false
+        },
+        "placeholder": {
+          "type": "string",
+          "optional": true
+        },
+        "preset_id": {
+          "type": "string",
+          "optional": true
+        },
+        "price": {
+          "type": "integer",
+          "optional": true
+        },
+        "regex": {
+          "type": "string",
+          "optional": true
+        },
+        "required": {
+          "type": "boolean",
+          "optional": false
+        },
+        "type": {
+          "type": "OrderFormComponentType",
+          "optional": false
+        }
+      }
+    },
+    "OrderFormComponentType": {
+      "kind": "enum",
+      "values": [
+        "string",
+        "checkbox",
+        "radio",
+        "slider",
+        "dropdown",
+        "location-multi-dropdown"
+      ],
+      "open": false
+    },
+    "OrderFormOption": {
+      "kind": "object",
+      "fields": {
+        "label": {
+          "type": "string",
+          "optional": false
+        },
+        "price": {
+          "type": "integer",
+          "optional": false
+        },
+        "value": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "OrderFormRegion": {
+      "kind": "object",
+      "fields": {
+        "children": {
+          "type": "OrderFormOption[] | null",
+          "optional": false
+        },
+        "default": {
+          "type": "boolean",
+          "optional": false
+        },
+        "default_value": {
+          "type": "string",
+          "optional": false
+        },
+        "label": {
+          "type": "string",
+          "optional": false
+        },
+        "order": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "PageData": {
+      "kind": "union(page_type: home=HomePageData, group=GroupPageData, service=ServicePageData, domains=DomainsPageData, not-found=NotFoundPageData)"
+    },
+    "PageMeta": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "no_index": {
+          "type": "boolean",
+          "optional": true
+        },
+        "og_image": {
+          "type": "string",
+          "optional": true
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "PageType": {
+      "kind": "enum",
+      "values": [
+        "home",
+        "group",
+        "service",
+        "domains",
+        "not-found"
+      ],
+      "open": false
+    },
+    "PaymentType": {
+      "kind": "enum",
+      "values": [
+        "free",
+        "free_trial",
+        "recurring"
+      ],
+      "open": false
+    },
+    "Price": {
+      "kind": "object",
+      "fields": {
+        "amount": {
+          "type": "number",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "interval": {
+          "type": "PriceInterval",
+          "optional": false
+        }
+      }
+    },
+    "PriceInterval": {
+      "kind": "enum",
+      "values": [
+        "month",
+        "quarter",
+        "semi_annual",
+        "year"
+      ],
+      "open": false
+    },
+    "Section": {
+      "kind": "object",
+      "fields": {
+        "subtitle": {
+          "type": "string",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "Service": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "group_id": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "marketing": {
+          "type": "Marketing",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "single_plan": {
+          "type": "boolean",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        },
+        "type": {
+          "type": "ServiceType",
+          "optional": false
+        }
+      }
+    },
+    "ServiceGroup": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "marketing": {
+          "type": "Marketing",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "ServiceOrderFormRow": {
+      "kind": "OrderFormComponent"
+    },
+    "ServicePageData": {
+      "kind": "object",
+      "fields": {
+        "content": {
+          "type": "StoreContent",
+          "optional": false
+        },
+        "domains_enabled": {
+          "type": "boolean",
+          "optional": false
+        },
+        "meta": {
+          "type": "PageMeta",
+          "optional": false
+        },
+        "page_type": {
+          "type": "\"service\"",
+          "optional": false
+        },
+        "plans": {
+          "type": "ServicePlan[]",
+          "optional": false
+        },
+        "service": {
+          "type": "Service",
+          "optional": false
+        },
+        "service_groups": {
+          "type": "ServiceGroup[]",
+          "optional": false
+        },
+        "store": {
+          "type": "StorePublicInfo",
+          "optional": false
+        }
+      }
+    },
+    "ServicePlan": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "order_form": {
+          "type": "ServiceOrderFormRow[] | null",
+          "optional": false
+        },
+        "payment_type": {
+          "type": "PaymentType",
+          "optional": false
+        },
+        "pricing": {
+          "type": "ServicePlanPricing",
+          "optional": false
+        },
+        "provisioning": {
+          "type": "string",
+          "optional": false
+        },
+        "service_id": {
+          "type": "string",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        },
+        "trial_days": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "ServicePlanPricing": {
+      "kind": "object",
+      "fields": {
+        "original_price": {
+          "type": "Price",
+          "optional": true
+        },
+        "price": {
+          "type": "Price",
+          "optional": false
+        }
+      }
+    },
+    "ServiceType": {
+      "kind": "enum",
+      "values": [
+        "game-server",
+        "web-hosting",
+        "dedicated-server",
+        "vps",
+        "other",
+        ""
+      ],
+      "open": false
+    },
+    "StoreBusinessInfo": {
+      "kind": "object",
+      "fields": {
+        "address_line1": {
+          "type": "string",
+          "optional": false
+        },
+        "address_line2": {
+          "type": "string",
+          "optional": false
+        },
+        "billing_email": {
+          "type": "string",
+          "optional": false
+        },
+        "business_number": {
+          "type": "string",
+          "optional": false
+        },
+        "city": {
+          "type": "string",
+          "optional": false
+        },
+        "country": {
+          "type": "string",
+          "optional": false
+        },
+        "phone_number": {
+          "type": "string",
+          "optional": false
+        },
+        "postal_code": {
+          "type": "string",
+          "optional": false
+        },
+        "state": {
+          "type": "string",
+          "optional": false
+        },
+        "tax_number": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "StoreContent": {
+      "kind": "object",
+      "fields": {
+        "categories": {
+          "type": "Section",
+          "optional": false
+        },
+        "faq": {
+          "type": "FaqContent",
+          "optional": false
+        },
+        "features": {
+          "type": "FeaturesContent",
+          "optional": false
+        },
+        "hero": {
+          "type": "HeroContent",
+          "optional": false
+        }
+      }
+    },
+    "StorePublicInfo": {
+      "kind": "object",
+      "fields": {
+        "business_info": {
+          "type": "StoreBusinessInfo",
+          "optional": false
+        },
+        "favicon_url": {
+          "type": "string",
+          "optional": false
+        },
+        "login_image_url": {
+          "type": "string",
+          "optional": false
+        },
+        "logo_url": {
+          "type": "string",
+          "optional": false
+        },
+        "privacy_policy_url": {
+          "type": "string",
+          "optional": false
+        },
+        "root_redirect_url": {
+          "type": "string",
+          "optional": false
+        },
+        "signup_image_url": {
+          "type": "string",
+          "optional": false
+        },
+        "store_name": {
+          "type": "string",
+          "optional": false
+        },
+        "terms_of_service_url": {
+          "type": "string",
+          "optional": false
+        },
+        "theme": {
+          "type": "StoreTheme",
+          "optional": false
+        },
+        "website_domain": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "StoreTheme": {
+      "kind": "object",
+      "fields": {
+        "accent": {
+          "type": "string",
+          "optional": false
+        },
+        "accent_strong": {
+          "type": "string",
+          "optional": false
+        },
+        "background": {
+          "type": "string",
+          "optional": false
+        },
+        "border": {
+          "type": "string",
+          "optional": false
+        },
+        "surface": {
+          "type": "string",
+          "optional": false
+        },
+        "surface_raised": {
+          "type": "string",
+          "optional": false
+        },
+        "text": {
+          "type": "string",
+          "optional": false
+        },
+        "text_muted": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    }
+  },
+  "page_data": {
+    "catalog.group": "GroupPageData",
+    "catalog.service": "ServicePageData",
+    "domains": "DomainsPageData",
+    "home": "HomePageData",
+    "not-found": "NotFoundPageData"
+  }
+}

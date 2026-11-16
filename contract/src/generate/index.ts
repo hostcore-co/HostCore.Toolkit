@@ -7,8 +7,10 @@ import { downgrade } from '../downgrade'
 import { LINK_CASES } from '../link-cases'
 import { normaliseRegistry, readRegistry, validateRegistry } from '../registry'
 import { linkValueError } from '../settings'
+import { contractSurface, diffSurface, type ContractChange, type ContractSurface } from '../surface'
 import { TOKEN_CASES } from '../token-cases'
-import { effectiveTokens } from '../tokens'
+import { effectiveTokens, TOKEN_PATTERNS, TOKENS } from '../tokens'
+import { STANDARD_SETTINGS } from '../settings'
 import { validate } from '../validate'
 import { generateGoContract } from './go'
 import { generateGoFrontendPrefixes, generateGoRegistry } from './go-registry'
@@ -182,3 +184,69 @@ function listFiles(dir: string, prefix = ''): string[] {
   }
   return out.sort()
 }
+
+// ─── Baselines ─────────────────────────────────────────────────────────────
+
+/** The contract versions in order, each with what its templates can observe of the platform. */
+const VERSIONS = [contract1, contract202611] as const
+
+/**
+ * The current surface of every contract version, by version. Contract "1"
+ * is used by format-1 templates, which see only its types; the newest
+ * contract's surface also carries the registry, tokens, standard settings
+ * and link rule.
+ */
+export function currentSurfaces(contractDir: string): Record<string, ContractSurface> {
+  const registry = loadCheckedRegistry(contractDir)
+  const sources = { registry, tokens: TOKENS, tokenPatterns: TOKEN_PATTERNS, settings: STANDARD_SETTINGS, links: LINK_CASES }
+  return Object.fromEntries(
+    VERSIONS.map((c) => [c.version, contractSurface(c, c === contract202611 ? sources : undefined)]),
+  )
+}
+
+export function baselinePath(contractDir: string, version: string): string {
+  return join(contractDir, 'baselines', `${version}.json`)
+}
+
+export interface BaselineReport {
+  version: string
+  /** False when the version has no baseline yet. */
+  hasBaseline: boolean
+  changes: ContractChange[]
+}
+
+/** Compares every contract version with its frozen baseline. */
+export function baselineReports(contractDir: string): BaselineReport[] {
+  const surfaces = currentSurfaces(contractDir)
+  return Object.entries(surfaces).map(([version, surface]) => {
+    const path = baselinePath(contractDir, version)
+    if (!existsSync(path)) return { version, hasBaseline: false, changes: [] }
+    const baseline = JSON.parse(readFileSync(path, 'utf8')) as ContractSurface
+    return { version, hasBaseline: true, changes: diffSurface(baseline, surface) }
+  })
+}
+
+/**
+ * Records the current surface of every version whose differences from its
+ * baseline are all additive, and of every version with no baseline yet.
+ * Throws, writing nothing, when any difference is breaking.
+ */
+export function acceptBaselines(contractDir: string): BaselineReport[] {
+  const reports = baselineReports(contractDir)
+  const breaking = reports.flatMap((r) => r.changes.filter((c) => c.kind === 'breaking').map((c) => `contract ${r.version}: ${c.at}: ${c.what}`))
+  if (breaking.length > 0) {
+    throw new ContractError(`these changes break templates and cannot be accepted:\n  ${breaking.join('\n  ')}\n${NEW_VERSION_ADVICE}`)
+  }
+  const surfaces = currentSurfaces(contractDir)
+  for (const r of reports) {
+    if (r.hasBaseline && r.changes.length === 0) continue
+    const path = baselinePath(contractDir, r.version)
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, json(surfaces[r.version]))
+  }
+  return reports
+}
+
+/** What to do about a breaking change. */
+export const NEW_VERSION_ADVICE =
+  'A breaking change needs a new contract version, with a downgrade that gives templates on the old version exactly what they had; the old version stays frozen (see contract/README.md, "Cutting a new contract version").'

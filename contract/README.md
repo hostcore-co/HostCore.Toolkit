@@ -12,6 +12,7 @@ fixtures/2026-11/*.json  example payloads, written by hand
 fixtures/1/*.json        the same payloads downgraded to contract "1" (generated)
 fixtures/links.json      the cases of the link rule (generated)
 fixtures/tokens.json     the cases of the colour rule (generated)
+baselines/<version>.json what a template can observe of each version, frozen (hct contract accept)
 dist/                    generated, committed; copy these files, do not edit them
   ts/contract-1.ts  ts/contract-2026-11.ts  ts/registry.ts
   go/contract/v1.go  go/contract/v202611.go  go/contract/registry.go
@@ -21,7 +22,8 @@ dist/                    generated, committed; copy these files, do not edit the
 
 ```bash
 hct contract generate     # rewrite dist/, fixtures/1/, links.json and tokens.json
-hct contract check        # exit 1 if anything generated is out of date
+hct contract check        # exit 1 if anything generated is out of date, or the contract differs from baselines/
+hct contract accept       # record additive changes in baselines/
 hct contract generate-go --kind contract --package <name> --out <dir>
 hct contract generate-go --kind frontend-prefixes --package <name> --out <file>
 ```
@@ -66,6 +68,35 @@ against.
 - **Breaking** — removing, renaming or retyping a field, changing its unit or
   meaning, adding a value to a *closed* enum, making a present field absent or
   nullable. Needs a new contract version and a downgrade to every older one.
+
+### Baselines
+
+`baselines/<version>.json` freezes what a template can observe of each
+contract version: every type with its fields, their types and whether they
+may be absent, enum values and whether the enum is open, the page data
+types, and for `"2026-11"` the page registry (path, prefix, tier, upstream,
+requirement), the design tokens, the standard settings' shapes and limits,
+and the link rule's cases. `hct contract check` compares the current
+contract with them and classifies each difference:
+
+- **additive**, allowed: a new type, field, page, token, action or standard
+  setting; a value added to an open enum; a limit widened; a field of data
+  a template reads that is now always present; a value the link rule now
+  accepts;
+- **breaking**: a type, field, page, token, action or standard setting
+  removed or renamed; a type changed; a field of data a template reads
+  that may now be absent; a value added to a closed enum, or any enum
+  value removed; a page's path, prefix, tier, upstream or requirement
+  changed; a standard setting's shape changed or a limit narrowed; a value
+  the link rule accepted that it now refuses. For data a template sends
+  (the contract's `inputs`), a field becoming required, or a new required
+  field, is breaking instead.
+
+A breaking difference fails the check with what changed and the advice
+that it needs a new contract version with a downgrade for the old one. An
+additive difference fails it too until `hct contract accept` records it in
+the baseline, so a reviewer sees the change as a diff of that file;
+`accept` refuses while any difference is breaking.
 
 ### Open enums
 
@@ -211,7 +242,8 @@ shadows a platform page.
    `pages` there. If contract `"1"` has no such page, the page is only served
    to `"2026-11"` templates; otherwise extend the downgrade.
 3. Add a fixture under `fixtures/2026-11/`.
-4. `hct contract generate`, then commit `dist/` and `fixtures/1/` with it.
+4. `hct contract generate` and `hct contract accept`, then commit `dist/`,
+   `fixtures/1/` and `baselines/` with it.
 
 ### Cutting a new contract version
 
@@ -220,7 +252,8 @@ shadows a platform page.
 2. Register it in `src/validate.ts` (`CONTRACTS`) and `src/generate/index.ts`.
 3. Write the downgrade from the new version to the previous one, document it
    below, and generate `fixtures/<previous>/` from `fixtures/<version>/`.
-4. Freeze the previous definitions: from then on they change only to describe
+4. Run `hct contract accept` to record the new version's first baseline.
+5. Freeze the previous definitions: from then on they change only to describe
    what is actually sent more precisely, never to change what is sent.
 
 ## Downgrade `2026-11` → `1`
