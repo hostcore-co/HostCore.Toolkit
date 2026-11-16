@@ -6,6 +6,7 @@ import {
   BANNED_PATTERNS,
   PLATFORM_ALLOWED_DEV_PACKAGES,
   PLATFORM_ALLOWED_PACKAGES,
+  SDK_PACKAGES,
   platformUrlAdvice,
   platformUrlsIn,
   SOURCE_GLOB,
@@ -60,6 +61,7 @@ export async function validateTemplate(
   }
   const declaredSettings = new Set((template.manifest.settings ?? []).map((s) => s.id))
 
+  const narrowed = template.declaresAllowedPackages ? template.manifest.allowedPackages : null
   const transpiler = new Bun.Transpiler({ loader: 'tsx' })
   const glob = new Glob(SOURCE_GLOB)
   let filesScanned = 0
@@ -70,7 +72,7 @@ export async function validateTemplate(
 
     filesScanned++
     const source = await readFile(`${template.root}/${relPath}`, 'utf8')
-    findings.push(...scanImports(transpiler, source, relPath))
+    findings.push(...scanImports(transpiler, source, relPath, narrowed))
     findings.push(...scanSource(source, relPath))
     if (format2) {
       findings.push(...scanPlatformUrls(source, relPath))
@@ -186,10 +188,16 @@ function checkAllowedPackages(template: LoadedTemplate): Finding[] {
     }))
 }
 
+/**
+ * Every import must be of a package on the platform allowlist and, when the
+ * template declares allowedPackages (`narrowed`), of one it lists there or
+ * of the SDK and React.
+ */
 function scanImports(
   transpiler: Bun.Transpiler,
   source: string,
   file: string,
+  narrowed: readonly string[] | null,
 ): Finding[] {
   let imports: Array<{ path: string }>
   try {
@@ -228,6 +236,13 @@ function scanImports(
         line: lineOf(source, specifier),
         rule: 'import-not-allowed',
         message: `"${specifier}" resolves to "${bare}", which is not on the platform allowlist`,
+      })
+    } else if (narrowed !== null && !SDK_PACKAGES.includes(bare) && !narrowed.includes(bare)) {
+      findings.push({
+        file,
+        line: lineOf(source, specifier),
+        rule: 'import-not-in-allowed-packages',
+        message: `"${specifier}" resolves to "${bare}", which template.json's allowedPackages does not list; add it there to use it`,
       })
     }
   }

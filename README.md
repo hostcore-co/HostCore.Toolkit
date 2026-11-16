@@ -113,6 +113,12 @@ layout with `variant="minimal"`; the `private` one, the account area
 }
 ```
 
+- `allowedPackages`, when present, lists the packages your source may
+  import besides `@hostcore/toolkit`, `react` and `react-dom`, which any
+  template may import. Each must be one the platform allows (`clsx`,
+  `embla-carousel-react`, `gsap`, `react-icons`, `tailwind-merge`), and an
+  import of a package it does not list fails `hct validate`. Leave it out
+  to allow every package the platform allows.
 - `tokens` set your values for the design tokens. Of the eight `color.*`
   ones, a colour the store has changed from the platform default overrides
   yours; a colour it has never changed shows yours, and where you set none

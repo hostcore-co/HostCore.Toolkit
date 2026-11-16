@@ -54,7 +54,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     usage: 'hct validate [dir]',
     summary: 'check a template against the build policy',
     description: [
-      'Checks template.json, the dependencies, the files under src/ and what the source imports and reaches for. Format 2 also flags hand-built platform URLs and useSetting() ids template.json does not declare.',
+      'Checks template.json, the dependencies, the files under src/ and what the source imports and reaches for. Every import must be of a package the platform allows and, when template.json declares allowedPackages, of one listed there (@hostcore/toolkit, react and react-dom need not be). Format 2 also flags hand-built platform URLs and useSetting() ids template.json does not declare.',
       'Every stylesheet may only load files from the store\'s own site: each @import and url() must be relative, root-relative (/fonts/a.woff2), a data: URI or a fragment (#id). The stylesheet is also used on the platform\'s checkout and sign-in pages, where nothing may load from another site.',
     ],
     flags: [],

@@ -8,8 +8,10 @@ import { PAGES } from '../contract/dist/ts/registry'
  * can read and fix. The alternative is finding out at render time, which is
  * a broken storefront.
  *
- * Your template's own `allowedPackages` may narrow these lists but never
- * widen them — a template cannot grant itself a dependency.
+ * A template's own `allowedPackages` in template.json narrows the packages
+ * its source may import but never widens them: every package it lists must
+ * be on PLATFORM_ALLOWED_PACKAGES, and when it declares the key, an import
+ * of anything else outside SDK_PACKAGES fails validation.
  */
 
 /**
@@ -31,6 +33,13 @@ export const PLATFORM_ALLOWED_PACKAGES: readonly string[] = [
   'react-icons',
   'tailwind-merge',
 ]
+
+/**
+ * Packages every template may import whether or not its `allowedPackages`
+ * lists them: the SDK, and the React the platform provides to every build
+ * (JSX alone imports React).
+ */
+export const SDK_PACKAGES: readonly string[] = ['@hostcore/toolkit', 'react', 'react-dom']
 
 /**
  * Packages allowed as devDependencies — the build toolchain. These run

@@ -11,8 +11,10 @@ export interface TemplateManifest {
   version: string
   name: string
   /**
-   * Runtime dependencies this template uses. Must be a subset of the
-   * platform allowlist — see policy.ts.
+   * The packages this template's source may import, beyond the SDK and
+   * React, which every template may import. Each must be on the platform
+   * allowlist (see policy.ts). A format-2 template may leave it out, which
+   * leaves the platform allowlist as it is; it is then [] here.
    */
   allowedPackages: string[]
   /**
@@ -50,6 +52,8 @@ export interface LoadedTemplate {
   root: string
   manifest: TemplateManifest
   pkg: TemplatePackageJson
+  /** Whether template.json declares allowedPackages, which then narrows what the source may import. */
+  declaresAllowedPackages: boolean
 }
 
 export function isFormat2(
@@ -105,6 +109,7 @@ export async function loadTemplate(root: string): Promise<LoadedTemplate> {
       `template.json: version must be semver, got ${JSON.stringify(manifest.version)}`,
     )
   }
+  const declaresAllowedPackages = manifest.allowedPackages !== undefined
   if (format === 2) {
     manifest.allowedPackages ??= []
     checkFormat2(manifest)
@@ -113,7 +118,7 @@ export async function loadTemplate(root: string): Promise<LoadedTemplate> {
     throw new TemplateError('template.json: allowedPackages must be an array')
   }
 
-  return { root, manifest, pkg }
+  return { root, manifest, pkg, declaresAllowedPackages }
 }
 
 /**

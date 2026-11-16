@@ -156,6 +156,7 @@ export function App() { return <p>{String(axios)}</p> }
   it('allows deep imports of an allowlisted package', async () => {
     expect(
       await rules({
+        templateJson: { id: 'sample', version: '1.0.0', name: 'Sample', allowedPackages: ['react', 'react-icons'] },
         sources: {
           'src/App.tsx': `import { createElement } from 'react'
 import { Icon } from 'react-icons/fa'
@@ -230,6 +231,46 @@ async function findings2(sources: Record<string, string>, templateJson: Record<s
   const template = await loadTemplate(await fixture({ templateJson, sources }))
   return (await validateTemplate(template)).findings
 }
+
+describe('allowedPackages', () => {
+  const source = {
+    'src/pages/home.tsx': `import gsap from 'gsap'
+import clsx from 'clsx'
+import { useNav } from '@hostcore/toolkit'
+import { useState } from 'react'
+export default function Home() { return <main className={clsx('a')}>{String(!!gsap && !!useNav && !!useState)}</main> }`,
+  }
+
+  it('narrows what the source may import when template.json declares it', async () => {
+    const found = await findings2(source, { ...FORMAT2, allowedPackages: ['gsap'] })
+    expect(found.map((f) => [f.line, f.rule])).toEqual([[2, 'import-not-in-allowed-packages']])
+    expect(found[0]!.message).toBe(`"clsx" resolves to "clsx", which template.json's allowedPackages does not list; add it there to use it`)
+  })
+
+  it('always lets the source import the SDK and React', async () => {
+    expect(await findings2(source, { ...FORMAT2, allowedPackages: ['gsap', 'clsx'] })).toEqual([])
+  })
+
+  it('leaves the platform allowlist as it is when template.json does not declare it', async () => {
+    expect(await findings2(source, FORMAT2)).toEqual([])
+  })
+
+  it('applies to format-1 templates, which always declare it', async () => {
+    expect(
+      await rules({
+        templateJson: { id: 'sample', version: '1.0.0', name: 'Sample', allowedPackages: ['react'] },
+        sources: { 'src/App.tsx': "import gsap from 'gsap'\nexport const x = gsap" },
+      }),
+    ).toEqual(['import-not-in-allowed-packages'])
+  })
+
+  it('still refuses a package the platform does not allow, listed or not', async () => {
+    expect(await findings2({ 'src/pages/home.tsx': "import x from 'left-pad'\nexport default () => x" }, { ...FORMAT2, allowedPackages: ['left-pad'] })).toMatchObject([
+      { rule: 'allowlist-widened' },
+      { rule: 'import-not-allowed' },
+    ])
+  })
+})
 
 describe('format 2: template.json', () => {
   it('accepts a template that is only template.json', async () => {
