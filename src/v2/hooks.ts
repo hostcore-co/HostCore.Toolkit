@@ -23,14 +23,32 @@ function usePageContext(hook: string): PageContextValue {
 
 /**
  * The page payload: `page.id`, `meta`, `store`, `nav`, `settings`,
- * `actions` and `data`. Pass the page id for typed data:
- * `usePage<'catalog.service'>().data.plans`.
+ * `actions` and `data`.
  *
- * In a layout, the page may be one the platform renders itself (checkout,
- * login), whose payload carries no data.
+ * Name the page for typed data: `usePage('catalog.service').data.plans`.
+ * This is how a shared component reads a page's data, and it throws when
+ * the current page is a different one, or carries no data, so a component
+ * used on the wrong page fails with an error that says so instead of
+ * reading fields that are not there. `usePage<'catalog.service'>()` gives
+ * the same type with no check.
+ *
+ * Without a page id, `data` is typed as any page's data. In a layout, the
+ * page may be one the platform renders itself (checkout, login), whose
+ * payload carries no data.
  */
-export function usePage<P extends ContractPageId = ContractPageId>(): Page<P> {
-  return usePageContext('usePage').payload as unknown as Page<P>
+export function usePage<P extends ContractPageId>(id: P): Page<P>
+export function usePage<P extends ContractPageId = ContractPageId>(): Page<P>
+export function usePage(id?: ContractPageId): Page {
+  const payload = usePageContext('usePage').payload
+  if (id !== undefined) {
+    if (payload.page.id !== id) {
+      throw new Error(`usePage(${JSON.stringify(id)}) was called on page ${JSON.stringify(payload.page.id)}: a component that names a page may only be used on that page`)
+    }
+    if (payload.data === undefined || payload.data === null) {
+      throw new Error(`usePage(${JSON.stringify(id)}): this render of ${JSON.stringify(id)} carries no data (the layout rendered on its own, or a redirect); read the page's data only inside the page`)
+    }
+  }
+  return payload as unknown as Page
 }
 
 /**

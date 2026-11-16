@@ -173,7 +173,7 @@ Everything is imported from `@hostcore/toolkit`:
 
 | | |
 | --- | --- |
-| `usePage<'home'>()` | the whole payload: `page`, `meta`, `store`, `nav`, `settings`, `actions`, `data` |
+| `usePage('home')` | the whole payload: `page`, `meta`, `store`, `nav`, `settings`, `actions`, `data` (see Typed data in shared components) |
 | `useStore()` | the store: name, logo, locale, currency, business details, theme |
 | `useNav()` | the store's groups, and `links`: home, login, signup, account, domains, terms, privacy (empty when not offered) |
 | `useSetting(id)` | the store's value for a setting, or the default you declared |
@@ -190,6 +190,29 @@ Your template never builds a platform URL: every link is in the payload
 (`nav.links`, `group.url`, `service.url`, `plan.checkout_url`), and
 `hct validate` flags strings such as `"/login"` or `` `/checkout/${slug}` ``
 with the field to use instead.
+
+### Typed data in shared components
+
+A page file gets its data typed through `PageProps<'catalog.service'>`. A
+component it shares with other files reads the same data by naming the
+page:
+
+```tsx
+// src/components/plan-list.tsx
+import { usePage } from '@hostcore/toolkit'
+
+export function PlanList() {
+  const { data } = usePage('catalog.service')   // data: CatalogServiceData
+  return <ul>{data.plans.map((plan) => <li key={plan.id}>{plan.name}</li>)}</ul>
+}
+```
+
+`usePage('catalog.service')` types `data` as that page's data, and checks
+that the page being rendered is `catalog.service` and carries its data. On
+any other page, or in the layout rendered on its own, it throws an error
+naming both pages, so the render fails where the mistake is rather than on
+a missing field. `usePage<'catalog.service'>()` gives the same type without
+the check, and `usePage()` with no page id types `data` as any page's data.
 
 The data types are generated from the contract in
 [`contract/`](contract/README.md): if a field is not in there, it is not

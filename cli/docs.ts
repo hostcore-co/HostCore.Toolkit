@@ -30,7 +30,7 @@ export interface SdkEntry {
  * checks that every value the SDK exports for format 2 is listed here.
  */
 export const SDK: readonly SdkEntry[] = [
-  { name: 'usePage', kind: 'hook', signature: "usePage<'catalog.service'>(): Page", text: 'The whole page payload: page (id and params), meta, store, nav, settings, actions and data. Pass the page id for typed data.' },
+  { name: 'usePage', kind: 'hook', signature: "usePage('catalog.service'): Page", text: "The whole page payload: page (id and params), meta, store, nav, settings, actions and data. Name the page for typed data: usePage('catalog.service') throws when the current page is another one or carries no data, so a shared component can rely on its data; usePage<'catalog.service'>() gives the same type without the check." },
   { name: 'useStore', kind: 'hook', signature: 'useStore(): Store', text: "The store: name, domain, logo, favicon, locale, currency, business details and theme." },
   { name: 'useNav', kind: 'hook', signature: 'useNav(): Nav', text: "The store's groups and links: home, login, signup, account, domains, terms and privacy. A link the store does not offer is \"\"." },
   { name: 'useSetting', kind: 'hook', signature: "useSetting(id): value", text: 'The store\'s value for a setting your template.json declares, or the default you declared. Typed for the standard settings.' },
