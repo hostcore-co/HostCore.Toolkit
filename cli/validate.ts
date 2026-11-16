@@ -6,7 +6,8 @@ import {
   BANNED_PATTERNS,
   PLATFORM_ALLOWED_DEV_PACKAGES,
   PLATFORM_ALLOWED_PACKAGES,
-  PLATFORM_URL_RULES,
+  platformUrlAdvice,
+  platformUrlsIn,
   SOURCE_GLOB,
   STYLESHEET_GLOB,
 } from './policy'
@@ -254,11 +255,6 @@ function scanSource(source: string, file: string): Finding[] {
   return findings
 }
 
-const PLATFORM_URL = new RegExp(
-  `(['"\`])/(${PLATFORM_URL_RULES.map((r) => r.segment).join('|')})(?=[/?#'"\`$]|$)`,
-  'g',
-)
-
 /**
  * A format-2 template never writes a platform URL: every one is in the page
  * payload. A string that starts with one is almost always a hand-built link
@@ -268,13 +264,12 @@ function scanPlatformUrls(source: string, file: string): Finding[] {
   const findings: Finding[] = []
   source.split('\n').forEach((text, index) => {
     if (isCommentOnly(text)) return
-    for (const match of text.matchAll(PLATFORM_URL)) {
-      const rule = PLATFORM_URL_RULES.find((r) => r.segment === match[2])!
+    for (const rule of platformUrlsIn(text)) {
       findings.push({
         file,
         line: index + 1,
         rule: 'hand-built-platform-url',
-        message: `"/${rule.segment}…" is a platform URL; take it from the page data instead: ${rule.use}`,
+        message: `"${rule.path}…" is a platform URL; ${platformUrlAdvice(rule)}`,
       })
     }
   })

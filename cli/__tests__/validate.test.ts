@@ -2,6 +2,9 @@ import { afterAll, describe, expect, it } from 'bun:test'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { PAGES } from '../../contract/dist/ts/registry'
+import { generateDocs } from '../docs'
+import { PLATFORM_URL_RULES } from '../policy'
 import { loadTemplate, TemplateError } from '../template'
 import { validateTemplate, type Finding } from '../validate'
 
@@ -343,6 +346,30 @@ export default function Home() { const nav = useNav(); return <Link href={nav.li
     expect(found[2]!.message).toContain('checkout_url')
     expect(found[3]!.message).toContain('useNav().links.account')
     expect(found[4]!.message).toContain('useAction(name)')
+  })
+
+  it('flags every fixed path of the page registry, and not the home page', async () => {
+    const fixed = PAGES.filter((p) => p.path !== null && !p.path.includes('{') && p.path !== '/').map((p) => p.path!)
+    expect(fixed).toContain('/domains')
+    expect(PLATFORM_URL_RULES.map((r) => r.path)).toEqual([...fixed, '/api'])
+    const found = await findings2({
+      'src/pages/home.tsx': `export default function Home() {
+  return (
+    <>
+${fixed.map((path) => `      <a href="${path}">x</a>`).join('\n')}
+      <a href="/">Home</a>
+    </>
+  )
+}`,
+    })
+    expect(found.map((f) => f.line)).toEqual(fixed.map((_, i) => i + 4))
+    expect(found[0]!.message).toBe('"/domains…" is a platform URL; take it from the page data instead: useNav().links.domains, which is empty when the store sells no domains')
+    expect(found.find((f) => f.message.startsWith('"/forgotpassword'))!.message).toContain('the page data has no link to this platform page')
+  })
+
+  it('agrees with the upgrade guide', () => {
+    const upgrading = generateDocs()['upgrading.md']!
+    for (const rule of PLATFORM_URL_RULES) expect(upgrading).toContain(`| \`${rule.path}\` |`)
   })
 
   it('does not apply the URL rule to format-1 templates', async () => {

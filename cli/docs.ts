@@ -9,7 +9,8 @@ import { SETTING_SCALAR_TYPES, SETTING_TYPES, STANDARD_SETTINGS, type SettingSch
 import { PLATFORM_THEME, TOKEN_PATTERNS, TOKENS, type ThemeKey } from '../contract/src/tokens'
 import { COMMANDS, CommandError, stringFlag, type Flags } from './commands'
 import { platformPageChrome, platformPagesSentence, type PlatformPageChrome } from './sources'
-import { FIELD_MOVES, HAND_BUILT_URLS, HOOK_MOVES, NEW_IN_2026_11 } from './legacy-map'
+import { FIELD_MOVES, HOOK_MOVES, NEW_IN_2026_11 } from './legacy-map'
+import { PLATFORM_URL_RULES } from './policy'
 
 /**
  * hct docs — the reference documentation, generated from the contract, the
@@ -455,7 +456,9 @@ function upgradingPage(): string {
     '',
     'Every link target is in the payload. A string that starts with one of these is a hand-built platform URL; `hct validate` reports it with the field to use instead.',
     '',
-    table(['starts with', 'use'], HAND_BUILT_URLS.map((u) => [code(`/${u.segment}`), u.use])),
+    table(['starts with', 'use'], PLATFORM_URL_RULES.map((u) => [code(u.path), u.use ?? 'nothing: the payload has no link to this page, so a template does not link to it'])),
+    '',
+    'The list is every page of the page registry with a fixed path, and `/api`. A link to the home page, `"/"`, is not reported: the root of the store\'s site does not move, and `"/"` alone is more often a path separator than a link. Link to it with `useNav().links.home` all the same.',
     '',
     "A link to a group or service built from its slug (`` `/${group.slug}` ``) is `group.url` or `service.url`.",
     '',

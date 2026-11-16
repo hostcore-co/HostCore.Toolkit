@@ -104,16 +104,3 @@ export const NEW_IN_2026_11: readonly { field: string; use: string }[] = [
   { field: 'redirect', use: 'set when the platform answers with a redirect; a page never renders it' },
   { field: 'settings', use: "the store's values for every setting your template declares" },
 ]
-
-/**
- * Hand-built platform URLs, as the first path segment a string starts with,
- * and the payload field to take the URL from instead.
- */
-export const HAND_BUILT_URLS: readonly { segment: string; use: string }[] = [
-  { segment: 'checkout', use: "plan.checkout_url, or service.url for a service card" },
-  { segment: 'login', use: 'useNav().links.login' },
-  { segment: 'signup', use: 'useNav().links.signup' },
-  { segment: 'dashboard', use: 'useNav().links.account' },
-  { segment: 'domains', use: 'useNav().links.domains' },
-  { segment: 'api', use: 'useAction(name).url' },
-]

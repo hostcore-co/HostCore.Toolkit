@@ -181,11 +181,11 @@ describe('hct upgrade on a messier template', () => {
     const left = output.slice(output.indexOf('Left for you:'))
     for (const line of [
       'src/components/Header.tsx:12  `/${g.slug}` is built from slugs; use group.url',
-      'src/components/Header.tsx:17  "/domains…" is built by hand; use useNav().links.domains',
-      'src/components/Header.tsx:18  "/login…" is built by hand; use useNav().links.login',
-      'src/layout.tsx:24  "/domains…" is built by hand; use useNav().links.domains',
+      'src/components/Header.tsx:17  "/domains…" is built by hand; take it from the page data instead: useNav().links.domains',
+      'src/components/Header.tsx:18  "/login…" is built by hand; take it from the page data instead: useNav().links.login',
+      'src/layout.tsx:24  "/domains…" is built by hand; take it from the page data instead: useNav().links.domains',
       'src/views/Group.tsx:10  `/${page.data.group.slug}/${service.slug}` is built from slugs; use service.url',
-      'src/views/Group.tsx:15  "/checkout…" is built by hand; use plan.checkout_url',
+      'src/views/Group.tsx:15  "/checkout…" is built by hand; take it from the page data instead: a plan\'s checkout_url',
       'src/shared.tsx:18  data: the page data is split up in format 2',
       'src/layout.tsx:18  data.page_type: page ids are named differently in format 2',
       "template.json  faq.items, hero.primary_cta, hero.subtitle, hero.title: declared with the platform's standard label, limits and default",

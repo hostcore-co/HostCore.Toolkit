@@ -1,3 +1,5 @@
+import { PAGES } from '../contract/dist/ts/registry'
+
 /**
  * What a template is allowed to contain.
  *
@@ -159,24 +161,59 @@ export const RUNTIME_SERVER_MODULES: readonly string[] = ['react', 'react/jsx-ru
 export const RUNTIME_CLIENT_MODULES: readonly string[] = ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client']
 
 export interface PlatformUrlRule {
-  /** The first path segment of the platform URL. */
-  readonly segment: string
-  /** Where the URL comes from instead. */
-  readonly use: string
+  /** The path a hand-built URL starts with, such as `/checkout`. */
+  readonly path: string
+  /** Where the URL comes from instead, or null when the page data has no link to the page. */
+  readonly use: string | null
+}
+
+/** Where a template takes the link to each platform page it may link to. */
+const PAGE_LINKS: Readonly<Record<string, string>> = {
+  domains: "useNav().links.domains, which is empty when the store sells no domains",
+  checkout: "a plan's checkout_url, or service.url for a card (it already points at checkout for a single-plan service)",
+  login: 'useNav().links.login',
+  signup: 'useNav().links.signup',
+  dashboard: 'useNav().links.account',
 }
 
 /**
- * Platform URLs a format-2 template must not write by hand. Each one is in
- * the page payload, so a template that takes it from there keeps working if
- * the platform ever moves it.
+ * Platform URLs a format-2 template must not write by hand: the path of
+ * every page in the page registry that has a fixed path, so a page added to
+ * the registry is covered too, and `/api`, whose endpoints come from
+ * useAction(name). A link a template needs is in the page payload, so a
+ * template that takes it from there keeps working if the platform moves the
+ * page; a page the payload has no link to is not one a template links to.
+ *
+ * The home page, `/`, is not among them. Its path is the root of the
+ * store's site and does not move, and a string that is only "/" is far more
+ * often a path separator than a link; `useNav().links.home` is still the
+ * way to link to it.
  */
 export const PLATFORM_URL_RULES: readonly PlatformUrlRule[] = [
-  {
-    segment: 'checkout',
-    use: "a plan's checkout_url, or service.url for a card (it already points at checkout for a single-plan service)",
-  },
-  { segment: 'login', use: 'useNav().links.login' },
-  { segment: 'signup', use: 'useNav().links.signup' },
-  { segment: 'dashboard', use: 'useNav().links.account' },
-  { segment: 'api', use: 'useAction(name), whose url is the endpoint to call' },
+  ...PAGES.filter((p) => p.path !== null && p.path !== '/' && !p.path.includes('{')).map((p) => ({
+    path: p.path!,
+    use: PAGE_LINKS[p.id] ?? null,
+  })),
+  { path: '/api', use: 'useAction(name), whose url is the endpoint to call' },
 ]
+
+const PLATFORM_URL = new RegExp(
+  `(['"\`])(${PLATFORM_URL_RULES.map((r) => r.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?=[/?#'"\`$]|$)`,
+  'g',
+)
+
+/**
+ * The hand-built platform URLs in one line of source: each string that
+ * starts with the path of a rule, followed by the end of the string or by
+ * `/`, `?`, `#` or `${`.
+ */
+export function platformUrlsIn(line: string): PlatformUrlRule[] {
+  return [...line.matchAll(PLATFORM_URL)].map((m) => PLATFORM_URL_RULES.find((r) => r.path === m[2])!)
+}
+
+/** What to do instead of writing a rule's URL by hand. */
+export function platformUrlAdvice(rule: PlatformUrlRule): string {
+  return rule.use === null
+    ? 'the page data has no link to this platform page, so a template does not link to it'
+    : `take it from the page data instead: ${rule.use}`
+}

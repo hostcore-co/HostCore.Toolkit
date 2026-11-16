@@ -199,8 +199,13 @@ Everything is imported from `@hostcore/toolkit`:
 
 Your template never builds a platform URL: every link is in the payload
 (`nav.links`, `group.url`, `service.url`, `plan.checkout_url`), and
-`hct validate` flags strings such as `"/login"` or `` `/checkout/${slug}` ``
-with the field to use instead.
+`hct validate` flags a string that starts with the path of a platform page
+in the [page registry](contract/registry.json), such as `"/login"`,
+`"/domains"` or `` `/checkout/${slug}` ``, or with `/api`, and names the
+field to use instead. A link to the home page, `"/"`, is not flagged: the
+root of the store's site never moves, and `"/"` alone is more often a path
+separator than a link; `useNav().links.home` is still the way to link to
+it.
 
 ### Typed data in shared components
 

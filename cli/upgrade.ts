@@ -4,7 +4,7 @@ import { basename, dirname, join, posix, relative, sep } from 'node:path'
 import type * as TS from 'typescript'
 import { STANDARD_SETTINGS } from '../contract/src/settings'
 import { CommandError, type Flags } from './commands'
-import { HAND_BUILT_URLS } from './legacy-map'
+import { platformUrlAdvice, platformUrlsIn } from './policy'
 import { discoverSources, MINIMAL_LAYOUT_PAGE_IDS, SOURCE_EXTENSIONS } from './sources'
 import { isFormat2, loadTemplate } from './template'
 import { FORMAT2_PACKAGE_RANGES, FORMAT2_REQUIRED, TOOLCHAIN } from './toolchain'
@@ -1204,9 +1204,8 @@ export async function planUpgrade(root: string): Promise<UpgradePlan> {
   for (const [path, text] of plan.writes) if (/\.(tsx|jsx|ts|js)$/.test(path)) finalSources.set(path, text)
   for (const [file, text] of [...finalSources].sort(([x], [y]) => (x < y ? -1 : 1))) {
     text.split('\n').forEach((line, i) => {
-      for (const u of HAND_BUILT_URLS) {
-        const m = new RegExp(`(['"\`])/${u.segment}(?=[/?#'"\`$]|$)`).exec(line)
-        if (m) plan.leftovers.push({ kind: 'url', file, line: i + 1, text: `"/${u.segment}…" is built by hand; use ${u.use}` })
+      for (const rule of new Set(platformUrlsIn(line))) {
+        plan.leftovers.push({ kind: 'url', file, line: i + 1, text: `"${rule.path}…" is built by hand; ${platformUrlAdvice(rule)}` })
       }
       const slug = /`\/\$\{[^}]*slug[^}]*\}(\/\$\{[^}]*slug[^}]*\})?/.exec(line)
       if (slug) plan.leftovers.push({ kind: 'url', file, line: i + 1, text: `${slug[0]}\` is built from slugs; use ${slug[1] ? 'service.url' : 'group.url'}` })
