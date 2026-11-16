@@ -88,7 +88,7 @@ export async function buildTemplate(
  * template builds against the toolchain version it declares instead of
  * whatever the CLI happens to be installed with.
  */
-async function loadVite(root: string): Promise<typeof import('vite')> {
+export async function loadVite(root: string): Promise<typeof import('vite')> {
   const require = createRequire(join(root, 'package.json'))
   // Prefer the ESM entry: require.resolve picks the CJS build, which
   // Vite has deprecated and which prints a warning on every build.
@@ -217,7 +217,7 @@ async function plugins(root: string): Promise<PluginOption[]> {
  * Optional plugins a template doesn't declare are skipped rather than
  * failing the build — not every template uses Tailwind.
  */
-async function loadPlugin(
+export async function loadPlugin(
   root: string,
   name: string,
   optional = false,

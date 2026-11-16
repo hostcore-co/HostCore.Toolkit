@@ -1,0 +1,35 @@
+{
+  "id": "basic",
+  "version": "1.0.0",
+  "name": "Basic",
+  "format": 2,
+  "contract": "2026-11",
+  "toolchain": 2,
+  "allowedPackages": ["@hostcore/toolkit", "react", "react-dom", "gsap", "embla-carousel-react"],
+  "tokens": {
+    "color.accent": "#5b8cff",
+    "radius.md": "0.5rem",
+    "font.heading": "\"Space Grotesk\", system-ui, sans-serif"
+  },
+  "settings": [
+    { "id": "hero.title", "type": "text", "label": "Headline", "max": 160, "default": "Hosting that stays out of your way" },
+    { "id": "hero.subtitle", "type": "text", "label": "Subheading", "max": 600, "default": "Servers online in minutes, billed monthly, cancel any time." },
+    { "id": "hero.primary_cta", "type": "link", "label": "Primary button", "max": 200, "default": { "label": "See plans", "href": "#catalogue" } },
+    {
+      "id": "faq.items",
+      "type": "object-list",
+      "label": "Questions",
+      "max": 12,
+      "fields": [
+        { "id": "question", "type": "text", "label": "Question", "max": 300 },
+        { "id": "answer", "type": "textarea", "label": "Answer", "max": 2000, "description": "Plain text." }
+      ],
+      "default": [
+        { "question": "How fast is setup?", "answer": "Most services are ready a few minutes after payment." },
+        { "question": "Can I cancel?", "answer": "Yes, from your account, at the end of any billing period." }
+      ]
+    },
+    { "id": "footer.note", "type": "textarea", "label": "Footer note", "description": "A line under the footer links.", "max": 300, "default": "" },
+    { "id": "catalogue.columns", "type": "number", "label": "Cards per row", "min": 1, "max": 4, "step": 1, "default": 3 }
+  ]
+}
