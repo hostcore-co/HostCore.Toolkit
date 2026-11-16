@@ -380,12 +380,22 @@ export interface SettingOption {
   label: string
 }
 
+/**
+ * One field of each entry of an object-list setting. A field takes the same
+ * optional keys as a top-level setting of its type.
+ */
 export interface SettingField {
   id: string
   type: SettingScalarType
   label?: string
+  /** Help text shown beside the field in the editor. */
+  description?: string
   /** Characters for text types; the largest value for numbers. */
   max?: number
+  /** The smallest value, for numbers. */
+  min?: number
+  /** The increment a number moves in, counted from `min` (or zero). */
+  step?: number
 }
 
 export interface SettingSchemaEntry {
@@ -393,13 +403,21 @@ export interface SettingSchemaEntry {
   id: string
   type: SettingType
   label?: string
+  /** Help text shown beside the setting in the editor. */
   description?: string
-  /** Characters for text types; entries for lists; the largest value for numbers. */
+  /**
+   * Characters for text types, applied to a link's label and its href
+   * separately; entries for lists; the largest value for numbers.
+   */
   max?: number
   /** The smallest value, for numbers. */
   min?: number
+  /** The increment a number moves in, counted from `min` (or zero). */
+  step?: number
   /** What a `list` holds. */
   of?: SettingScalarType
+  /** Characters of each text item of a `list`. */
+  item_max?: number
   /** The fields of each `object-list` entry. */
   fields?: SettingField[]
   /** The choices of a `select`. */
@@ -537,18 +555,36 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const TEXT_TYPES = new Set(['text', 'textarea', 'url', 'image'])
 
-function scalarError(type: SettingScalarType, max: number | undefined, value: unknown): string | null {
-  if (TEXT_TYPES.has(type)) {
-    if (typeof value !== 'string') return 'must be a string'
-    if (max !== undefined && [...value].length > max) return `must be at most ${max} characters`
-    return null
-  }
+interface Bounds {
+  max?: number
+  min?: number
+  step?: number
+}
+
+function textError(max: number | undefined, value: unknown): string | null {
+  if (typeof value !== 'string') return 'must be a string'
+  if (max !== undefined && [...value].length > max) return `must be at most ${max} characters`
+  return null
+}
+
+/** Whether `value` is a whole number of `step`s from `base`, allowing for float rounding. */
+function onStep(value: number, base: number, step: number): boolean {
+  const steps = (value - base) / step
+  return Math.abs(steps - Math.round(steps)) < 1e-9
+}
+
+function scalarError(type: SettingScalarType, bounds: Bounds, value: unknown): string | null {
+  if (TEXT_TYPES.has(type)) return textError(bounds.max, value)
   if (type === 'color') {
     return typeof value === 'string' && HEX_COLOR.test(value) ? null : 'must be a hex colour'
   }
   if (type === 'boolean') return typeof value === 'boolean' ? null : 'must be a boolean'
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'must be a number'
-  if (max !== undefined && value > max) return `must be at most ${max}`
+  if (bounds.max !== undefined && value > bounds.max) return `must be at most ${bounds.max}`
+  if (bounds.min !== undefined && value < bounds.min) return `must be at least ${bounds.min}`
+  if (bounds.step !== undefined && !onStep(value, bounds.min ?? 0, bounds.step)) {
+    return `must be a multiple of ${bounds.step}${bounds.min !== undefined ? ` from ${bounds.min}` : ''}`
+  }
   return null
 }
 
@@ -564,18 +600,18 @@ export function settingValueError(entry: SettingSchemaEntry, value: unknown): st
     case 'image':
     case 'color':
     case 'boolean':
-      return scalarError(entry.type, entry.max, value)
-    case 'number': {
-      const err = scalarError('number', entry.max, value)
-      if (err) return err
-      if (entry.min !== undefined && (value as number) < entry.min) return `must be at least ${entry.min}`
-      return null
-    }
-    case 'link':
+    case 'number':
+      return scalarError(entry.type, entry, value)
+    case 'link': {
       if (!isRecord(value) || typeof value.label !== 'string' || typeof value.href !== 'string') {
         return 'must be { label, href } strings'
       }
-      return Object.keys(value).length === 2 ? null : 'must have only label and href'
+      if (Object.keys(value).length !== 2) return 'must have only label and href'
+      const label = textError(entry.max, value.label)
+      if (label) return `label ${label}`
+      const href = textError(entry.max, value.href)
+      return href ? `href ${href}` : null
+    }
     case 'select':
       if (typeof value !== 'string') return 'must be a string'
       return entry.options?.some((o) => o.value === value) ? null : 'must be one of the options'
@@ -583,7 +619,8 @@ export function settingValueError(entry: SettingSchemaEntry, value: unknown): st
       if (!Array.isArray(value)) return 'must be a list'
       if (entry.max !== undefined && value.length > entry.max) return `must have at most ${entry.max} entries`
       for (const [i, item] of value.entries()) {
-        const err = scalarError(entry.of ?? 'text', undefined, item)
+        const of = entry.of ?? 'text'
+        const err = scalarError(of, TEXT_TYPES.has(of) ? { max: entry.item_max } : {}, item)
         if (err) return `entry ${i} ${err}`
       }
       return null
@@ -599,13 +636,40 @@ export function settingValueError(entry: SettingSchemaEntry, value: unknown): st
         }
         for (const field of fields) {
           if (!(field.id in item)) return `entry ${i} is missing ${field.id}`
-          const err = scalarError(field.type, field.max, item[field.id])
+          const err = scalarError(field.type, field, item[field.id])
           if (err) return `entry ${i} field ${field.id} ${err}`
         }
       }
       return null
     }
   }
+}
+
+function isCount(value: unknown): boolean {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+/** Checks `max`, `min` and `step` on a setting or an object-list field of the given type. */
+function boundsErrors(at: string, type: string, bounds: Bounds): string[] {
+  const errors: string[] = []
+  for (const key of ['max', 'min', 'step'] as const) {
+    if (bounds[key] !== undefined && (typeof bounds[key] !== 'number' || !Number.isFinite(bounds[key]))) {
+      errors.push(`${at}.${key} must be a number`)
+    }
+  }
+  if (type !== 'number') {
+    if (bounds.min !== undefined) errors.push(`${at}.min is only for number settings`)
+    if (bounds.step !== undefined) errors.push(`${at}.step is only for number settings`)
+    if (bounds.max !== undefined && typeof bounds.max === 'number' && !isCount(bounds.max)) {
+      errors.push(`${at}.max must be a whole number`)
+    }
+    return errors
+  }
+  if (typeof bounds.step === 'number' && !(bounds.step > 0)) errors.push(`${at}.step must be greater than zero`)
+  if (typeof bounds.min === 'number' && typeof bounds.max === 'number' && bounds.min > bounds.max) {
+    errors.push(`${at}.min must not be greater than max`)
+  }
+  return errors
 }
 
 /** Checks a template's declared settings. Returns one message per problem. */
@@ -635,10 +699,13 @@ export function validateSettingSchema(entries: unknown): string[] {
       errors.push(`${at}.type must be one of ${SETTING_TYPES.join(', ')}`)
       return
     }
-    for (const key of ['max', 'min'] as const) {
-      if (entry[key] !== undefined && (typeof entry[key] !== 'number' || !Number.isFinite(entry[key]))) {
-        errors.push(`${at}.${key} must be a number`)
-      }
+    if (entry.description !== undefined && typeof entry.description !== 'string') {
+      errors.push(`${at}.description must be a string`)
+    }
+    errors.push(...boundsErrors(at, entry.type, entry))
+    if (entry.item_max !== undefined) {
+      if (entry.type !== 'list') errors.push(`${at}.item_max is only for list settings`)
+      else if (!isCount(entry.item_max)) errors.push(`${at}.item_max must be a whole number`)
     }
     if (entry.type === 'list' && entry.of !== undefined && !SETTING_SCALAR_TYPES.includes(entry.of)) {
       errors.push(`${at}.of must be one of ${SETTING_SCALAR_TYPES.join(', ')}`)
@@ -658,7 +725,15 @@ export function validateSettingSchema(entries: unknown): string[] {
           fieldIds.add(f.id)
           if (!SETTING_SCALAR_TYPES.includes(f.type)) {
             errors.push(`${at}.fields[${j}].type must be one of ${SETTING_SCALAR_TYPES.join(', ')}`)
+            return
           }
+          if (f.label !== undefined && typeof f.label !== 'string') {
+            errors.push(`${at}.fields[${j}].label must be a string`)
+          }
+          if (f.description !== undefined && typeof f.description !== 'string') {
+            errors.push(`${at}.fields[${j}].description must be a string`)
+          }
+          errors.push(...boundsErrors(`${at}.fields[${j}]`, f.type, f as Bounds))
         })
       }
     } else if (entry.fields !== undefined) {

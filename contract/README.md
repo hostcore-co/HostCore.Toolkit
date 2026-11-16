@@ -87,10 +87,21 @@ exactly these; `src/settings.ts` has their labels, limits and defaults.
 | `faq.title`, `faq.subtitle` | text |
 | `faq.items` | object-list `{ question, answer }`, at most 24 |
 
-A setting entry is `{ id, type, label?, description?, max?, min?, of?,
-fields?, options?, default? }` with type one of `text`, `textarea`, `url`,
-`link`, `color`, `boolean`, `number`, `select`, `image`, `list`,
-`object-list`. `validateSettingSchema` checks a template's declarations.
+A setting entry is `{ id, type, label?, description?, max?, min?, step?, of?,
+item_max?, fields?, options?, default? }` with type one of `text`,
+`textarea`, `url`, `link`, `color`, `boolean`, `number`, `select`, `image`,
+`list`, `object-list`. `validateSettingSchema` checks a template's
+declarations.
+
+- `description` is help text shown beside the setting in the editor.
+- `max` counts characters for text types, and applies to a link's label and
+  its href separately; it counts entries for `list` and `object-list`, and is
+  the largest value for `number`.
+- `min` and `step` are for `number` only. A value must be a whole number of
+  steps from `min` (or from zero when there is no `min`).
+- `item_max` is for `list` only: the characters of each text item.
+- A field of an `object-list` (`{ id, type, label?, description?, max?, min?,
+  step? }`) takes the same optional keys as a top-level setting of its type.
 
 ## Design tokens
 

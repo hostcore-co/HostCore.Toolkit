@@ -35,12 +35,17 @@ function settingLiteral(s: SettingSchemaEntry): string {
   if (s.description !== undefined) parts.push(`Description: ${goString(s.description)}`)
   if (s.max !== undefined) parts.push(`Max: ${goNumber(s.max)}`)
   if (s.min !== undefined) throw new Error('standard settings do not set min')
+  if (s.step !== undefined) parts.push(`Step: ${goNumber(s.step)}`)
   if (s.of !== undefined) parts.push(`Of: ${goString(s.of)}`)
+  if (s.item_max !== undefined) parts.push(`ItemMax: ${goNumber(s.item_max)}`)
   if (s.fields !== undefined) {
     const fields = s.fields.map((f) => {
       const fp = [`ID: ${goString(f.id)}`, `Type: ${goString(f.type)}`]
       if (f.label !== undefined) fp.push(`Label: ${goString(f.label)}`)
+      if (f.description !== undefined) fp.push(`Description: ${goString(f.description)}`)
       if (f.max !== undefined) fp.push(`Max: ${goNumber(f.max)}`)
+      if (f.min !== undefined) throw new Error('standard settings do not set min')
+      if (f.step !== undefined) fp.push(`Step: ${goNumber(f.step)}`)
       return `{${fp.join(', ')}}`
     })
     parts.push(`Fields: []SettingField{${fields.join(', ')}}`)
@@ -167,7 +172,11 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
   )
   lines.push(')', '')
 
-  lines.push(...goComment('SettingField is one field of each entry of an object-list setting.'))
+  lines.push(
+    ...goComment(
+      'SettingField is one field of each entry of an object-list setting. It takes the same optional keys as a top-level setting of its type.',
+    ),
+  )
   lines.push('type SettingField struct {')
   lines.push(
     ...alignRows(
@@ -175,7 +184,10 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
         { cells: ['ID', 'string', '`json:"id"`'] },
         { cells: ['Type', 'string', '`json:"type"`'] },
         { cells: ['Label', 'string', '`json:"label,omitempty"`'] },
+        { cells: ['Description', 'string', '`json:"description,omitempty"`'] },
         { cells: ['Max', 'float64', '`json:"max,omitempty"`'] },
+        { cells: ['Min', '*float64', '`json:"min,omitempty"`'] },
+        { cells: ['Step', 'float64', '`json:"step,omitempty"`'] },
       ],
       '\t',
     ),
@@ -197,7 +209,7 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
 
   lines.push(
     ...goComment(
-      'SettingSchema declares one template setting. Max counts characters for text types, entries for lists and the largest value for numbers. Default holds the value in the form encoding/json decodes JSON into any.',
+      'SettingSchema declares one template setting. Max counts characters for text types (a link\'s label and href separately), entries for lists and the largest value for numbers. Min and Step are for numbers; ItemMax counts the characters of each text item of a list. Default holds the value in the form encoding/json decodes JSON into any.',
     ),
   )
   lines.push('type SettingSchema struct {')
@@ -210,7 +222,9 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
         { cells: ['Description', 'string', '`json:"description,omitempty"`'] },
         { cells: ['Max', 'float64', '`json:"max,omitempty"`'] },
         { cells: ['Min', '*float64', '`json:"min,omitempty"`'] },
+        { cells: ['Step', 'float64', '`json:"step,omitempty"`'] },
         { cells: ['Of', 'string', '`json:"of,omitempty"`'] },
+        { cells: ['ItemMax', 'float64', '`json:"item_max,omitempty"`'] },
         { cells: ['Fields', '[]SettingField', '`json:"fields,omitempty"`'] },
         { cells: ['Options', '[]SettingOption', '`json:"options,omitempty"`'] },
         { cells: ['Default', 'any', '`json:"default,omitempty"`'] },

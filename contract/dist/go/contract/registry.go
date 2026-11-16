@@ -150,12 +150,16 @@ const (
 	SettingFAQItems           = "faq.items"
 )
 
-// SettingField is one field of each entry of an object-list setting.
+// SettingField is one field of each entry of an object-list setting. It takes
+// the same optional keys as a top-level setting of its type.
 type SettingField struct {
-	ID    string  `json:"id"`
-	Type  string  `json:"type"`
-	Label string  `json:"label,omitempty"`
-	Max   float64 `json:"max,omitempty"`
+	ID          string   `json:"id"`
+	Type        string   `json:"type"`
+	Label       string   `json:"label,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Max         float64  `json:"max,omitempty"`
+	Min         *float64 `json:"min,omitempty"`
+	Step        float64  `json:"step,omitempty"`
 }
 
 // SettingOption is one choice of a select setting.
@@ -165,8 +169,10 @@ type SettingOption struct {
 }
 
 // SettingSchema declares one template setting. Max counts characters for text
-// types, entries for lists and the largest value for numbers. Default holds the
-// value in the form encoding/json decodes JSON into any.
+// types (a link's label and href separately), entries for lists and the largest
+// value for numbers. Min and Step are for numbers; ItemMax counts the
+// characters of each text item of a list. Default holds the value in the form
+// encoding/json decodes JSON into any.
 type SettingSchema struct {
 	ID          string          `json:"id"`
 	Type        string          `json:"type"`
@@ -174,7 +180,9 @@ type SettingSchema struct {
 	Description string          `json:"description,omitempty"`
 	Max         float64         `json:"max,omitempty"`
 	Min         *float64        `json:"min,omitempty"`
+	Step        float64         `json:"step,omitempty"`
 	Of          string          `json:"of,omitempty"`
+	ItemMax     float64         `json:"item_max,omitempty"`
 	Fields      []SettingField  `json:"fields,omitempty"`
 	Options     []SettingOption `json:"options,omitempty"`
 	Default     any             `json:"default,omitempty"`

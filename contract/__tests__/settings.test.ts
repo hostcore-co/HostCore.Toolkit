@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { settingValueError, STANDARD_SETTINGS, validateSettingSchema } from '../src/settings'
+import { settingValueError, STANDARD_SETTINGS, validateSettingSchema, type SettingSchemaEntry } from '../src/settings'
 import { TOKENS, validateTokens } from '../src/tokens'
 
 describe('settings', () => {
@@ -54,6 +54,75 @@ describe('settings', () => {
     expect(settingValueError({ id: 'x', type: 'select', options: [{ value: 'a', label: 'A' }] }, 'b')).toBe(
       'must be one of the options',
     )
+  })
+})
+
+describe('optional setting keys', () => {
+  it('accepts description, number bounds, item_max and field keys', () => {
+    expect(
+      validateSettingSchema([
+        { id: 'a', type: 'text', description: 'Shown under the hero', max: 80 },
+        { id: 'b', type: 'number', min: 0, max: 10, step: 0.5, default: 2.5 },
+        { id: 'c', type: 'link', max: 40, default: { label: 'Go', href: '/' } },
+        { id: 'd', type: 'list', of: 'text', max: 3, item_max: 20, default: ['x'] },
+        {
+          id: 'e',
+          type: 'object-list',
+          fields: [
+            { id: 'title', type: 'text', max: 10, description: 'Short' },
+            { id: 'count', type: 'number', min: 1, max: 9, step: 2, description: 'Odd only' },
+          ],
+          default: [{ title: 'one', count: 3 }],
+        },
+      ]),
+    ).toEqual([])
+  })
+
+  it('rejects the keys where they do not apply, and bad values for them', () => {
+    expect(
+      validateSettingSchema([
+        { id: 'a', type: 'text', step: 1, min: 0 },
+        { id: 'b', type: 'number', step: 0, min: 5, max: 1 },
+        { id: 'c', type: 'text', item_max: 3 },
+        { id: 'd', type: 'list', item_max: -1 },
+        { id: 'e', type: 'text', description: 3 },
+        { id: 'f', type: 'object-list', fields: [{ id: 'x', type: 'text', step: 1, description: false }] },
+      ]),
+    ).toEqual([
+      'settings[0].min is only for number settings',
+      'settings[0].step is only for number settings',
+      'settings[1].step must be greater than zero',
+      'settings[1].min must not be greater than max',
+      'settings[2].item_max is only for list settings',
+      'settings[3].item_max must be a whole number',
+      'settings[4].description must be a string',
+      'settings[5].fields[0].description must be a string',
+      'settings[5].fields[0].step is only for number settings',
+    ])
+  })
+
+  it('applies the keys to values', () => {
+    const number = { id: 'n', type: 'number', min: 1, max: 9, step: 2 } as const
+    expect(settingValueError(number, 5)).toBeNull()
+    expect(settingValueError(number, 4)).toBe('must be a multiple of 2 from 1')
+    expect(settingValueError({ id: 'n', type: 'number', step: 0.1 }, 0.3)).toBeNull()
+    expect(settingValueError({ id: 'l', type: 'link', max: 4 }, { label: 'Home', href: '/x' })).toBeNull()
+    expect(settingValueError({ id: 'l', type: 'link', max: 4 }, { label: 'Homes', href: '/' })).toBe(
+      'label must be at most 4 characters',
+    )
+    expect(settingValueError({ id: 'l', type: 'link', max: 4 }, { label: 'a', href: '/abcd' })).toBe(
+      'href must be at most 4 characters',
+    )
+    expect(settingValueError({ id: 'h', type: 'list', item_max: 3 }, ['abc', 'abcd'])).toBe(
+      'entry 1 must be at most 3 characters',
+    )
+    const objects: SettingSchemaEntry = {
+      id: 'o',
+      type: 'object-list',
+      fields: [{ id: 'count', type: 'number', min: 1, step: 2 }],
+    }
+    expect(settingValueError(objects, [{ count: 3 }])).toBeNull()
+    expect(settingValueError(objects, [{ count: 0 }])).toBe('entry 0 field count must be at least 1')
   })
 })
 
