@@ -11,6 +11,57 @@ bun add github:hostcore-co/HostCore.Toolkit#v1.0.0
 That gives you both — `@hostcore/toolkit` to import from, and `hct` to build
 with.
 
+## From first file to upload
+
+```bash
+hct init acme              # a working template: layout, pages, islands, settings
+cd acme && bun install
+hct dev                    # preview every page against the contract fixtures
+hct check                  # render every page the way the platform does
+hct push --listing <id>    # upload it as a new version and get a preview link
+```
+
+- **`hct init [dir]`** writes a template that validates, checks and builds as
+  it is. `--minimal` writes only `template.json` with design tokens (and a
+  `package.json`): the platform renders every page and the layout, in your
+  colours, radii and fonts.
+- **`hct dev [dir]`** builds the template and serves it at
+  `http://127.0.0.1:4173/`. The start page lists every page id with every
+  example payload for it (the fixtures in [`contract/fixtures`](contract)).
+  Each preview is rendered by your template's real server entry and
+  hydrated by its real client entry, with a switch between the `default` and
+  `minimal` layout variants. A page you have not written shows where the
+  platform's default page appears; the platform's own pages (checkout,
+  login, the account area) show where they appear inside your layout. Links
+  in the preview go to the fixture for that page. Save a file and the
+  template rebuilds and the browser reloads. `--payload <file>` previews a
+  page payload of your own as well, for example one exported from your
+  store.
+- **`hct check [dir]`** builds the template and renders every page it
+  implements against every fixture for that page, as a whole document and
+  as a body, and its layout once per variant — what the platform does before
+  it accepts a version. It prints a line for each render that fails, with
+  its page, fixture and kind, and the build's sizes against budgets (server
+  bundle 1 MB, client JavaScript 250 KB, stylesheet 100 KB; change them with
+  `--budget-server`, `--budget-client-js`, `--budget-css`). A budget is
+  advice: only a failed render fails the check. `--json` prints a
+  machine-readable report, and `--dist <dir>` checks a build you already
+  have.
+- **`hct push [dir]`** builds the template, then uploads its source as a new
+  version of your marketplace listing and prints the platform's checks and
+  a preview link. Set `HOSTCORE_API_URL` and `HOSTCORE_TOKEN` in the
+  environment, and pass `--listing <id>` (or set `HOSTCORE_LISTING`). The
+  version is `template.json`'s `version` unless you pass `--tag`;
+  `--changelog` says what changed. Everything but `node_modules/`, `dist/`,
+  `build/` and names starting with a dot is uploaded, and the template needs
+  a `package.json`.
+- **`hct upgrade [dir]`** moves a format-1 template to format 2 (below).
+- **`hct docs --out <dir>`** writes the reference as Markdown: every page and
+  its data, every type and field of the contract, settings, design tokens,
+  the SDK, the commands, and what changed from contract `"1"`.
+
+Every command explains itself with `hct <command> --help`.
+
 ## Writing a template
 
 A template is a directory with a `template.json` and, optionally, React
@@ -210,20 +261,71 @@ lists each one with its version and where it ended up. The manifest's
 `build_id` is derived from its content, so the same source always gives the
 same id.
 
+### In the browser
+
+The client entry hydrates the page when it loads. It also exports
+`mount(part?, options?)` for a page that sets `window.__HC__.defer = true`:
+`part` is `document`, `layout`, `body` or `islands`, and for `body`,
+`options.root` is the element holding the page (it may be inside a shadow
+root) and `options.env` the environment it was rendered with. It reports
+problems with `console.error` and never throws.
+
 ### Format 1
 
 A `template.json` without `"format": 2` is a format-1 template: one `App`
 component that switches on `data.page_type` and reads contract "1" data
 through `useHC()`. It builds exactly as before, with the Vite it has
-installed.
+installed, and `hct dev` runs its own Vite dev server as before.
+
+### Moving to format 2
+
+```bash
+hct upgrade --dry-run      # see what it would do and what it leaves for you
+hct upgrade
+```
+
+`hct upgrade` does the mechanical part:
+
+- `template.json` gets `"format": 2`, `"contract": "2026-11"` and
+  `"toolchain": 2`, and declares the standard settings your template reads;
+- each page of the page switch (`switch (data.page_type)`) or page map
+  (`pages[data.page_type]`) in `App` becomes `src/pages/<page-id>.tsx`;
+- the markup `App` renders around the page becomes `src/layout.tsx`, with an
+  `<Outlet />` where the page goes, and the rest of `App.tsx` moves to
+  `src/shared.tsx`;
+- data read through `useHC()`, `usePageData()`, `useStore()` and
+  `useServiceGroups()` is rewritten to `usePage()`, `useStore()`, `useNav()`
+  and `useSetting()` wherever the 2026-11 field holds the same value —
+  `content.hero.title` becomes `useSetting('hero.title')`,
+  `store.store_name` becomes `useStore().name`, `cheapest_plan` becomes
+  `from`, `pricing.price` becomes `price`;
+- files in `src/pages/` and `src/islands/` move to `src/views/` and
+  `src/widgets/`, since format 2 reads those directories by name;
+- `package.json` moves to the format-2 versions of React, Vite and the
+  plugins.
+
+Then it lists, file and line, what is left for you: every link built by
+hand with the payload field to take it from (`plan.checkout_url`,
+`group.url`, `useNav().links.login`, …), every data access with no
+one-to-one replacement (`data.page_type`, the page data passed around
+whole, a `pricing` object), the settings it declared for you to review, and
+files format 2 does not use. It works in a copy of your template and swaps
+it in only when the copy is complete, so a template it cannot convert is
+left exactly as it was. `hct docs` writes the full field-by-field table
+(`upgrading.md`).
 
 ## The commands
 
 ```
+hct init [dir]         start a new format-2 template (--minimal, --id, --name)
+hct dev [dir]          preview it against the contract fixtures (--port, --payload <file>)
 hct validate [dir]     check a template against the build policy
-hct build [dir]        validate, build, and emit a manifest (--local-paths, --media-base <url>, --sign <key>)
-hct runtime build      build the shared React runtime (--out <dir>)
-hct dev [dir]          run the template's local dev server
+hct check [dir]        render every page against every fixture (--dist, --runtime, --json, --budget-*)
+hct build [dir]        validate, build, and emit a manifest (--local-paths, --media-base <url>, --out, --runtime, --sign <key>)
+hct push [dir]         build, then upload a new version (--listing, --tag, --changelog, --api, --org)
+hct upgrade [dir]      move a format-1 template to format 2 (--dry-run)
+hct docs --out <dir>   write the reference documentation
+hct runtime build      build the shared React runtime (--out <dir>, --root, --sign)
 hct keygen             generate a signing keypair
 hct contract generate  regenerate contract/dist from the contract definitions
 hct contract check     fail when contract/dist is out of date
