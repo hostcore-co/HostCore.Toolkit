@@ -1,0 +1,20 @@
+{
+  "pages": [
+    { "id": "home",            "path": "/",                  "tier": "open",    "upstream": "engine",   "cache": { "ttl": 3600, "swr": 86400 } },
+    { "id": "domains",         "path": "/domains",           "tier": "open",    "upstream": "engine",   "cache": { "ttl": 3600, "swr": 86400 }, "requires": "domains" },
+    { "id": "catalog.group",   "path": "/{group}",           "tier": "open",    "upstream": "engine",   "cache": { "ttl": 3600, "swr": 86400 } },
+    { "id": "catalog.service", "path": "/{group}/{service}", "tier": "open",    "upstream": "engine",   "cache": { "ttl": 3600, "swr": 86400 } },
+    { "id": "not-found",       "path": null,                 "tier": "open",    "upstream": "engine",   "cache": { "ttl": 0, "swr": 0 } },
+    { "id": "checkout",        "path": "/checkout",  "prefix": true, "tier": "guarded", "upstream": "frontend" },
+    { "id": "login",           "path": "/login",     "prefix": true, "tier": "guarded", "upstream": "frontend" },
+    { "id": "signup",          "path": "/signup",    "prefix": true, "tier": "guarded", "upstream": "frontend" },
+    { "id": "forgotpassword",  "path": "/forgotpassword", "prefix": true, "tier": "guarded", "upstream": "frontend" },
+    { "id": "auth",            "path": "/auth",      "prefix": true, "tier": "guarded", "upstream": "frontend" },
+    { "id": "connect",         "path": "/connect",   "prefix": true, "tier": "guarded", "upstream": "frontend" },
+    { "id": "order",           "path": "/order",     "prefix": true, "tier": "guarded", "upstream": "frontend" },
+    { "id": "dashboard",       "path": "/dashboard", "prefix": true, "tier": "private", "upstream": "frontend" },
+    { "id": "admin",           "path": "/admin",     "prefix": true, "tier": "staff",   "upstream": "frontend" }
+  ],
+  "reserved_slugs": [ "admin","api","auth","checkout","connect","dashboard","domains","forgotpassword","login","oauth","order","signup",
+                      "account","blog","cart","contact","help","kb","legal","pages","search","status","support","_hc" ]
+}
