@@ -31,8 +31,10 @@ hct push --listing <id>    # upload it as a new version and get a preview link
   Each preview is rendered by your template's real server entry and
   hydrated by its real client entry, with a switch between the `default` and
   `minimal` layout variants. A page you have not written shows where the
-  platform's default page appears; the platform's own pages (checkout,
-  login, the account area) show where they appear inside your layout. Links
+  platform's default page appears; the platform's own pages show where they
+  appear: checkout, sign-in and the other guarded pages inside your
+  layout's `minimal` variant, the account area in your design tokens with
+  no layout. Links
   in the preview go to the fixture for that page. Save a file and the
   template rebuilds and the browser reloads. `--payload <file>` previews a
   page payload of your own as well, for example one exported from your
@@ -88,8 +90,11 @@ public/                     fonts, images and other files, served as they are
 Every file under `src/` is optional. A page you leave out, or the layout,
 is filled in by the platform's built-in default template, so you can start
 with only `template.json` and replace one page at a time. The platform's
-own pages (checkout, login, the account area) are drawn inside your layout
-with `variant="minimal"`.
+own pages use your template by their tier in the
+[page registry](contract/registry.json): the `guarded` ones (checkout,
+login, signup, forgotpassword, auth, connect, order) are drawn inside your
+layout with `variant="minimal"`; the `private` one, the account area
+(dashboard), takes your design tokens but not your layout.
 
 ```jsonc
 // template.json

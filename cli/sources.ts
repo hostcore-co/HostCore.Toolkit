@@ -37,6 +37,35 @@ export const SOURCE_EXTENSIONS = ['.tsx', '.jsx', '.ts', '.js'] as const
 /** The pages a template can implement, in registry order. */
 export const TEMPLATE_PAGE_IDS: readonly string[] = PAGES.filter((p) => p.upstream === 'engine').map((p) => p.id)
 
+/**
+ * What of a template the platform's own pages (the pages it does not render
+ * from a template) show, by their tier in the page registry: a `guarded`
+ * page (checkout, sign-in, sign-up and the like) is drawn inside the
+ * template's layout in its `minimal` variant; a `private` page (the account
+ * area) gets the template's design tokens and no layout; a `staff` page
+ * shows nothing of the template.
+ */
+export type PlatformPageChrome = 'minimal-layout' | 'tokens' | 'none'
+
+export function platformPageChrome(tier: string): PlatformPageChrome {
+  return tier === 'guarded' ? 'minimal-layout' : tier === 'private' ? 'tokens' : 'none'
+}
+
+/** The platform pages drawn inside the template's minimal layout, in registry order. */
+export const MINIMAL_LAYOUT_PAGE_IDS: readonly string[] = PAGES.filter(
+  (p) => p.upstream !== 'engine' && platformPageChrome(p.tier) === 'minimal-layout',
+).map((p) => p.id)
+
+/** The platform pages that take the template's design tokens and no layout, in registry order. */
+export const TOKENS_ONLY_PAGE_IDS: readonly string[] = PAGES.filter(
+  (p) => p.upstream !== 'engine' && platformPageChrome(p.tier) === 'tokens',
+).map((p) => p.id)
+
+/** One sentence saying which platform pages show the layout and which only the tokens, with their ids marked up by `code`. */
+export function platformPagesSentence(code: (id: string) => string = (id) => id): string {
+  return `The platform's guarded pages, checkout and sign-in among them (${MINIMAL_LAYOUT_PAGE_IDS.map(code).join(', ')}), are drawn inside your layout in its \`minimal\` variant; its private pages, the account area (${TOKENS_ONLY_PAGE_IDS.map(code).join(', ')}), use your design tokens but not your layout.`
+}
+
 export const ISLAND_NAME = /^[a-z][a-z0-9-]*$/
 
 const HYDRATE_DECLARED = /\bexport\s+(?:const|let|var)\s+hydrate\b/

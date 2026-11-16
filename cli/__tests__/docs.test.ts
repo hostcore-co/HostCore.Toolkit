@@ -9,6 +9,7 @@ import * as sdk from '../../src/index'
 import { COMMANDS } from '../commands'
 import { generateDocs, missingDescriptions, SDK, SDK_FORMAT1 } from '../docs'
 import { FIELD_MOVES } from '../legacy-map'
+import { MINIMAL_LAYOUT_PAGE_IDS, platformPagesSentence, TOKENS_ONLY_PAGE_IDS } from '../sources'
 import { hct } from './host'
 
 const REPO = join(import.meta.dir, '..', '..')
@@ -71,5 +72,17 @@ describe('hct docs', () => {
     const documented = new Set([...SDK.map((e) => e.name), ...SDK_FORMAT1])
     expect(Object.keys(sdk).filter((name) => !documented.has(name)).sort()).toEqual([])
     for (const name of SDK_FORMAT1) expect(Object.keys(sdk)).toContain(name)
+  })
+})
+
+describe('where the layout appears', () => {
+  it('is stated from the registry tiers, and the README names the same pages', async () => {
+    const readme = (await readFile(join(REPO, 'README.md'), 'utf8')).replace(/\s+/g, ' ')
+    expect(readme).toContain(`the \`guarded\` ones (${MINIMAL_LAYOUT_PAGE_IDS.join(', ')}) are drawn inside your layout`)
+    expect(readme).toContain(`the \`private\` one, the account area (${TOKENS_ONLY_PAGE_IDS.join(', ')}), takes your design tokens but not your layout`)
+    const pages = generateDocs()['pages.md']!
+    expect(pages).toContain(platformPagesSentence((id) => `\`${id}\``))
+    expect(pages).toContain('| `dashboard` | `/dashboard` and below | private | your design tokens, no layout |')
+    expect(pages).toContain('| `checkout` | `/checkout` and below | guarded | your layout, `variant="minimal"`, and your design tokens |')
   })
 })

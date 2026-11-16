@@ -27,8 +27,10 @@ export interface PageProps<P extends PageId = PageId> {
 
 /**
  * Which chrome a layout renders. `default` wraps the storefront's own pages;
- * `minimal` wraps the platform's account and checkout pages, where a layout
- * should stay out of the way (no large hero, no marketing).
+ * `minimal` wraps the platform's guarded pages, such as checkout, sign-in and
+ * sign-up, where a layout should stay out of the way (no large hero, no
+ * marketing). The account area is never drawn inside a layout: it takes the
+ * template's design tokens only.
  */
 export type LayoutVariant = 'default' | 'minimal'
 

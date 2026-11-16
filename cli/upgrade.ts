@@ -5,7 +5,7 @@ import type * as TS from 'typescript'
 import { STANDARD_SETTINGS } from '../contract/src/settings'
 import { CommandError, type Flags } from './commands'
 import { HAND_BUILT_URLS } from './legacy-map'
-import { discoverSources, SOURCE_EXTENSIONS } from './sources'
+import { discoverSources, MINIMAL_LAYOUT_PAGE_IDS, SOURCE_EXTENSIONS } from './sources'
 import { isFormat2, loadTemplate } from './template'
 import { FORMAT2_PACKAGE_RANGES, FORMAT2_REQUIRED, TOOLCHAIN } from './toolchain'
 
@@ -983,7 +983,7 @@ function convertApp(ts: TypeScript, a: FileAnalysis, appFile: string, leftovers:
     const kept = keptDeclarations([shape.layout.jsx, ...shape.others.map((o): [number, number] => [o.getStart(), o.getEnd()])])
     componentFile('src/layout.tsx', 'Layout', null, 0, kept, [reindent(`${indentAt(js)}return ${jsx}`, '')], ['Outlet'], true)
     done.push('src/layout.tsx: the markup App renders around the page, with <Outlet /> where the page goes')
-    leftovers.push({ kind: 'other', file: 'src/layout.tsx', line: 0, text: 'the layout also wraps the platform\'s checkout, login and account pages; take the variant prop ({ variant }: LayoutProps) and render less for "minimal"' })
+    leftovers.push({ kind: 'other', file: 'src/layout.tsx', line: 0, text: `the layout also wraps the platform's guarded pages (${MINIMAL_LAYOUT_PAGE_IDS.join(', ')}); take the variant prop ({ variant }: LayoutProps) and render less for "minimal"` })
   }
 
   if (shared.length > 0) {

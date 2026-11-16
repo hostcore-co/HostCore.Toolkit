@@ -8,6 +8,7 @@ import { normaliseRegistry, readRegistry } from '../contract/src/registry'
 import { SETTING_SCALAR_TYPES, SETTING_TYPES, STANDARD_SETTINGS, type SettingSchemaEntry, type SettingType } from '../contract/src/settings'
 import { PLATFORM_THEME, TOKEN_PATTERNS, TOKENS, type ThemeKey } from '../contract/src/tokens'
 import { COMMANDS, CommandError, stringFlag, type Flags } from './commands'
+import { platformPageChrome, platformPagesSentence, type PlatformPageChrome } from './sources'
 import { FIELD_MOVES, HAND_BUILT_URLS, HOOK_MOVES, NEW_IN_2026_11 } from './legacy-map'
 
 /**
@@ -46,7 +47,7 @@ export const SDK: readonly SdkEntry[] = [
   { name: 'formatInterval', kind: 'function', signature: "formatInterval('month', 'short'): 'mo'", text: 'Words a billing interval: long (month), short (mo) or adverb (monthly).' },
   { name: 'formatPricePerInterval', kind: 'function', signature: 'formatPricePerInterval(price, locale?): \'$9.50/mo\'', text: 'A price with its interval.' },
   { name: 'PageProps', kind: 'type', signature: "PageProps<'home'>", text: 'What a page file\'s default export receives: { page, data }.' },
-  { name: 'LayoutProps', kind: 'type', signature: 'LayoutProps', text: "What src/layout.tsx's default export receives: { children, variant }, variant being default or minimal." },
+  { name: 'LayoutProps', kind: 'type', signature: 'LayoutProps', text: "What src/layout.tsx's default export receives: { children, variant }. variant is default on the storefront pages and minimal on the platform's guarded pages, such as checkout and sign-in." },
   { name: 'Contract', kind: 'type', signature: 'Contract.Plan, Contract.Group, …', text: 'Every type of contract 2026-11, as a namespace.' },
   { name: 'Env', kind: 'type', signature: 'Env', text: 'What useEnv() returns.' },
   { name: 'StandardSettingValues', kind: 'type', signature: 'StandardSettingValues', text: 'The value type of each standard setting, by id.' },
@@ -137,6 +138,12 @@ function fixtureNames(contractDir: string): Record<string, string[]> {
   return byPage
 }
 
+const PLATFORM_CHROME_DOCS: Record<PlatformPageChrome, string> = {
+  'minimal-layout': 'your layout, `variant="minimal"`, and your design tokens',
+  tokens: 'your design tokens, no layout',
+  none: 'nothing',
+}
+
 function pagesPage(contractDir: string): string {
   const registry = normaliseRegistry(readRegistry(contractDir))
   const fixtures = fixtureNames(contractDir)
@@ -145,7 +152,7 @@ function pagesPage(contractDir: string): string {
   const out = [
     '# Pages',
     '',
-    'Every page a store\'s domain serves. A template implements the storefront pages, one file each in `src/pages/<page id>.tsx`; a page it leaves out is rendered by the platform\'s default template. The platform pages are the platform\'s own, drawn inside your layout with `variant="minimal"`.',
+    'Every page a store\'s domain serves. A template implements the storefront pages, one file each in `src/pages/<page id>.tsx`; a page it leaves out is rendered by the platform\'s default template. ' + platformPagesSentence(code),
     '',
     '## Storefront pages',
     '',
@@ -175,8 +182,8 @@ function pagesPage(contractDir: string): string {
     '## Platform pages',
     '',
     table(
-      ['page id', 'path', 'who sees it'],
-      platform.map((p) => [code(p.id), `${code(p.path ?? '')} and below`, p.tier]),
+      ['page id', 'path', 'who sees it', 'what it shows of your template'],
+      platform.map((p) => [code(p.id), `${code(p.path ?? '')} and below`, p.tier, PLATFORM_CHROME_DOCS[platformPageChrome(p.tier)]]),
     ),
     '',
     `## Reserved slugs`,

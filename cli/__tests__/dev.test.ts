@@ -103,6 +103,8 @@ describe('hct dev', () => {
     }
     for (const id of ['home', 'domains', 'catalog.group', 'catalog.service', 'not-found']) expect(index.text).toContain(`<code>${id}</code>`)
     expect(index.text).toContain('href="/page/checkout/home?variant=minimal"')
+    expect(index.text).toContain('href="/page/dashboard/home"')
+    expect(index.text).toContain('the account area (<a href="/page/dashboard/home"><code>dashboard</code></a>), use your design tokens but not your layout')
     expect(index.text).toContain('href="/page/_/payload"')
   })
 
@@ -154,6 +156,19 @@ describe('hct dev', () => {
     expect(root(page.text)).toContain("The platform's login page appears here")
     expect(global(page.text)).toMatchObject({ mode: 'composed', page: 'login', variant: 'minimal' })
     expect(global(page.text).payload.data).toBeUndefined()
+  })
+
+  it('shows the account area with the design tokens and without the layout', async () => {
+    const page = await get('/page/dashboard/home')
+    expect(page.status).toBe(200)
+    const html = root(page.text)
+    expect(html).toContain("The platform's dashboard page appears here")
+    expect(html).not.toContain('<header')
+    expect(html).not.toContain('<hc-outlet')
+    expect(page.text).toContain('--hc-accent:#5b8cff')
+    expect(page.text).not.toContain('rel="stylesheet"')
+    expect(page.text).not.toContain('window.__HC__')
+    expect((await get('/dashboard')).headers.get('location')).toBe('/page/dashboard/home')
   })
 
   it('previews a payload file', async () => {

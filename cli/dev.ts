@@ -11,7 +11,7 @@ import { CommandError, stringFlag, type Flags } from './commands'
 import type { ManifestV2 } from './manifest'
 import { RUNTIME_CLIENT_FILES, buildRuntime, writeRuntime } from './runtime'
 import { loadBundle, type LoadedBundle } from './sandbox'
-import { TEMPLATE_PAGE_IDS } from './sources'
+import { MINIMAL_LAYOUT_PAGE_IDS, platformPageChrome, platformPagesSentence, TEMPLATE_PAGE_IDS } from './sources'
 import { isFormat2, loadTemplate } from './template'
 
 /**
@@ -228,9 +228,8 @@ export async function startDevServer(root: string, options: DevServerOptions = {
         .map((n) => `<a href="/page/${encodeURIComponent(id)}/${encodeURIComponent(n)}">${escapeHtml(n)}</a> <small>(<a href="/page/${encodeURIComponent(id)}/${encodeURIComponent(n)}?variant=minimal">minimal</a>)</small>`)
         .join('<br>')}</td></tr>`
     }).join('')
-    const platform = PAGES.filter((p) => p.upstream !== 'engine')
-      .map((p) => `<a href="/page/${encodeURIComponent(p.id)}/home?variant=minimal"><code>${escapeHtml(p.id)}</code></a>`)
-      .join(' ')
+    const platformLink = (id: string) =>
+      `<a href="/page/${encodeURIComponent(id)}/home${MINIMAL_LAYOUT_PAGE_IDS.includes(id) ? '?variant=minimal' : ''}"><code>${escapeHtml(id)}</code></a>`
     const own = options.payloadFile
       ? `<h2>Your payload</h2><p><a href="/page/_/${PAYLOAD_FIXTURE}">${escapeHtml(options.payloadFile)}</a> (<a href="/page/_/${PAYLOAD_FIXTURE}?variant=minimal">minimal</a>)</p>`
       : ''
@@ -242,7 +241,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     return page(
       'hct dev',
       '',
-      `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Platform pages</h2><p>Checkout, login and the account area are the platform's own, drawn inside your layout's minimal variant: ${platform}</p></main>`,
+      `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Platform pages</h2><p>${platformPagesSentence(platformLink)}</p></main>`,
     )
   }
 
@@ -251,6 +250,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     const implemented = b.bundle.pages.includes(pageId)
     const hasLayout = b.bundle.layouts.length > 0
     const platformPage = !TEMPLATE_PAGE_IDS.includes(pageId)
+    const chrome = platformPage ? platformPageChrome(PAGES.find((p) => p.id === pageId)!.tier) : null
     const env = {
       build_id: b.manifest.build_id,
       asset_base: BUILD_BASE,
@@ -269,7 +269,13 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     let mount: string | null = null
     let shown: string
     try {
-      if (implemented && hasLayout) {
+      if (chrome !== null && chrome !== 'minimal-layout') {
+        rootHtml =
+          chrome === 'tokens'
+            ? standIn(`The platform's ${pageId} page appears here`, 'It is the platform\'s own page, in your design tokens and without your layout.')
+            : standIn(`The platform's ${pageId} page appears here`, 'It is the platform\'s own page and shows nothing of your template.')
+        shown = chrome === 'tokens' ? 'the platform page, your design tokens' : 'the platform page'
+      } else if (implemented && hasLayout) {
         rootHtml = render('document')
         shown = 'your layout and page'
       } else if (hasLayout) {
@@ -289,7 +295,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
         headers: { 'content-type': 'text/html; charset=utf-8' },
       })
     }
-    const hydrates = implemented || hasLayout
+    const hydrates = (implemented || hasLayout) && (chrome === null || chrome === 'minimal-layout')
     if (hydrates) {
       const g = { v: 2, payload, env, mode: env.mode, page: pageId, variant, ...(mount ? { defer: true } : {}) }
       const entry = `${BUILD_BASE}${b.manifest.entry.client_js.replace(/^client\//, '')}`
@@ -300,14 +306,15 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     const importMap = {
       imports: Object.fromEntries(Object.entries(RUNTIME_CLIENT_FILES).map(([spec, file]) => [spec, `${RUNTIME_BASE}${file}`])),
     }
-    const css = b.manifest.entry.css ? `<link rel="stylesheet" href="${BUILD_BASE}${b.manifest.entry.css.replace(/^client\//, '')}">` : ''
-    const head = `<style>${tokensCss(tokens, payload)} hc-outlet,hc-island{display:contents}</style>${css}<script type="importmap">${scriptJson(importMap)}</script>`
+    const usesLayout = chrome === null || chrome === 'minimal-layout'
+    const css = usesLayout && b.manifest.entry.css ? `<link rel="stylesheet" href="${BUILD_BASE}${b.manifest.entry.css.replace(/^client\//, '')}">` : ''
+    const head = `<style>${chrome === 'none' ? '' : tokensCss(tokens, payload)} hc-outlet,hc-island{display:contents}</style>${css}<script type="importmap">${scriptJson(importMap)}</script>`
     const here = fixtureName === PAYLOAD_FIXTURE ? `/page/_/${PAYLOAD_FIXTURE}` : `/page/${encodeURIComponent(pageId)}/${encodeURIComponent(fixtureName)}`
     const variants = (['default', 'minimal'] as const).map((v) => link(v === 'minimal' ? `${here}?variant=minimal` : here, v, v === variant))
     const bar = toolbar([
       link('/', '← all pages'),
       `<span><code>${escapeHtml(pageId)}</code> · ${escapeHtml(fixtureName)} · ${escapeHtml(shown)}</span>`,
-      `<span>layout: ${variants.join(' ')}</span>`,
+      ...(usesLayout ? [`<span>layout: ${variants.join(' ')}</span>`] : []),
       ...(problems.length > 0 ? [`<span title="${escapeHtml(problems.join('\n'))}" style="color:#fca5a5">${problems.length} contract problem(s) in the payload</span>`] : []),
     ])
     const title = typeof payload.meta?.title === 'string' && payload.meta.title !== '' ? payload.meta.title : pageId
@@ -388,7 +395,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
         const exact = candidates.find((f) => JSON.stringify(f.value.page.params ?? {}) === JSON.stringify(routed.params))
         const fixture = exact ?? candidates[0] ?? fixtures.find((f) => f.name === 'home')
         if (fixture) {
-          const target = `/page/${encodeURIComponent(routed.id)}/${encodeURIComponent(fixture.name)}${TEMPLATE_PAGE_IDS.includes(routed.id) ? '' : '?variant=minimal'}`
+          const target = `/page/${encodeURIComponent(routed.id)}/${encodeURIComponent(fixture.name)}${MINIMAL_LAYOUT_PAGE_IDS.includes(routed.id) ? '?variant=minimal' : ''}`
           return new Response(null, { status: 302, headers: { location: target } })
         }
       }
