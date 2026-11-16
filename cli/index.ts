@@ -7,6 +7,7 @@ import { buildFormat2 } from './build-v2'
 import { checkCommand } from './check'
 import { BOOLEAN_FLAGS, commandHelp, CommandError, findCommand, overviewHelp, type Flags } from './commands'
 import { contractCommand } from './contract'
+import { devCommand } from './dev'
 import { initCommand } from './init'
 import { buildRuntime, RuntimeError, writeRuntime } from './runtime'
 import { isFormat2, loadTemplate, TemplateError } from './template'
@@ -49,6 +50,8 @@ async function main(argv: string[]): Promise<number> {
       return buildCommand(root, flags)
     case 'check':
       return checkCommand(root, flags)
+    case 'dev':
+      return devCommand(root, flags)
     case 'init':
       return initCommand(root, flags)
     case 'keygen':
