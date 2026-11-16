@@ -6,9 +6,11 @@ import {
   BANNED_PATTERNS,
   PLATFORM_ALLOWED_DEV_PACKAGES,
   PLATFORM_ALLOWED_PACKAGES,
+  PLATFORM_URL_RULES,
   SOURCE_GLOB,
 } from './policy'
-import type { LoadedTemplate } from './template'
+import { discoverSources } from './sources'
+import { isFormat2, type LoadedTemplate } from './template'
 
 export interface Finding {
   file: string
@@ -47,6 +49,12 @@ export async function validateTemplate(
     ...checkDependencies(template),
     ...checkAllowedPackages(template),
   ]
+  const format2 = isFormat2(template)
+  if (format2) {
+    const { problems } = await discoverSources(template.root)
+    findings.push(...problems.map((p) => ({ ...p, line: 0 })))
+  }
+  const declaredSettings = new Set((template.manifest.settings ?? []).map((s) => s.id))
 
   const transpiler = new Bun.Transpiler({ loader: 'tsx' })
   const glob = new Glob(SOURCE_GLOB)
@@ -63,6 +71,10 @@ export async function validateTemplate(
     const source = await readFile(`${template.root}/${relPath}`, 'utf8')
     findings.push(...scanImports(transpiler, source, relPath))
     findings.push(...scanSource(source, relPath))
+    if (format2) {
+      findings.push(...scanPlatformUrls(source, relPath))
+      findings.push(...scanSettingIds(source, relPath, declaredSettings))
+    }
   }
 
   return { findings, filesScanned }
@@ -183,6 +195,54 @@ function scanSource(source: string, file: string): Finding[] {
     }
   })
 
+  return findings
+}
+
+const PLATFORM_URL = new RegExp(
+  `(['"\`])/(${PLATFORM_URL_RULES.map((r) => r.segment).join('|')})(?=[/?#'"\`$]|$)`,
+  'g',
+)
+
+/**
+ * A format-2 template never writes a platform URL: every one is in the page
+ * payload. A string that starts with one is almost always a hand-built link
+ * that breaks the day the platform moves it.
+ */
+function scanPlatformUrls(source: string, file: string): Finding[] {
+  const findings: Finding[] = []
+  source.split('\n').forEach((text, index) => {
+    if (isCommentOnly(text)) return
+    for (const match of text.matchAll(PLATFORM_URL)) {
+      const rule = PLATFORM_URL_RULES.find((r) => r.segment === match[2])!
+      findings.push({
+        file,
+        line: index + 1,
+        rule: 'hand-built-platform-url',
+        message: `"/${rule.segment}…" is a platform URL; take it from the page data instead: ${rule.use}`,
+      })
+    }
+  })
+  return findings
+}
+
+const USE_SETTING = /\buseSetting\s*(?:<[^>()]*>)?\s*\(\s*(['"`])([^'"`]+)\1/g
+
+/** useSetting() with an id template.json does not declare would only ever return undefined. */
+function scanSettingIds(source: string, file: string, declared: Set<string>): Finding[] {
+  const findings: Finding[] = []
+  source.split('\n').forEach((text, index) => {
+    if (isCommentOnly(text)) return
+    for (const match of text.matchAll(USE_SETTING)) {
+      const id = match[2]!
+      if (declared.has(id)) continue
+      findings.push({
+        file,
+        line: index + 1,
+        rule: 'undeclared-setting',
+        message: `useSetting("${id}"): "${id}" is not declared in template.json settings, so no store can set it`,
+      })
+    }
+  })
   return findings
 }
 

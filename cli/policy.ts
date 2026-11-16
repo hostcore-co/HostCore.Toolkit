@@ -133,3 +133,47 @@ export const BANNED_PATTERNS: readonly BannedPattern[] = [
 
 /** Files the validator reads. */
 export const SOURCE_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs}'
+
+/**
+ * Packages that only do anything in a browser. In a format-2 server build
+ * each is replaced by an inert stand-in that is safe to call during a server
+ * render (see stubs.ts), so none of their code is in the server bundle. The
+ * browser build gets the real package.
+ */
+export const CLIENT_ONLY_PACKAGES: readonly string[] = ['embla-carousel-react', 'gsap']
+
+/**
+ * The modules a format-2 server bundle receives from the shared runtime
+ * instead of carrying its own copy. A server bundle may require these and
+ * nothing else.
+ */
+export const RUNTIME_SERVER_MODULES: readonly string[] = ['react', 'react/jsx-runtime', 'react-dom/server']
+
+/**
+ * The modules a format-2 browser bundle imports by bare name. The page maps
+ * each one to the shared runtime's copy with an import map.
+ */
+export const RUNTIME_CLIENT_MODULES: readonly string[] = ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client']
+
+export interface PlatformUrlRule {
+  /** The first path segment of the platform URL. */
+  readonly segment: string
+  /** Where the URL comes from instead. */
+  readonly use: string
+}
+
+/**
+ * Platform URLs a format-2 template must not write by hand. Each one is in
+ * the page payload, so a template that takes it from there keeps working if
+ * the platform ever moves it.
+ */
+export const PLATFORM_URL_RULES: readonly PlatformUrlRule[] = [
+  {
+    segment: 'checkout',
+    use: "a plan's checkout_url, or service.url for a card (it already points at checkout for a single-plan service)",
+  },
+  { segment: 'login', use: 'useNav().links.login' },
+  { segment: 'signup', use: 'useNav().links.signup' },
+  { segment: 'dashboard', use: 'useNav().links.account' },
+  { segment: 'api', use: 'useAction(name), whose url is the endpoint to call' },
+]

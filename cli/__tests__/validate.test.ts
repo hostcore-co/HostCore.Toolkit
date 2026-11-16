@@ -1,9 +1,9 @@
 import { afterAll, describe, expect, it } from 'bun:test'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { loadTemplate, TemplateError } from '../template'
-import { validateTemplate } from '../validate'
+import { validateTemplate, type Finding } from '../validate'
 
 const root = join(tmpdir(), `hct-validate-${process.pid}`)
 
@@ -43,6 +43,7 @@ async function fixture(spec: Fixture): Promise<string> {
   )
 
   for (const [path, source] of Object.entries(spec.sources ?? {})) {
+    await mkdir(dirname(join(dir, path)), { recursive: true })
     await writeFile(join(dir, path), source)
   }
 
@@ -210,5 +211,165 @@ export function App() { return <p>ok</p> }
         },
       }),
     ).toEqual([])
+  })
+})
+
+const FORMAT2 = {
+  id: 'sample',
+  version: '1.0.0',
+  name: 'Sample',
+  format: 2,
+  contract: '2026-11',
+  toolchain: 2,
+}
+
+async function findings2(sources: Record<string, string>, templateJson: Record<string, unknown> = FORMAT2): Promise<Finding[]> {
+  const template = await loadTemplate(await fixture({ templateJson, sources }))
+  return (await validateTemplate(template)).findings
+}
+
+describe('format 2: template.json', () => {
+  it('accepts a template that is only template.json', async () => {
+    const dir = join(root, `only-${counter++}`)
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, 'template.json'), JSON.stringify(FORMAT2))
+    const template = await loadTemplate(dir)
+    expect(template.manifest.allowedPackages).toEqual([])
+    expect(template.manifest.settings).toEqual([])
+    expect(template.manifest.tokens).toEqual({})
+    expect(template.pkg).toEqual({})
+    expect((await validateTemplate(template)).findings).toEqual([])
+  })
+
+  it('reports every metadata problem with its field and reason', async () => {
+    const dir = await fixture({
+      templateJson: {
+        ...FORMAT2,
+        contract: '2030-01',
+        toolchain: 2.5,
+        tokens: { 'color.accent': 'blue', 'shadow.lg': '1px' },
+        settings: [{ id: 'hero.title', type: 'text', max: 3, default: 'too long' }, { id: 'n', type: 'number', step: 0 }],
+      },
+    })
+    const error = await loadTemplate(dir).then(
+      () => null,
+      (e: Error) => e,
+    )
+    expect(error).toBeInstanceOf(TemplateError)
+    expect(error!.message.split('\n')).toEqual([
+      'template.json: contract must be one of 2026-11, got "2030-01"',
+      'template.json: toolchain must be an integer toolchain line, got 2.5',
+      'template.json: tokens.color.accent must match ^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$',
+      'template.json: tokens.shadow.lg is not a design token',
+      'template.json: settings[0].default must be at most 3 characters',
+      'template.json: settings[1].step must be greater than zero',
+    ])
+  })
+
+  it('refuses contract "1", an unknown format and a toolchain this toolkit does not build', async () => {
+    const message = async (json: Record<string, unknown>) =>
+      loadTemplate(await fixture({ templateJson: json })).then(
+        () => '',
+        (e: Error) => e.message,
+      )
+    expect(await message({ ...FORMAT2, contract: '1' })).toContain('contract "1" is for format-1 templates')
+    expect(await message({ ...FORMAT2, format: 3 })).toBe('template.json: format must be 1 or 2, got 3')
+    expect(await message({ ...FORMAT2, toolchain: 1 })).toContain('toolchain 1 cannot be built by this toolkit')
+  })
+})
+
+describe('format 2: sources', () => {
+  it('passes a layout, pages and islands named by the rules', async () => {
+    expect(
+      await findings2({
+        'src/layout.tsx': 'export default function Layout({ children }: any) { return <div>{children}</div> }',
+        'src/pages/home.tsx': `import { useNav, Link } from '@hostcore/toolkit'
+export const hydrate = 'islands'
+export default function Home() { const nav = useNav(); return <Link href={nav.links.login}>Log in</Link> }`,
+        'src/pages/catalog.service.tsx': 'export default function Service() { return null }',
+        'src/pages/parts/helper.tsx': 'export const x = 1',
+        'src/islands/plan-picker.tsx': 'export default function PlanPicker() { return null }',
+      }),
+    ).toEqual([])
+  })
+
+  it('flags page files that are not page ids, and sources without a default export', async () => {
+    const found = await findings2({
+      'src/pages/about.tsx': 'export default function About() { return null }',
+      'src/pages/home.tsx': 'export function Home() { return null }',
+      'src/islands/Plan_Picker.tsx': 'export default function P() { return null }',
+      'src/layout.tsx': 'export const Layout = () => null',
+    })
+    expect(found.map((f) => [f.file, f.rule])).toEqual([
+      ['src/layout.tsx', 'missing-default-export'],
+      ['src/pages/about.tsx', 'unknown-page'],
+      ['src/pages/home.tsx', 'missing-default-export'],
+      ['src/islands/Plan_Picker.tsx', 'invalid-island-name'],
+    ])
+    expect(found[1]!.message).toContain('home.tsx, domains.tsx, catalog.group.tsx, catalog.service.tsx, not-found.tsx')
+  })
+
+  it('requires hydrate to be a literal', async () => {
+    const found = await findings2({
+      'src/pages/home.tsx': "const mode = 'islands'\nexport const hydrate = mode\nexport default function Home() { return null }",
+    })
+    expect(found.map((f) => f.rule)).toEqual(['invalid-hydrate'])
+  })
+
+  it('flags hand-built platform URLs and says where to take each from', async () => {
+    const found = await findings2({
+      'src/pages/home.tsx': `export default function Home({ data }: any) {
+  return (
+    <>
+      <a href="/login">Log in</a>
+      <a href='/signup?next=/'>Sign up</a>
+      <a href={\`/checkout/\${data.plan.slug}\`}>Buy</a>
+      <a href="/dashboard">Account</a>
+      <form action="/api/v1/public/domains/search" />
+      <a href="/loginx">Not a platform page</a>
+      <a href="/games">A group</a>
+    </>
+  )
+}`,
+    })
+    expect(found.map((f) => [f.line, f.rule])).toEqual([
+      [4, 'hand-built-platform-url'],
+      [5, 'hand-built-platform-url'],
+      [6, 'hand-built-platform-url'],
+      [7, 'hand-built-platform-url'],
+      [8, 'hand-built-platform-url'],
+    ])
+    expect(found[0]!.message).toContain('useNav().links.login')
+    expect(found[2]!.message).toContain('checkout_url')
+    expect(found[3]!.message).toContain('useNav().links.account')
+    expect(found[4]!.message).toContain('useAction(name)')
+  })
+
+  it('does not apply the URL rule to format-1 templates', async () => {
+    expect(
+      await rules({ sources: { 'src/App.tsx': 'export function App() { return <a href="/login">x</a> }' } }),
+    ).toEqual([])
+  })
+
+  it('flags useSetting() with an id template.json does not declare', async () => {
+    const found = await findings2(
+      {
+        'src/pages/home.tsx': `import { useSetting } from '@hostcore/toolkit'
+export default function Home() {
+  const a = useSetting('hero.title')
+  const b = useSetting<string>("hero.tagline")
+  return <p>{a}{b}</p>
+}`,
+      },
+      { ...FORMAT2, settings: [{ id: 'hero.title', type: 'text' }] },
+    )
+    expect(found.map((f) => [f.line, f.rule])).toEqual([[4, 'undeclared-setting']])
+  })
+
+  it('applies the format-1 policy too', async () => {
+    const found = await findings2({
+      'src/pages/home.tsx': "import fs from 'node:fs'\nexport default function Home() { return <p>{String(eval('1'))}</p> }",
+    })
+    expect(found.map((f) => f.rule).sort()).toEqual(['banned-import', 'eval'])
   })
 })
