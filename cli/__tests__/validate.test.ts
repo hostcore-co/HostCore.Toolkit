@@ -403,7 +403,7 @@ export default function Home() { const nav = useNav(); return <Link href={nav.li
   it('flags every fixed path of the page registry, and not the home page', async () => {
     const fixed = PAGES.filter((p) => p.path !== null && !p.path.includes('{') && p.path !== '/').map((p) => p.path!)
     expect(fixed).toContain('/domains')
-    expect(PLATFORM_URL_RULES.map((r) => r.path)).toEqual([...fixed, '/api'])
+    expect(PLATFORM_URL_RULES.map((r) => r.path)).toEqual([...fixed, '/checkout/domains', '/api'])
     const found = await findings2({
       'src/pages/home.tsx': `export default function Home() {
   return (
@@ -417,6 +417,15 @@ ${fixed.map((path) => `      <a href="${path}">x</a>`).join('\n')}
     expect(found.map((f) => f.line)).toEqual(fixed.map((_, i) => i + 4))
     expect(found[0]!.message).toBe('"/domains…" is a platform URL; take it from the page data instead: useNav().links.domains, which is empty when the store sells no domains')
     expect(found.find((f) => f.message.startsWith('"/forgotpassword'))!.message).toContain('the page data has no link to this platform page')
+  })
+
+  it('points a hand-built domain checkout link at actionHref', async () => {
+    const found = await findings2({
+      'src/islands/buy.tsx': 'export default function Buy({ d }: { d: string }) {\n  return <a href={`/checkout/domains?domain=${d}&action=register&years=1`}>Buy</a>\n}',
+    })
+    expect(found.map((f) => [f.line, f.message])).toEqual([
+      [2, `"/checkout/domains…" is a platform URL; take it from the page data instead: actionHref(useAction('domain_checkout'), { domain, action, years })`],
+    ])
   })
 
   it('agrees with the upgrade guide', () => {

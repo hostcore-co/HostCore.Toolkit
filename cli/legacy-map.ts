@@ -99,6 +99,7 @@ export const NEW_IN_2026_11: readonly { field: string; use: string }[] = [
   { field: 'plan.checkout_url', use: 'link to order a plan; never build "/checkout/…" yourself' },
   { field: 'nav.links.home, login, signup, account, domains', use: 'every platform link a layout needs; "" when the store does not offer it' },
   { field: 'actions.domain_search', use: 'the endpoint a domain search posts to (useAction("domain_search"))' },
+  { field: 'actions.domain_checkout', use: 'link to buy a searched domain: actionHref(useAction("domain_checkout"), { domain, action, years }); never build "/checkout/domains?…" yourself' },
   { field: 'store.locale, store.currency', use: 'format numbers and prices (useMoney())' },
   { field: 'page.params', use: 'the path parameters the page was matched with' },
   { field: 'redirect', use: 'set when the platform answers with a redirect; a page never renders it' },

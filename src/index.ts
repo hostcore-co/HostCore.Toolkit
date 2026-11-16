@@ -65,6 +65,8 @@ export type { StandardSettingValues } from './v2/hooks'
 export { Outlet } from './v2/outlet'
 export { island } from './v2/island'
 export { asset } from './v2/env'
+export { actionHref } from './v2/action'
+export type { ActionFor, ActionParams, ActionQuery, ActionWithParams, DomainCheckoutParams } from './v2/action'
 export {
   formatMoney,
   formatPrice,

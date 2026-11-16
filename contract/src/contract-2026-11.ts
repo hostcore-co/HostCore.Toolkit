@@ -297,6 +297,10 @@ d.define(
   'is the endpoints a page may call. An action the store does not offer is absent.',
   t.object({
     domain_search: doc('Searches domain availability. Absent when the store sells no domains.', optional(t.ref('Action'))),
+    domain_checkout: doc(
+      'Where a visitor buys a domain they searched for: a GET of its url with the query parameters domain (the domain name), action (register or transfer) and years (a whole number of years, one of the terms the search result offers). Build the link with actionHref rather than by hand. Present exactly when domain_search is, so absent when the store sells no domains.',
+      optional(t.ref('Action')),
+    ),
   }),
 )
 

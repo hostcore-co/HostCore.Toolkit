@@ -197,7 +197,8 @@ Everything is imported from `@hostcore/toolkit`:
 | `useStore()` | the store: name, logo, locale, currency, business details, theme |
 | `useNav()` | the store's groups, and `links`: home, login, signup, account, domains, terms, privacy (empty when not offered) |
 | `useSetting(id)` | the store's value for a setting, or the default you declared |
-| `useAction(name)` | an endpoint the page may call from the browser, such as `domain_search`, or `undefined` |
+| `useAction(name)` | an action the page may use from the browser, or `undefined`: an endpoint to call (`domain_search`) or a page to send a visitor to (`domain_checkout`) |
+| `actionHref(action, params)` | the href to an action with query parameters, such as checkout for a searched domain (below) |
 | `useEnv()` | the build id, asset base, locale, currency and render mode |
 | `<Link href>` | a link; take every `href` from the payload |
 | `<Outlet/>` | where the layout puts the page |
@@ -215,6 +216,21 @@ field to use instead. A link to the home page, `"/"`, is not flagged: the
 root of the store's site never moves, and `"/"` alone is more often a path
 separator than a link; `useNav().links.home` is still the way to link to
 it.
+
+A link to buy a searched domain is
+`actionHref(useAction('domain_checkout'), { domain, action, years })`
+rather than a `/checkout/domains?…` string:
+
+```tsx
+const checkout = useAction('domain_checkout')   // absent when the store sells no domains
+{checkout && <Link href={actionHref(checkout, { domain: 'acme.example', action: 'register', years: 1 })}>Register</Link>}
+```
+
+`actionHref` encodes each parameter, leaves out an `undefined` one and
+adds them after any query the action's URL already has; for
+`domain_checkout` the parameters are typed: `domain`, `action`
+(`'register'` or `'transfer'`) and `years`, a whole number of years
+offered by the search result.
 
 ### Typed data in shared components
 

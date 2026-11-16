@@ -120,6 +120,10 @@
     "domain_search": {
       "method": "POST",
       "url": "/api/v1/public/domains/search"
+    },
+    "domain_checkout": {
+      "method": "GET",
+      "url": "/checkout/domains"
     }
   },
   "data": {

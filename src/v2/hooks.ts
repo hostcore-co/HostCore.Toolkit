@@ -8,6 +8,7 @@ import type {
 import type { SettingLink, SettingValue } from '../../contract/src/settings'
 import { HCContext } from '../hooks'
 import type { StorePublicInfo } from '../types'
+import type { ActionFor } from './action'
 import { PageContext, type PageContextValue } from './context'
 import type { Env, Page } from './types'
 
@@ -104,11 +105,13 @@ export function useSetting(id: string): SettingValue | undefined {
 }
 
 /**
- * An endpoint the page may call from the browser, such as `domain_search`:
- * `{ method, url }`. `undefined` when the store does not offer it.
+ * An action the page may use from the browser, `{ method, url }`: an
+ * endpoint to call, such as `domain_search`, or a page to send a visitor to,
+ * such as `domain_checkout`, whose href actionHref() builds. `undefined`
+ * when the store does not offer it.
  */
-export function useAction<K extends keyof Actions>(name: K): Actions[K] {
-  return usePageContext('useAction').payload.actions[name]
+export function useAction<K extends keyof Actions>(name: K): ActionFor<K> {
+  return usePageContext('useAction').payload.actions[name] as ActionFor<K>
 }
 
 /** The build id, where its files are served from, the locale, currency and render mode. */

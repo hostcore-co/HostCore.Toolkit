@@ -397,6 +397,12 @@ type V202611Action struct {
 type V202611Actions struct {
 	// Searches domain availability. Absent when the store sells no domains.
 	DomainSearch *V202611Action `json:"domain_search,omitempty"`
+	// Where a visitor buys a domain they searched for: a GET of its url with the
+	// query parameters domain (the domain name), action (register or transfer) and
+	// years (a whole number of years, one of the terms the search result offers).
+	// Build the link with actionHref rather than by hand. Present exactly when
+	// domain_search is, so absent when the store sells no domains.
+	DomainCheckout *V202611Action `json:"domain_checkout,omitempty"`
 }
 
 // V202611PageEnvelope is every page response.
