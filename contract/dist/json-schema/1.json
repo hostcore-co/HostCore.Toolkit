@@ -247,13 +247,14 @@
       "additionalProperties": false
     },
     "ServiceType": {
-      "description": "ServiceType is what kind of product a service is. Templates use it to pick a layout: a game-server catalogue and a web-hosting price table are different pages.",
+      "description": "ServiceType is what kind of product a service is. Templates use it to pick a layout: a game-server catalogue and a web-hosting price table are different pages. It is the empty string for a service whose store has not set a type.",
       "enum": [
         "game-server",
         "web-hosting",
         "dedicated-server",
         "vps",
-        "other"
+        "other",
+        ""
       ]
     },
     "Service": {

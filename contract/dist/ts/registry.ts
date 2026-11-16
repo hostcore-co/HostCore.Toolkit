@@ -406,10 +406,13 @@ export interface SettingSchemaEntry {
   /** Help text shown beside the setting in the editor. */
   description?: string
   /**
-   * Characters for text types, applied to a link's label and its href
-   * separately; entries for lists; the largest value for numbers.
+   * Characters for text types; for a link, the characters of its label (and
+   * of its href too when `href_max` is absent); entries for lists; the
+   * largest value for numbers.
    */
   max?: number
+  /** Characters of a link's href. Without it, `max` limits the href as well. */
+  href_max?: number
   /** The smallest value, for numbers. */
   min?: number
   /** The increment a number moves in, counted from `min` (or zero). */
@@ -428,7 +431,8 @@ export interface SettingSchemaEntry {
 
 export const SETTING_ID_PATTERN = '^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)*$'
 export const SETTING_FIELD_ID_PATTERN = '^[a-z][a-z0-9_]*$'
-const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/
+/** A colour is `#rgb` or `#rrggbb`. */
+const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 
 export const STANDARD_SETTINGS: readonly SettingSchemaEntry[] = [
   { id: 'hero.title', type: 'text', label: 'Headline', max: 160, default: 'Game servers and web hosting, online in minutes' },
@@ -446,10 +450,25 @@ export const STANDARD_SETTINGS: readonly SettingSchemaEntry[] = [
     of: 'text',
     label: 'Highlights',
     max: 6,
+    item_max: 160,
     default: ['Online in minutes', 'DDoS protection included', 'Support around the clock'],
   },
-  { id: 'hero.primary_cta', type: 'link', label: 'Primary button', default: { label: 'Browse plans', href: '/' } },
-  { id: 'hero.secondary_cta', type: 'link', label: 'Secondary button', default: { label: 'Find a domain', href: '/domains' } },
+  {
+    id: 'hero.primary_cta',
+    type: 'link',
+    label: 'Primary button',
+    max: 160,
+    href_max: 600,
+    default: { label: 'Browse plans', href: '/' },
+  },
+  {
+    id: 'hero.secondary_cta',
+    type: 'link',
+    label: 'Secondary button',
+    max: 160,
+    href_max: 600,
+    default: { label: 'Find a domain', href: '/domains' },
+  },
   { id: 'categories.title', type: 'text', label: 'Categories heading', max: 160, default: 'What we host' },
   {
     id: 'categories.subtitle',
@@ -511,7 +530,7 @@ export const STANDARD_SETTINGS: readonly SettingSchemaEntry[] = [
     label: 'Questions',
     max: 24,
     fields: [
-      { id: 'question', type: 'text', label: 'Question', max: 600 },
+      { id: 'question', type: 'text', label: 'Question', max: 160 },
       { id: 'answer', type: 'textarea', label: 'Answer', max: 2000 },
     ],
     default: [
@@ -609,7 +628,7 @@ export function settingValueError(entry: SettingSchemaEntry, value: unknown): st
       if (Object.keys(value).length !== 2) return 'must have only label and href'
       const label = textError(entry.max, value.label)
       if (label) return `label ${label}`
-      const href = textError(entry.max, value.href)
+      const href = textError(entry.href_max ?? entry.max, value.href)
       return href ? `href ${href}` : null
     }
     case 'select':
@@ -703,6 +722,10 @@ export function validateSettingSchema(entries: unknown): string[] {
       errors.push(`${at}.description must be a string`)
     }
     errors.push(...boundsErrors(at, entry.type, entry))
+    if (entry.href_max !== undefined) {
+      if (entry.type !== 'link') errors.push(`${at}.href_max is only for link settings`)
+      else if (!isCount(entry.href_max)) errors.push(`${at}.href_max must be a whole number`)
+    }
     if (entry.item_max !== undefined) {
       if (entry.type !== 'list') errors.push(`${at}.item_max is only for list settings`)
       else if (!isCount(entry.item_max)) errors.push(`${at}.item_max must be a whole number`)
@@ -782,7 +805,7 @@ export interface TokenDefinition {
 
 /** Patterns written to work the same in JavaScript and Go. */
 export const TOKEN_PATTERNS: Record<TokenKind, string> = {
-  color: '^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$',
+  color: '^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$',
   font: '^[A-Za-z0-9 ,\'"-]{1,200}$',
   radius: '^[0-9]+(\\.[0-9]+)?(px|rem)$',
   space: '^[0-9]+(\\.[0-9]+)?(px|rem)$',

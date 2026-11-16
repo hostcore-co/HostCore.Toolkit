@@ -99,8 +99,9 @@ export interface Group {
 
 /**
  * ServiceType is what kind of product a service is. It is an open set: render
- * something sensible for a value you do not recognise. Contracts that predate
- * a value receive "other" in its place.
+ * something sensible for a value you do not recognise. It is the empty string
+ * for a service whose store has not set a type. Contracts that predate a value
+ * receive "other" in its place.
  */
 export type ServiceType = 'game-server' | 'web-hosting' | 'dedicated-server' | 'vps' | 'other' | (string & {})
 

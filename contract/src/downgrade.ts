@@ -21,7 +21,8 @@ const PAGE_TYPES = {
   'not-found': 'not-found',
 } as const satisfies Record<V202611.ContractPageId, V1.PageType>
 
-const SERVICE_TYPES: readonly string[] = ['game-server', 'web-hosting', 'dedicated-server', 'vps', 'other']
+/** The service types contract "1" knows. A service with no type set has the empty string in both contracts. */
+const SERVICE_TYPES: readonly string[] = ['game-server', 'web-hosting', 'dedicated-server', 'vps', 'other', '']
 const SERVICE_TYPE_FALLBACK: V1.ServiceType = 'other'
 
 export class DowngradeError extends Error {}
@@ -134,7 +135,9 @@ function orderFormComponent(c: V202611.OrderFormComponent): V1.OrderFormComponen
       label: r.label,
       default: r.default,
       default_value: r.default_value,
-      children: r.children.map(option),
+      // Contract "1" allows a region's children to be null; a region without
+      // any is downgraded with an empty list either way.
+      children: (r.children ?? []).map(option),
     }))
   }
   if (c.preset_id) out.preset_id = c.preset_id
@@ -155,7 +158,7 @@ function plan(p: V202611.Plan): V1.ServicePlan {
     trial_days: p.trial_days,
     payment_type: p.payment_type,
     provisioning: p.provisioning,
-    order_form: p.order_form.map(orderFormComponent),
+    order_form: (p.order_form ?? []).map(orderFormComponent),
   }
 }
 

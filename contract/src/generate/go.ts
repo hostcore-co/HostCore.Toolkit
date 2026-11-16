@@ -145,7 +145,8 @@ class GoWriter {
     const schema = def.schema
     if (schema.kind !== 'enum') throw new Error(`${def.name} is not an enum`)
     const type = this.name(def.name)
-    const rows: GoRow[] = schema.values.map((v) => ({ cells: [`${type}${goIdentifier(v)}`, type, `= ${goString(v)}`] }))
+    // The empty value is named Unset: a service whose store has not set a type, say.
+    const rows: GoRow[] = schema.values.map((v) => ({ cells: [`${type}${v === '' ? 'Unset' : goIdentifier(v)}`, type, `= ${goString(v)}`] }))
     const out = [`type ${type} string`, '', 'const (', ...alignRows(rows, '\t'), ')']
     if (schema.open) {
       out.push('')

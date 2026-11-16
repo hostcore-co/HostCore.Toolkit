@@ -259,7 +259,7 @@ describe('format 2: template.json', () => {
     expect(error!.message.split('\n')).toEqual([
       'template.json: contract must be one of 2026-11, got "2030-01"',
       'template.json: toolchain must be an integer toolchain line, got 2.5',
-      'template.json: tokens.color.accent must match ^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$',
+      'template.json: tokens.color.accent must match ^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$',
       'template.json: tokens.shadow.lg is not a design token',
       'template.json: settings[0].default must be at most 3 characters',
       'template.json: settings[1].step must be greater than zero',

@@ -98,11 +98,11 @@ export interface ServiceGroup {
 /**
  * ServiceType is what kind of product a service is. Templates use it to pick a
  * layout: a game-server catalogue and a web-hosting price table are different
- * pages.
+ * pages. It is the empty string for a service whose store has not set a type.
  */
-export type ServiceType = 'game-server' | 'web-hosting' | 'dedicated-server' | 'vps' | 'other'
+export type ServiceType = 'game-server' | 'web-hosting' | 'dedicated-server' | 'vps' | 'other' | ''
 
-export const ServiceTypeValues = ['game-server', 'web-hosting', 'dedicated-server', 'vps', 'other'] as const
+export const ServiceTypeValues = ['game-server', 'web-hosting', 'dedicated-server', 'vps', 'other', ''] as const
 
 /** Service is one product a store sells, with its plans listed separately. */
 export interface Service {

@@ -151,15 +151,16 @@ const (
 )
 
 // SettingField is one field of each entry of an object-list setting. It takes
-// the same optional keys as a top-level setting of its type.
+// the same optional keys as a top-level setting of its type; an absent limit is
+// nil.
 type SettingField struct {
 	ID          string   `json:"id"`
 	Type        string   `json:"type"`
 	Label       string   `json:"label,omitempty"`
 	Description string   `json:"description,omitempty"`
-	Max         float64  `json:"max,omitempty"`
+	Max         *float64 `json:"max,omitempty"`
 	Min         *float64 `json:"min,omitempty"`
-	Step        float64  `json:"step,omitempty"`
+	Step        *float64 `json:"step,omitempty"`
 }
 
 // SettingOption is one choice of a select setting.
@@ -169,20 +170,23 @@ type SettingOption struct {
 }
 
 // SettingSchema declares one template setting. Max counts characters for text
-// types (a link's label and href separately), entries for lists and the largest
-// value for numbers. Min and Step are for numbers; ItemMax counts the
-// characters of each text item of a list. Default holds the value in the form
+// types, entries for lists and the largest value for numbers; for a link it
+// counts the characters of the label, and of the href too unless HrefMax is
+// set. Min and Step are for numbers; ItemMax counts the characters of each text
+// item of a list. The numeric limits are pointers so that a declared 0 is told
+// apart from an absent key, which is nil. Default holds the value in the form
 // encoding/json decodes JSON into any.
 type SettingSchema struct {
 	ID          string          `json:"id"`
 	Type        string          `json:"type"`
 	Label       string          `json:"label,omitempty"`
 	Description string          `json:"description,omitempty"`
-	Max         float64         `json:"max,omitempty"`
+	Max         *float64        `json:"max,omitempty"`
+	HrefMax     *float64        `json:"href_max,omitempty"`
 	Min         *float64        `json:"min,omitempty"`
-	Step        float64         `json:"step,omitempty"`
+	Step        *float64        `json:"step,omitempty"`
 	Of          string          `json:"of,omitempty"`
-	ItemMax     float64         `json:"item_max,omitempty"`
+	ItemMax     *float64        `json:"item_max,omitempty"`
 	Fields      []SettingField  `json:"fields,omitempty"`
 	Options     []SettingOption `json:"options,omitempty"`
 	Default     any             `json:"default,omitempty"`
@@ -192,20 +196,23 @@ type SettingSchema struct {
 // default template declares exactly these, and contract "1" payloads rebuild
 // their content from them.
 var StandardSettings = []SettingSchema{
-	{ID: SettingHeroTitle, Type: "text", Label: "Headline", Max: 160, Default: "Game servers and web hosting, online in minutes"},
-	{ID: SettingHeroSubtitle, Type: "text", Label: "Subheading", Max: 600, Default: "Fast hardware, DDoS protection and automatic setup, with a control panel that puts you in charge of everything you run with us."},
-	{ID: SettingHeroHighlights, Type: "list", Label: "Highlights", Max: 6, Of: "text", Default: []any{"Online in minutes", "DDoS protection included", "Support around the clock"}},
-	{ID: SettingHeroPrimaryCTA, Type: "link", Label: "Primary button", Default: map[string]any{"label": "Browse plans", "href": "/"}},
-	{ID: SettingHeroSecondaryCTA, Type: "link", Label: "Secondary button", Default: map[string]any{"label": "Find a domain", "href": "/domains"}},
-	{ID: SettingCategoriesTitle, Type: "text", Label: "Categories heading", Max: 160, Default: "What we host"},
-	{ID: SettingCategoriesSubtitle, Type: "text", Label: "Categories subheading", Max: 600, Default: "Game servers, web hosting and everything you need to run them."},
-	{ID: SettingFeaturesTitle, Type: "text", Label: "Features heading", Max: 160, Default: "Why host with us"},
-	{ID: SettingFeaturesSubtitle, Type: "text", Label: "Features subheading", Max: 600, Default: "The things you would want from a host, standard on every plan."},
-	{ID: SettingFeaturesCards, Type: "object-list", Label: "Feature cards", Max: 12, Fields: []SettingField{{ID: "title", Type: "text", Label: "Title", Max: 160}, {ID: "description", Type: "text", Label: "Description", Max: 600}}, Default: []any{map[string]any{"title": "Online in minutes", "description": "Your service is set up automatically the moment your payment clears. No queue, no waiting on a technician."}, map[string]any{"title": "Hardware built for low latency", "description": "Current-generation CPUs and NVMe storage, on networks chosen for the routes your players and visitors actually take."}, map[string]any{"title": "DDoS protection as standard", "description": "Always-on filtering across the whole network, included at no extra cost rather than sold as an upgrade."}, map[string]any{"title": "Full control of your service", "description": "Start, stop, reinstall, back up and reconfigure whenever you like, straight from your control panel."}, map[string]any{"title": "One-click mods and apps", "description": "Modpacks, plugins and the web applications you already use install in a couple of clicks."}, map[string]any{"title": "Support that answers", "description": "Real people on tickets at any hour, whether it is a config question or something genuinely broken."}}},
-	{ID: SettingFAQTitle, Type: "text", Label: "FAQ heading", Max: 160, Default: "Frequently asked questions"},
-	{ID: SettingFAQSubtitle, Type: "text", Label: "FAQ subheading", Max: 600, Default: ""},
-	{ID: SettingFAQItems, Type: "object-list", Label: "Questions", Max: 24, Fields: []SettingField{{ID: "question", Type: "text", Label: "Question", Max: 600}, {ID: "answer", Type: "textarea", Label: "Answer", Max: 2000}}, Default: []any{map[string]any{"question": "How quickly will my server be ready?", "answer": "Usually within a few minutes. Setup runs automatically as soon as your payment clears and your login details are emailed to you."}, map[string]any{"question": "Can I change plan later?", "answer": "Yes. Upgrade or downgrade from your client area whenever you need to and your next invoice is adjusted to match."}, map[string]any{"question": "Can I move an existing server or site to you?", "answer": "Yes. Open a ticket telling us what you are running now and our team will help you move it across."}, map[string]any{"question": "How do backups work?", "answer": "You can take a backup from your control panel whenever you like. What is kept automatically depends on the plan you choose."}, map[string]any{"question": "What if something goes wrong?", "answer": "Open a ticket from your client area at any hour. Support handles setup problems, migrations and anything that stops working."}}},
+	{ID: SettingHeroTitle, Type: "text", Label: "Headline", Max: settingLimit(160), Default: "Game servers and web hosting, online in minutes"},
+	{ID: SettingHeroSubtitle, Type: "text", Label: "Subheading", Max: settingLimit(600), Default: "Fast hardware, DDoS protection and automatic setup, with a control panel that puts you in charge of everything you run with us."},
+	{ID: SettingHeroHighlights, Type: "list", Label: "Highlights", Max: settingLimit(6), Of: "text", ItemMax: settingLimit(160), Default: []any{"Online in minutes", "DDoS protection included", "Support around the clock"}},
+	{ID: SettingHeroPrimaryCTA, Type: "link", Label: "Primary button", Max: settingLimit(160), HrefMax: settingLimit(600), Default: map[string]any{"label": "Browse plans", "href": "/"}},
+	{ID: SettingHeroSecondaryCTA, Type: "link", Label: "Secondary button", Max: settingLimit(160), HrefMax: settingLimit(600), Default: map[string]any{"label": "Find a domain", "href": "/domains"}},
+	{ID: SettingCategoriesTitle, Type: "text", Label: "Categories heading", Max: settingLimit(160), Default: "What we host"},
+	{ID: SettingCategoriesSubtitle, Type: "text", Label: "Categories subheading", Max: settingLimit(600), Default: "Game servers, web hosting and everything you need to run them."},
+	{ID: SettingFeaturesTitle, Type: "text", Label: "Features heading", Max: settingLimit(160), Default: "Why host with us"},
+	{ID: SettingFeaturesSubtitle, Type: "text", Label: "Features subheading", Max: settingLimit(600), Default: "The things you would want from a host, standard on every plan."},
+	{ID: SettingFeaturesCards, Type: "object-list", Label: "Feature cards", Max: settingLimit(12), Fields: []SettingField{{ID: "title", Type: "text", Label: "Title", Max: settingLimit(160)}, {ID: "description", Type: "text", Label: "Description", Max: settingLimit(600)}}, Default: []any{map[string]any{"title": "Online in minutes", "description": "Your service is set up automatically the moment your payment clears. No queue, no waiting on a technician."}, map[string]any{"title": "Hardware built for low latency", "description": "Current-generation CPUs and NVMe storage, on networks chosen for the routes your players and visitors actually take."}, map[string]any{"title": "DDoS protection as standard", "description": "Always-on filtering across the whole network, included at no extra cost rather than sold as an upgrade."}, map[string]any{"title": "Full control of your service", "description": "Start, stop, reinstall, back up and reconfigure whenever you like, straight from your control panel."}, map[string]any{"title": "One-click mods and apps", "description": "Modpacks, plugins and the web applications you already use install in a couple of clicks."}, map[string]any{"title": "Support that answers", "description": "Real people on tickets at any hour, whether it is a config question or something genuinely broken."}}},
+	{ID: SettingFAQTitle, Type: "text", Label: "FAQ heading", Max: settingLimit(160), Default: "Frequently asked questions"},
+	{ID: SettingFAQSubtitle, Type: "text", Label: "FAQ subheading", Max: settingLimit(600), Default: ""},
+	{ID: SettingFAQItems, Type: "object-list", Label: "Questions", Max: settingLimit(24), Fields: []SettingField{{ID: "question", Type: "text", Label: "Question", Max: settingLimit(160)}, {ID: "answer", Type: "textarea", Label: "Answer", Max: settingLimit(2000)}}, Default: []any{map[string]any{"question": "How quickly will my server be ready?", "answer": "Usually within a few minutes. Setup runs automatically as soon as your payment clears and your login details are emailed to you."}, map[string]any{"question": "Can I change plan later?", "answer": "Yes. Upgrade or downgrade from your client area whenever you need to and your next invoice is adjusted to match."}, map[string]any{"question": "Can I move an existing server or site to you?", "answer": "Yes. Open a ticket telling us what you are running now and our team will help you move it across."}, map[string]any{"question": "How do backups work?", "answer": "You can take a backup from your control panel whenever you like. What is kept automatically depends on the plan you choose."}, map[string]any{"question": "What if something goes wrong?", "answer": "Open a ticket from your client area at any hour. Support handles setup problems, migrations and anything that stops working."}}},
 }
+
+// settingLimit returns a pointer to a limit, for the StandardSettings literals.
+func settingLimit(v float64) *float64 { return &v }
 
 // TokenKind is the kind of value a design token holds.
 type TokenKind string
@@ -224,7 +231,7 @@ var TokenPatterns = []struct {
 	Kind    TokenKind
 	Pattern string
 }{
-	{Kind: TokenKindColor, Pattern: `^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$`},
+	{Kind: TokenKindColor, Pattern: `^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`},
 	{Kind: TokenKindRadius, Pattern: `^[0-9]+(\.[0-9]+)?(px|rem)$`},
 	{Kind: TokenKindFont, Pattern: `^[A-Za-z0-9 ,'"-]{1,200}$`},
 	{Kind: TokenKindSpace, Pattern: `^[0-9]+(\.[0-9]+)?(px|rem)$`},

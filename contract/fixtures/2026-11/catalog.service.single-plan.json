@@ -186,7 +186,7 @@
         "slug": "standard",
         "description": "Standard plan.",
         "image": "",
-        "checkout_url": "/checkout/mc/standard",
+        "checkout_url": "/checkout/minecraft/standard",
         "price": {
           "amount": 7.99,
           "amount_minor": 799,

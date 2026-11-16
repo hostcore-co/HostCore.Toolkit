@@ -174,7 +174,7 @@
         "slug": "free",
         "description": "Free plan.",
         "image": "",
-        "checkout_url": "/checkout/wp/free",
+        "checkout_url": "/checkout/wordpress/free",
         "price": {
           "amount": 0,
           "amount_minor": 0,
@@ -194,7 +194,7 @@
         "slug": "business",
         "description": "Business plan.",
         "image": "",
-        "checkout_url": "/checkout/wp/business",
+        "checkout_url": "/checkout/wordpress/business",
         "price": {
           "amount": 25,
           "amount_minor": 2500,

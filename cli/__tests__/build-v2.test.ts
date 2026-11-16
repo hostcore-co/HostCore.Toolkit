@@ -227,7 +227,7 @@ describe('examples/basic', () => {
       expect(document.replace(`<hc-outlet>${body}</hc-outlet>`, '<hc-outlet></hc-outlet>'), name).toBe(layout)
       rendered++
     }
-    expect(rendered).toBe(12)
+    expect(rendered).toBe(13)
   })
 
   it('renders the minimal layout variant', async () => {

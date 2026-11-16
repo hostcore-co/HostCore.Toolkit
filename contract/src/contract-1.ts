@@ -96,8 +96,8 @@ d.define(
 
 d.define(
   'ServiceType',
-  'is what kind of product a service is. Templates use it to pick a layout: a game-server catalogue and a web-hosting price table are different pages.',
-  t.enum(['game-server', 'web-hosting', 'dedicated-server', 'vps', 'other']),
+  'is what kind of product a service is. Templates use it to pick a layout: a game-server catalogue and a web-hosting price table are different pages. It is the empty string for a service whose store has not set a type.',
+  t.enum(['game-server', 'web-hosting', 'dedicated-server', 'vps', 'other', '']),
 )
 
 d.define(

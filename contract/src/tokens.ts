@@ -19,7 +19,7 @@ export interface TokenDefinition {
 
 /** Patterns written to work the same in JavaScript and Go. */
 export const TOKEN_PATTERNS: Record<TokenKind, string> = {
-  color: '^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$',
+  color: '^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$',
   font: '^[A-Za-z0-9 ,\'"-]{1,200}$',
   radius: '^[0-9]+(\\.[0-9]+)?(px|rem)$',
   space: '^[0-9]+(\\.[0-9]+)?(px|rem)$',

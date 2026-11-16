@@ -146,4 +146,65 @@ describe('design tokens', () => {
       validateTokens({ 'color.accent': 'blue', 'radius.md': '4em', 'font.body': 'x;}', 'shadow.lg': '1px' }),
     ).toHaveLength(4)
   })
+
+  it('accepts only #rgb and #rrggbb colours', () => {
+    expect(validateTokens({ 'color.accent': '#abc', 'color.text': '#AABBCC' })).toEqual([])
+    expect(validateTokens({ 'color.accent': '#abcd', 'color.text': '#aabbccdd' })).toHaveLength(2)
+    const color: SettingSchemaEntry = { id: 'brand', type: 'color' }
+    expect(settingValueError(color, '#5b8cff')).toBeNull()
+    expect(settingValueError(color, '#5b8')).toBeNull()
+    expect(settingValueError(color, '#5b8c')).toBe('must be a hex colour')
+    expect(settingValueError(color, '#5b8cff80')).toBe('must be a hex colour')
+  })
+})
+
+describe('link limits', () => {
+  const link: SettingSchemaEntry = { id: 'cta', type: 'link', max: 5, href_max: 10 }
+
+  it('limit the label with max and the href with href_max', () => {
+    expect(settingValueError(link, { label: 'Go', href: '/0123456789' })).toBe('href must be at most 10 characters')
+    expect(settingValueError(link, { label: 'Go now', href: '/x' })).toBe('label must be at most 5 characters')
+    expect(settingValueError(link, { label: 'Go', href: '/012345678' })).toBeNull()
+  })
+
+  it('limit both with max when href_max is absent', () => {
+    expect(settingValueError({ id: 'cta', type: 'link', max: 5 }, { label: 'Go', href: '/01234' })).toBe(
+      'href must be at most 5 characters',
+    )
+  })
+
+  it('declare href_max only on links, as a whole number', () => {
+    expect(validateSettingSchema([link])).toEqual([])
+    expect(
+      validateSettingSchema([
+        { id: 'a', type: 'text', href_max: 3 },
+        { id: 'b', type: 'link', href_max: 1.5 },
+      ]),
+    ).toEqual(['settings[0].href_max is only for link settings', 'settings[1].href_max must be a whole number'])
+  })
+})
+
+describe('standard setting limits', () => {
+  const byId = (id: string) => STANDARD_SETTINGS.find((s) => s.id === id)!
+  const field = (id: string, f: string) => byId(id).fields!.find((x) => x.id === f)!
+
+  it('limit short text to 160 characters and long text to 600', () => {
+    for (const id of ['hero.title', 'categories.title', 'features.title', 'faq.title']) expect(byId(id).max).toBe(160)
+    for (const id of ['hero.subtitle', 'categories.subtitle', 'features.subtitle', 'faq.subtitle']) expect(byId(id).max).toBe(600)
+    expect(field('features.cards', 'title').max).toBe(160)
+    expect(field('features.cards', 'description').max).toBe(600)
+    expect(field('faq.items', 'question').max).toBe(160)
+    expect(field('faq.items', 'answer').max).toBe(2000)
+    expect(byId('hero.highlights').item_max).toBe(160)
+    for (const id of ['hero.primary_cta', 'hero.secondary_cta']) {
+      expect(byId(id).max).toBe(160)
+      expect(byId(id).href_max).toBe(600)
+    }
+  })
+
+  it('limit how many entries a list holds', () => {
+    expect(byId('hero.highlights').max).toBe(6)
+    expect(byId('features.cards').max).toBe(12)
+    expect(byId('faq.items').max).toBe(24)
+  })
 })

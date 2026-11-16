@@ -46,7 +46,11 @@ against.
   what the platform sends today, down to which keys can be absent
   (`meta.og_image`, `meta.no_index`, `pricing.original_price`, the per-type
   order form keys) and which arrays can be `null` (`order_form`, an order form
-  region's `children`).
+  region's `children`). Contract `"1"` as served now always sends
+  `order_form` as an array, empty for a plan with no form; older responses
+  could send `null` there, which is why the schema still allows it.
+  `service.type` is one of the five known values or the empty string, which
+  is what a service whose store has not set a type has.
 - **`"2026-11"`** — every response is a `PageEnvelope`: `page`, `redirect`,
   `meta`, `store`, `nav`, `settings`, `actions`, and `data` whose type depends
   on `page.id`. Templates never build a platform URL: every link target is in
@@ -68,7 +72,8 @@ template must render something sensible for a value it does not know. Its
 definition names a fallback (`"other"`). A contract that predates a value
 receives the fallback in its place; in `"1"`, where the enum is closed, any
 value outside `game-server`, `web-hosting`, `dedicated-server`, `vps` and
-`other` becomes `other`.
+`other` becomes `other`. The empty string, a service with no type set, is
+passed through unchanged in both contracts.
 
 ## Standard settings
 
@@ -79,24 +84,27 @@ exactly these; `src/settings.ts` has their labels, limits and defaults.
 | id | type |
 | --- | --- |
 | `hero.title`, `hero.subtitle` | text (160 / 600 characters) |
-| `hero.highlights` | list of text, at most 6 |
-| `hero.primary_cta`, `hero.secondary_cta` | link `{ label, href }` |
-| `categories.title`, `categories.subtitle` | text |
-| `features.title`, `features.subtitle` | text |
-| `features.cards` | object-list `{ title, description }`, at most 12 |
-| `faq.title`, `faq.subtitle` | text |
-| `faq.items` | object-list `{ question, answer }`, at most 24 |
+| `hero.highlights` | list of text, at most 6, each at most 160 characters |
+| `hero.primary_cta`, `hero.secondary_cta` | link `{ label, href }`: label at most 160 characters, href at most 600 |
+| `categories.title`, `categories.subtitle` | text (160 / 600 characters) |
+| `features.title`, `features.subtitle` | text (160 / 600 characters) |
+| `features.cards` | object-list `{ title (160), description (600) }`, at most 12 |
+| `faq.title`, `faq.subtitle` | text (160 / 600 characters) |
+| `faq.items` | object-list `{ question (160), answer (2000) }`, at most 24 |
 
-A setting entry is `{ id, type, label?, description?, max?, min?, step?, of?,
-item_max?, fields?, options?, default? }` with type one of `text`,
+A setting entry is `{ id, type, label?, description?, max?, href_max?, min?,
+step?, of?, item_max?, fields?, options?, default? }` with type one of `text`,
 `textarea`, `url`, `link`, `color`, `boolean`, `number`, `select`, `image`,
 `list`, `object-list`. `validateSettingSchema` checks a template's
 declarations.
 
 - `description` is help text shown beside the setting in the editor.
-- `max` counts characters for text types, and applies to a link's label and
-  its href separately; it counts entries for `list` and `object-list`, and is
-  the largest value for `number`.
+- `max` counts characters for text types; for a `link` it limits the label,
+  and the href too when `href_max` is absent. It counts entries for `list`
+  and `object-list`, and is the largest value for `number`.
+- `href_max` is for `link` only: the characters of the href.
+- A declared `0` is a limit like any other; a key that is absent sets no
+  limit.
 - `min` and `step` are for `number` only. A value must be a whole number of
   steps from `min` (or from zero when there is no `min`).
 - `item_max` is for `list` only: the characters of each text item.
@@ -107,13 +115,14 @@ declarations.
 
 | token | CSS property | value |
 | --- | --- | --- |
-| `color.background` `color.surface` `color.surface-raised` `color.border` `color.text` `color.text-muted` `color.accent` `color.accent-strong` | `--hc-background` … `--hc-accent-strong` | hex colour |
+| `color.background` `color.surface` `color.surface-raised` `color.border` `color.text` `color.text-muted` `color.accent` `color.accent-strong` | `--hc-background` … `--hc-accent-strong` | `#rgb` or `#rrggbb` |
 | `radius.sm` `radius.md` `radius.lg` | `--hc-radius-sm` … | `<number>px` or `<number>rem` |
 | `font.body` `font.heading` | `--hc-font-body` `--hc-font-heading` | font-family list, `^[A-Za-z0-9 ,'"-]{1,200}$` |
 | `space.unit` | `--hc-space-unit` | `<number>px` or `<number>rem` |
 
 A value resolves from the platform default, then the template's `tokens`,
-then the store's theme (the eight colours), last one winning.
+then the store's theme (the eight colours), last one winning. A `color`
+setting takes the same two forms; `#rgba` and `#rrggbbaa` are refused.
 
 ## The page registry
 
@@ -201,7 +210,7 @@ Per page:
 A **group** is `{ id, name, slug, description, image, marketing }`: `url` is
 dropped. A **service** is `{ id, group_id, name, slug, description, image,
 type, marketing, single_plan }`: `url` is dropped and `type` goes through the
-open-enum fallback. **marketing** is copied key for key.
+open-enum fallback (the empty string is kept as it is). **marketing** is copied key for key.
 
 A **plan** is:
 
@@ -217,7 +226,8 @@ An **order form component** keeps `order`, `type`, `label`, `description`,
 `key` and `required`, and keeps `placeholder`, `regex`, `default_value`,
 `price`, `children`, `dropdown` and `preset_id` only when they are present and
 not empty, `false` or `0` — the same keys contract `1` leaves out. Options
-are copied key for key; a region keeps all five keys.
+are copied key for key; a region keeps all five keys, and its `children` is always an
+array (a region without children gets `[]`).
 
 **content** is rebuilt from the standard settings. For each id, the store's
 value is used when it is present and fits the setting (`settingValueError`

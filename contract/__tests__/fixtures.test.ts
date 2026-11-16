@@ -90,6 +90,7 @@ describe('fixtures', () => {
       'catalog.service.trial-and-free',
       'catalog.group.missing-optional',
       'home.unset-settings',
+      'catalog.service.empty-type',
     ]) {
       expect(names2026).toContain(`${name}.json`)
     }
@@ -112,6 +113,42 @@ describe('fixtures', () => {
     }
   }
 
+  /**
+   * Every link in a fixture is the one the platform would build for that
+   * object: a group at /<group>, a service at /<group>/<service> (or at
+   * checkout when it has a single plan), a plan at /checkout/<service>/<plan>.
+   */
+  for (const name of fixtureNames('2026-11')) {
+    it(`2026-11/${name} links agree with the slugs they point at`, () => {
+      const e = load<Record<string, any>>('2026-11', name.replace(/\.json$/, ''))
+      const problems: string[] = []
+      const groups: Record<string, any>[] = [...e.nav.groups, ...(e.data?.groups ?? []), ...(e.data?.group ? [e.data.group] : [])]
+      for (const g of groups) if (g.url !== `/${g.slug}`) problems.push(`group ${g.id}: url ${g.url}`)
+      const groupOf = (s: Record<string, any>) => groups.find((g) => g.id === s.group_id)
+      const checkService = (s: Record<string, any>) => {
+        const group = groupOf(s)
+        if (!group) return problems.push(`service ${s.id}: no group ${s.group_id} in the fixture`)
+        const expected = s.single_plan ? `/checkout/${s.slug}` : `/${group.slug}/${s.slug}`
+        if (s.url !== expected) problems.push(`service ${s.id}: url ${s.url}, expected ${expected}`)
+      }
+      const checkPlan = (s: Record<string, any>, p: Record<string, any>) => {
+        if (p.service_id !== s.id) problems.push(`plan ${p.id}: service_id ${p.service_id}, expected ${s.id}`)
+        const expected = `/checkout/${s.slug}/${p.slug}`
+        if (p.checkout_url !== expected) problems.push(`plan ${p.id}: checkout_url ${p.checkout_url}, expected ${expected}`)
+      }
+      for (const card of e.data?.services ?? []) {
+        checkService(card.service)
+        checkPlan(card.service, card.from)
+      }
+      if (e.data?.service) {
+        checkService(e.data.service)
+        for (const p of e.data.plans) checkPlan(e.data.service, p)
+        if (e.redirect && e.redirect.location !== e.data.service.url) problems.push(`redirect ${e.redirect.location}, expected ${e.data.service.url}`)
+      }
+      expect(problems).toEqual([])
+    })
+  }
+
   it('JSON Schema catches a payload for the wrong page', () => {
     const schema = JSON.parse(readFileSync(join(schemaDir, '2026-11.json'), 'utf8')) as JsonSchema
     const envelope = load<Record<string, any>>('2026-11', 'home')
@@ -132,6 +169,33 @@ describe('downgrade', () => {
   it('maps an unknown service type to the open enum fallback', () => {
     const v1 = load<V1.ServicePageData>('1', 'catalog.service.unknown-type')
     expect(v1.service.type).toBe('other')
+  })
+
+  it('passes an empty service type through unchanged', () => {
+    expect(load<V202611.PageEnvelope<'catalog.service'>>('2026-11', 'catalog.service.empty-type').data!.service.type).toBe('')
+    expect(load<V1.ServicePageData>('1', 'catalog.service.empty-type').service.type).toBe('')
+    expect(validateType('1', 'ServiceType', '')).toEqual([])
+  })
+
+  it('accepts a region whose children are null, and always sends an order form array', () => {
+    const envelope = load<Record<string, any>>('2026-11', 'catalog.service')
+    const plan = envelope.data.plans[0]
+    plan.order_form = [
+      {
+        order: 0,
+        type: 'location-multi-dropdown',
+        label: 'Location',
+        description: '',
+        key: 'location',
+        required: true,
+        dropdown: [{ order: 0, label: 'Europe', default: true, default_value: '', children: null }],
+      },
+    ]
+    envelope.data.plans[1].order_form = null
+    const v1 = downgrade(envelope as unknown as V202611.AnyPageEnvelope) as V1.ServicePageData
+    expect(v1.plans[0]!.order_form![0]!.dropdown![0]!.children).toEqual([])
+    expect(v1.plans[1]!.order_form).toEqual([])
+    expect(validate('1', 'catalog.service', v1)).toEqual([])
   })
 
   it('omits og_image and no_index when they are empty or false', () => {

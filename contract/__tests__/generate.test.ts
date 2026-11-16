@@ -94,6 +94,19 @@ describe('generators', () => {
     expect(schema.$defs.Special.properties.extra).toEqual({ type: 'boolean' })
   })
 
+  it('write setting limits as Go pointers, so a declared 0 is kept', () => {
+    const registry = generateAll(contractDir)['dist/go/contract/registry.go']!
+    for (const key of ['max', 'href_max', 'min', 'step', 'item_max']) {
+      expect(registry).toMatch(new RegExp(`\\*float64\\s+\`json:"${key},omitempty"\``))
+    }
+    expect(registry).toContain('Max: settingLimit(160), HrefMax: settingLimit(600)')
+    expect(registry).toContain('func settingLimit(v float64) *float64 { return &v }')
+  })
+
+  it('name the empty value of an enum Unset', () => {
+    expect(generateAll(contractDir)['dist/go/contract/v1.go']).toMatch(/V1ServiceTypeUnset\s+V1ServiceType = ""/)
+  })
+
   it('align rows the way gofmt does', () => {
     expect(
       alignRows(

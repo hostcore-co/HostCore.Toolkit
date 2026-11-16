@@ -87,7 +87,7 @@ type V1ServiceGroup struct {
 
 // V1ServiceType is what kind of product a service is. Templates use it to pick
 // a layout: a game-server catalogue and a web-hosting price table are different
-// pages.
+// pages. It is the empty string for a service whose store has not set a type.
 type V1ServiceType string
 
 const (
@@ -96,6 +96,7 @@ const (
 	V1ServiceTypeDedicatedServer V1ServiceType = "dedicated-server"
 	V1ServiceTypeVPS             V1ServiceType = "vps"
 	V1ServiceTypeOther           V1ServiceType = "other"
+	V1ServiceTypeUnset           V1ServiceType = ""
 )
 
 // V1Service is one product a store sells, with its plans listed separately.
