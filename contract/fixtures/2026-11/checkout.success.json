@@ -135,6 +135,34 @@
     "domain_checkout": {
       "method": "GET",
       "url": "/checkout/domains"
+    },
+    "checkout_customer": {
+      "method": "GET",
+      "url": "/api/v1/user"
+    },
+    "checkout_quote": {
+      "method": "QUERY",
+      "url": "/api/v1/public/checkout/quote"
+    },
+    "checkout_start": {
+      "method": "POST",
+      "url": "/api/v1/user/checkout/start"
+    },
+    "checkout_confirm": {
+      "method": "GET",
+      "url": "/api/v1/user/checkout/success"
+    },
+    "checkout_cancel": {
+      "method": "GET",
+      "url": "/api/v1/user/checkout/cancel"
+    },
+    "checkout_draft": {
+      "method": "PUT",
+      "url": "/checkout/_draft"
+    },
+    "session_refresh": {
+      "method": "POST",
+      "url": "/api/v1/auth/session/refresh"
     }
   },
   "data": {}

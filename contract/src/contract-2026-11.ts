@@ -287,7 +287,10 @@ d.define(
   'Action',
   'is an endpoint a page may call from the browser.',
   t.object({
-    method: doc('The HTTP method to call it with.', t.enum(['GET', 'POST'])),
+    method: doc(
+      'The HTTP method to call it with. An open set: an action that is a page to go to is GET.',
+      t.openEnum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'QUERY'], 'GET'),
+    ),
     url: doc('The endpoint, as a path on the store.', t.goName('URL', t.string())),
   }),
 )
@@ -304,6 +307,19 @@ d.define(
       'Where a visitor buys a domain they searched for: a GET of its url with the query parameters domain (the domain name), action (register or transfer) and years (a whole number of years, one of the terms the search result offers). Build the link with actionHref rather than by hand. Present exactly when domain_search is, so absent when the store sells no domains.',
       optional(t.ref('Action')),
     ),
+    checkout_customer: doc(
+      'On checkout pages: the signed-in customer. A GET reads them; a PATCH saves their billing address. Use the SDK\'s checkout calls, never the endpoint itself.',
+      optional(t.ref('Action')),
+    ),
+    checkout_quote: doc('On checkout pages: prices an order for display, with tax estimated from a country and state.', optional(t.ref('Action'))),
+    checkout_start: doc('On checkout pages: places the order and starts payment.', optional(t.ref('Action'))),
+    checkout_confirm: doc('On checkout pages: confirms the payment the customer returns from, which completes the order.', optional(t.ref('Action'))),
+    checkout_cancel: doc('On checkout pages: cancels the order whose payment the customer abandoned.', optional(t.ref('Action'))),
+    checkout_draft: doc(
+      'On checkout pages: the domain a visitor has picked, kept on their device. A GET reads it, a PUT saves it and a DELETE clears it.',
+      optional(t.ref('Action')),
+    ),
+    session_refresh: doc('On checkout pages: renews the customer\'s session once when a call finds it expired.', optional(t.ref('Action'))),
   }),
 )
 
@@ -602,6 +618,281 @@ d.define(
   t.object({}),
 )
 
+// ─── Checkout calls ────────────────────────────────────────────────────────
+
+d.define(
+  'BillingAddress',
+  'is the address a customer is invoiced and taxed at, kept on their account. Any field may be empty.',
+  t.object({
+    country: doc('An ISO 3166-1 alpha-2 code, such as "US", or empty.', t.string()),
+    state: doc('The state, province or region.', t.string()),
+    address_line1: doc('The first line of the street address.', t.string()),
+    address_line2: doc('The second line of the street address.', t.string()),
+    city: doc('The city.', t.string()),
+    postal_code: doc('The postal or ZIP code.', t.string()),
+    tax_id: doc('A VAT or other tax registration number.', t.string()),
+  }),
+)
+
+d.define(
+  'DomainContact',
+  'is the registrant contact registries require for a domain: one contact for every domain in the order.',
+  t.object({
+    first_name: doc('Required.', t.string()),
+    last_name: doc('Required.', t.string()),
+    organization: doc('May be empty.', t.string()),
+    email: doc('Required.', t.string()),
+    phone: doc('Required.', t.string()),
+    address1: doc('Required.', t.string()),
+    address2: doc('May be empty.', t.string()),
+    city: doc('Required.', t.string()),
+    state: doc('May be empty.', t.string()),
+    postal_code: doc('Required.', t.string()),
+    country_code: doc('Required: an ISO 3166-1 alpha-2 code.', t.string()),
+  }),
+)
+
+d.define(
+  'DomainConfig',
+  'is what registering or transferring a domain needs beyond its name.',
+  t.object({
+    contact: doc('The registrant contact.', t.ref('DomainContact')),
+    privacy: doc('True to hide the contact from public WHOIS where the registry allows it.', t.boolean()),
+    epp_code: doc('The authorisation code a transfer needs; absent for a registration.', optional(t.string())),
+  }),
+)
+
+d.define('CheckoutItemKind', 'is what an order item is: a plan or a domain.', t.enum(['plan', 'domain']))
+
+d.define(
+  'CheckoutBillingInterval',
+  'is a billing cycle as the checkout calls name it: monthly, quarterly, semiannually or annually, for the PriceInterval month, quarter, semi_annual and year.',
+  t.enum(['monthly', 'quarterly', 'semiannually', 'annually']),
+)
+
+d.define(
+  'CheckoutItem',
+  'is one item of an order. The first is what is being bought; each one after it is an add-on of an offer that goes with it. A plan item has service_id, plan_id, order_config and, for a recurring plan, billing_interval; a domain item has domain, action and years, and in a start request domain_config.',
+  t.object({
+    kind: doc('A plan or a domain.', t.ref('CheckoutItemKind')),
+    service_id: doc('A plan item: the service.', optional(t.string())),
+    plan_id: doc('A plan item: the plan.', optional(t.string())),
+    billing_interval: doc('A recurring plan item: the billing cycle.', optional(t.ref('CheckoutBillingInterval'))),
+    order_config: doc('A plan item: the order form answers by key, text and choices as strings and checkboxes as booleans.', optional(t.record(t.json()))),
+    domain: doc('A domain item: the domain name.', optional(t.string())),
+    action: doc('A domain item: register or transfer.', optional(t.string())),
+    years: doc('A domain item: the term in whole years.', optional(t.integer())),
+    domain_config: doc('A domain item of a start request: the contact, privacy and transfer code.', optional(t.ref('DomainConfig'))),
+  }),
+)
+
+d.define(
+  'CheckoutQuoteRequest',
+  'is what pricing an order sends: the items, and the country and state tax is estimated for.',
+  t.object({
+    items: doc('The order items.', t.array(t.ref('CheckoutItem'))),
+    country: doc('The billing country, or empty.', t.string()),
+    state: doc('The billing state, or empty.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutStartRequest',
+  'is what placing an order sends. For an order with anything to pay, it names how: method "bank_transfer", or a gateway and the currency to charge in.',
+  t.object({
+    items: doc('The order items, domain items with their domain_config.', t.array(t.ref('CheckoutItem'))),
+    method: doc('"bank_transfer" to pay by bank transfer; absent to pay with a gateway.', optional(t.string())),
+    gateway: doc('The payment provider, when paying with one.', optional(t.string())),
+    currency: doc('The ISO 4217 code to charge in, uppercase, when paying with a gateway.', optional(t.string())),
+    promo_code: doc('A promotion code, or empty.', optional(t.string())),
+  }),
+)
+
+d.define(
+  'DomainDraft',
+  'is a domain a visitor has picked to buy, kept on their device while they check out.',
+  t.object({
+    domain: doc('The domain name.', t.string()),
+    action: doc('register or transfer.', t.string()),
+    years: doc('The term in whole years, from 1 to 10.', t.integer()),
+  }),
+)
+
+d.define(
+  'CheckoutSignedOut',
+  'is a checkout call that needs a signed-in customer finding none, after one attempt to renew the session.',
+  t.object({
+    status: doc('Always "signed_out".', t.literal('signed_out')),
+    sign_in_url: doc('The sign-in page, with a return path to this checkout page and its query.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutError',
+  'is a checkout call that failed.',
+  t.object({
+    status: doc('Always "error".', t.literal('error')),
+    code: doc(
+      'The platform\'s reason when it gives one, such as "promo_invalid", "domain_unavailable" or "invalid_input"; "failed" otherwise. An open set.',
+      t.string(),
+    ),
+    message: doc('A sentence a customer can read, in English.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutCustomer',
+  'is a signed-in customer, as checkout needs them.',
+  t.object({
+    status: doc('Always "signed_in".', t.literal('signed_in')),
+    billing: doc('Their billing address. The country is empty unless it is a two-letter code.', t.ref('BillingAddress')),
+  }),
+)
+
+d.define(
+  'CheckoutCustomerOutcome',
+  'is what reading the customer resolves to.',
+  t.union('status', { signed_in: 'CheckoutCustomer', signed_out: 'CheckoutSignedOut', error: 'CheckoutError' }),
+)
+
+d.define('CheckoutDone', 'is a checkout call that did what it was asked.', t.object({ status: doc('Always "ok".', t.literal('ok')) }))
+
+d.define(
+  'CheckoutSaveOutcome',
+  'is what saving the billing address, or saving or clearing the domain draft, resolves to.',
+  t.union('status', { ok: 'CheckoutDone', signed_out: 'CheckoutSignedOut', error: 'CheckoutError' }),
+)
+
+d.define(
+  'CheckoutQuoteLine',
+  'is one priced item of a quote, in the order of the request\'s items.',
+  t.object({
+    kind: doc('A plan or a domain.', t.ref('CheckoutItemKind')),
+    label: doc('What the item is, written for the customer.', t.string()),
+    price: doc('What the item costs now: the first cycle of a plan, with its order-form options, or the domain\'s term.', t.ref('Money')),
+    setup_fee: doc('The setup fee charged with it; zero when none.', t.ref('Money')),
+    error: doc('Why the item cannot be ordered as it is; empty when it can.', t.string()),
+    incomplete: doc('True when a required order-form answer is still empty: priced, but not yet orderable.', t.boolean()),
+  }),
+)
+
+d.define(
+  'CheckoutQuote',
+  'is a priced order, in the store currency. Tax is an estimate for the country and state asked; the order is taxed from the customer\'s saved billing address when it is placed. Promotion codes and account credit are not reflected.',
+  t.object({
+    status: doc('Always "ok".', t.literal('ok')),
+    currency: doc('The store currency every amount is in.', t.string()),
+    lines: doc('One per item.', t.array(t.ref('CheckoutQuoteLine'))),
+    subtotal: doc('Before tax.', t.ref('Money')),
+    tax: doc('The estimated tax.', t.ref('Money')),
+    total: doc('Due now.', t.ref('Money')),
+    tax_inclusive: doc('True when the prices already include the tax.', t.boolean()),
+    incomplete: doc('True when any line is incomplete: the order cannot be placed yet.', t.boolean()),
+  }),
+)
+
+d.define(
+  'CheckoutQuoteOutcome',
+  'is what pricing an order resolves to.',
+  t.union('status', { ok: 'CheckoutQuote', error: 'CheckoutError' }),
+)
+
+d.define(
+  'CheckoutBankTransferDetails',
+  'is what a customer needs to pay an order by bank transfer. Account fields the store has not set are empty.',
+  t.object({
+    invoice_id: doc('The invoice the transfer pays.', t.string()),
+    invoice_number: doc('Its number, for the customer.', t.string()),
+    reference: doc('The payment reference to quote exactly.', t.string()),
+    amount: doc('What to send.', t.ref('Money')),
+    due_at: doc('When it is due, as an RFC 3339 time.', t.string()),
+    account_name: doc('The account holder.', t.string()),
+    bank_name: doc('The bank.', t.string()),
+    account_number: doc('The account number.', t.string()),
+    sort_code: doc('The sort code.', t.string()),
+    iban: doc('The IBAN.', t.goName('IBAN', t.string())),
+    swift: doc('The SWIFT or BIC code.', t.goName('SWIFT', t.string())),
+    instructions: doc('What the store tells customers about paying by transfer.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutRedirect',
+  'is a placed order whose payment happens on the payment provider\'s page: send the customer to url.',
+  t.object({
+    status: doc('Always "redirect".', t.literal('redirect')),
+    url: doc('The payment page.', t.goName('URL', t.string())),
+    order_id: doc('The order, or empty.', t.string()),
+    subscription_id: doc('The subscription when the order made exactly one, or empty.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutBankTransferPlaced',
+  'is a placed order to be paid by bank transfer: show the details. Nothing starts until the money arrives.',
+  t.object({
+    status: doc('Always "bank_transfer".', t.literal('bank_transfer')),
+    order_id: doc('The order.', t.string()),
+    subscription_id: doc('The subscription when the order made exactly one, or empty.', t.string()),
+    details: doc('Where to send the money, and how much.', t.ref('CheckoutBankTransferDetails')),
+  }),
+)
+
+d.define(
+  'CheckoutPaid',
+  'is a placed order that needed no payment step: a free or free-trial plan, or a total covered by credit or a promotion. Send the customer to /checkout/success.',
+  t.object({
+    status: doc('Always "paid".', t.literal('paid')),
+    order_id: doc('The order, or empty for a free or free-trial plan.', t.string()),
+    subscription_id: doc('The subscription when the order made exactly one, or empty.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutStartOutcome',
+  'is what placing an order resolves to.',
+  t.union('status', {
+    redirect: 'CheckoutRedirect',
+    bank_transfer: 'CheckoutBankTransferPlaced',
+    paid: 'CheckoutPaid',
+    signed_out: 'CheckoutSignedOut',
+    error: 'CheckoutError',
+  }),
+)
+
+d.define(
+  'CheckoutConfirmed',
+  'is a payment the platform has confirmed: "paid", or "processing" while the provider settles it, after which the order starts by itself.',
+  t.object({
+    status: doc('Always "confirmed".', t.literal('confirmed')),
+    payment: doc('"paid" or "processing".', t.enum(['paid', 'processing'])),
+  }),
+)
+
+d.define(
+  'CheckoutConfirmOutcome',
+  'is what confirming a payment resolves to. The success page must confirm: confirming is what completes a payment and starts the order.',
+  t.union('status', { confirmed: 'CheckoutConfirmed', signed_out: 'CheckoutSignedOut', error: 'CheckoutError' }),
+)
+
+d.define('CheckoutCancelled', 'is an order whose abandoned payment has been cancelled.', t.object({ status: doc('Always "cancelled".', t.literal('cancelled')) }))
+
+d.define(
+  'CheckoutCancelOutcome',
+  'is what cancelling an abandoned payment resolves to.',
+  t.union('status', { cancelled: 'CheckoutCancelled', signed_out: 'CheckoutSignedOut', error: 'CheckoutError' }),
+)
+
+d.define('DomainDraftFound', 'is a saved domain draft.', t.object({ status: doc('Always "found".', t.literal('found')), draft: doc('The pick.', t.ref('DomainDraft')) }))
+
+d.define('DomainDraftNone', 'is the absence of a saved domain draft.', t.object({ status: doc('Always "none".', t.literal('none')) }))
+
+d.define(
+  'DomainDraftOutcome',
+  'is what reading the domain draft resolves to.',
+  t.union('status', { found: 'DomainDraftFound', none: 'DomainDraftNone', error: 'CheckoutError' }),
+)
+
 d.define('NotFoundData', 'is the data of the not-found page. It is always empty.', t.object({}))
 
 export const contract202611: Contract = {
@@ -620,5 +911,5 @@ export const contract202611: Contract = {
     'checkout.cancel': 'CheckoutCancelData',
   },
   envelope: 'PageEnvelope',
-  inputs: ['DomainSearchRequest'],
+  inputs: ['DomainSearchRequest', 'BillingAddress', 'DomainContact', 'DomainConfig', 'CheckoutItem', 'CheckoutQuoteRequest', 'CheckoutStartRequest', 'DomainDraft'],
 }

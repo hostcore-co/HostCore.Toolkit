@@ -1073,11 +1073,27 @@
       "type": "object",
       "properties": {
         "method": {
-          "description": "The HTTP method to call it with.",
-          "enum": [
+          "description": "The HTTP method to call it with. An open set: an action that is a page to go to is GET.",
+          "type": "string",
+          "examples": [
             "GET",
-            "POST"
-          ]
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "QUERY"
+          ],
+          "x-open-enum": {
+            "known": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE",
+              "QUERY"
+            ],
+            "fallback": "GET"
+          }
         },
         "url": {
           "description": "The endpoint, as a path on the store.",
@@ -1100,6 +1116,34 @@
         },
         "domain_checkout": {
           "description": "Where a visitor buys a domain they searched for: a GET of its url with the query parameters domain (the domain name), action (register or transfer) and years (a whole number of years, one of the terms the search result offers). Build the link with actionHref rather than by hand. Present exactly when domain_search is, so absent when the store sells no domains.",
+          "$ref": "#/$defs/Action"
+        },
+        "checkout_customer": {
+          "description": "On checkout pages: the signed-in customer. A GET reads them; a PATCH saves their billing address. Use the SDK's checkout calls, never the endpoint itself.",
+          "$ref": "#/$defs/Action"
+        },
+        "checkout_quote": {
+          "description": "On checkout pages: prices an order for display, with tax estimated from a country and state.",
+          "$ref": "#/$defs/Action"
+        },
+        "checkout_start": {
+          "description": "On checkout pages: places the order and starts payment.",
+          "$ref": "#/$defs/Action"
+        },
+        "checkout_confirm": {
+          "description": "On checkout pages: confirms the payment the customer returns from, which completes the order.",
+          "$ref": "#/$defs/Action"
+        },
+        "checkout_cancel": {
+          "description": "On checkout pages: cancels the order whose payment the customer abandoned.",
+          "$ref": "#/$defs/Action"
+        },
+        "checkout_draft": {
+          "description": "On checkout pages: the domain a visitor has picked, kept on their device. A GET reads it, a PUT saves it and a DELETE clears it.",
+          "$ref": "#/$defs/Action"
+        },
+        "session_refresh": {
+          "description": "On checkout pages: renews the customer's session once when a call finds it expired.",
           "$ref": "#/$defs/Action"
         }
       },
@@ -1909,6 +1953,772 @@
       "properties": {},
       "required": [],
       "additionalProperties": false
+    },
+    "BillingAddress": {
+      "description": "BillingAddress is the address a customer is invoiced and taxed at, kept on their account. Any field may be empty.",
+      "type": "object",
+      "properties": {
+        "country": {
+          "description": "An ISO 3166-1 alpha-2 code, such as \"US\", or empty.",
+          "type": "string"
+        },
+        "state": {
+          "description": "The state, province or region.",
+          "type": "string"
+        },
+        "address_line1": {
+          "description": "The first line of the street address.",
+          "type": "string"
+        },
+        "address_line2": {
+          "description": "The second line of the street address.",
+          "type": "string"
+        },
+        "city": {
+          "description": "The city.",
+          "type": "string"
+        },
+        "postal_code": {
+          "description": "The postal or ZIP code.",
+          "type": "string"
+        },
+        "tax_id": {
+          "description": "A VAT or other tax registration number.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "country",
+        "state",
+        "address_line1",
+        "address_line2",
+        "city",
+        "postal_code",
+        "tax_id"
+      ],
+      "additionalProperties": false
+    },
+    "DomainContact": {
+      "description": "DomainContact is the registrant contact registries require for a domain: one contact for every domain in the order.",
+      "type": "object",
+      "properties": {
+        "first_name": {
+          "description": "Required.",
+          "type": "string"
+        },
+        "last_name": {
+          "description": "Required.",
+          "type": "string"
+        },
+        "organization": {
+          "description": "May be empty.",
+          "type": "string"
+        },
+        "email": {
+          "description": "Required.",
+          "type": "string"
+        },
+        "phone": {
+          "description": "Required.",
+          "type": "string"
+        },
+        "address1": {
+          "description": "Required.",
+          "type": "string"
+        },
+        "address2": {
+          "description": "May be empty.",
+          "type": "string"
+        },
+        "city": {
+          "description": "Required.",
+          "type": "string"
+        },
+        "state": {
+          "description": "May be empty.",
+          "type": "string"
+        },
+        "postal_code": {
+          "description": "Required.",
+          "type": "string"
+        },
+        "country_code": {
+          "description": "Required: an ISO 3166-1 alpha-2 code.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "first_name",
+        "last_name",
+        "organization",
+        "email",
+        "phone",
+        "address1",
+        "address2",
+        "city",
+        "state",
+        "postal_code",
+        "country_code"
+      ],
+      "additionalProperties": false
+    },
+    "DomainConfig": {
+      "description": "DomainConfig is what registering or transferring a domain needs beyond its name.",
+      "type": "object",
+      "properties": {
+        "contact": {
+          "description": "The registrant contact.",
+          "$ref": "#/$defs/DomainContact"
+        },
+        "privacy": {
+          "description": "True to hide the contact from public WHOIS where the registry allows it.",
+          "type": "boolean"
+        },
+        "epp_code": {
+          "description": "The authorisation code a transfer needs; absent for a registration.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact",
+        "privacy"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutItemKind": {
+      "description": "CheckoutItemKind is what an order item is: a plan or a domain.",
+      "enum": [
+        "plan",
+        "domain"
+      ]
+    },
+    "CheckoutBillingInterval": {
+      "description": "CheckoutBillingInterval is a billing cycle as the checkout calls name it: monthly, quarterly, semiannually or annually, for the PriceInterval month, quarter, semi_annual and year.",
+      "enum": [
+        "monthly",
+        "quarterly",
+        "semiannually",
+        "annually"
+      ]
+    },
+    "CheckoutItem": {
+      "description": "CheckoutItem is one item of an order. The first is what is being bought; each one after it is an add-on of an offer that goes with it. A plan item has service_id, plan_id, order_config and, for a recurring plan, billing_interval; a domain item has domain, action and years, and in a start request domain_config.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "A plan or a domain.",
+          "$ref": "#/$defs/CheckoutItemKind"
+        },
+        "service_id": {
+          "description": "A plan item: the service.",
+          "type": "string"
+        },
+        "plan_id": {
+          "description": "A plan item: the plan.",
+          "type": "string"
+        },
+        "billing_interval": {
+          "description": "A recurring plan item: the billing cycle.",
+          "$ref": "#/$defs/CheckoutBillingInterval"
+        },
+        "order_config": {
+          "description": "A plan item: the order form answers by key, text and choices as strings and checkboxes as booleans.",
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "domain": {
+          "description": "A domain item: the domain name.",
+          "type": "string"
+        },
+        "action": {
+          "description": "A domain item: register or transfer.",
+          "type": "string"
+        },
+        "years": {
+          "description": "A domain item: the term in whole years.",
+          "type": "integer"
+        },
+        "domain_config": {
+          "description": "A domain item of a start request: the contact, privacy and transfer code.",
+          "$ref": "#/$defs/DomainConfig"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutQuoteRequest": {
+      "description": "CheckoutQuoteRequest is what pricing an order sends: the items, and the country and state tax is estimated for.",
+      "type": "object",
+      "properties": {
+        "items": {
+          "description": "The order items.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutItem"
+          }
+        },
+        "country": {
+          "description": "The billing country, or empty.",
+          "type": "string"
+        },
+        "state": {
+          "description": "The billing state, or empty.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "items",
+        "country",
+        "state"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutStartRequest": {
+      "description": "CheckoutStartRequest is what placing an order sends. For an order with anything to pay, it names how: method \"bank_transfer\", or a gateway and the currency to charge in.",
+      "type": "object",
+      "properties": {
+        "items": {
+          "description": "The order items, domain items with their domain_config.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutItem"
+          }
+        },
+        "method": {
+          "description": "\"bank_transfer\" to pay by bank transfer; absent to pay with a gateway.",
+          "type": "string"
+        },
+        "gateway": {
+          "description": "The payment provider, when paying with one.",
+          "type": "string"
+        },
+        "currency": {
+          "description": "The ISO 4217 code to charge in, uppercase, when paying with a gateway.",
+          "type": "string"
+        },
+        "promo_code": {
+          "description": "A promotion code, or empty.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "DomainDraft": {
+      "description": "DomainDraft is a domain a visitor has picked to buy, kept on their device while they check out.",
+      "type": "object",
+      "properties": {
+        "domain": {
+          "description": "The domain name.",
+          "type": "string"
+        },
+        "action": {
+          "description": "register or transfer.",
+          "type": "string"
+        },
+        "years": {
+          "description": "The term in whole years, from 1 to 10.",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "domain",
+        "action",
+        "years"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutSignedOut": {
+      "description": "CheckoutSignedOut is a checkout call that needs a signed-in customer finding none, after one attempt to renew the session.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"signed_out\".",
+          "const": "signed_out"
+        },
+        "sign_in_url": {
+          "description": "The sign-in page, with a return path to this checkout page and its query.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "sign_in_url"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutError": {
+      "description": "CheckoutError is a checkout call that failed.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"error\".",
+          "const": "error"
+        },
+        "code": {
+          "description": "The platform's reason when it gives one, such as \"promo_invalid\", \"domain_unavailable\" or \"invalid_input\"; \"failed\" otherwise. An open set.",
+          "type": "string"
+        },
+        "message": {
+          "description": "A sentence a customer can read, in English.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutCustomer": {
+      "description": "CheckoutCustomer is a signed-in customer, as checkout needs them.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"signed_in\".",
+          "const": "signed_in"
+        },
+        "billing": {
+          "description": "Their billing address. The country is empty unless it is a two-letter code.",
+          "$ref": "#/$defs/BillingAddress"
+        }
+      },
+      "required": [
+        "status",
+        "billing"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutCustomerOutcome": {
+      "description": "CheckoutCustomerOutcome is what reading the customer resolves to.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CheckoutCustomer"
+        },
+        {
+          "$ref": "#/$defs/CheckoutSignedOut"
+        },
+        {
+          "$ref": "#/$defs/CheckoutError"
+        }
+      ]
+    },
+    "CheckoutDone": {
+      "description": "CheckoutDone is a checkout call that did what it was asked.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"ok\".",
+          "const": "ok"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutSaveOutcome": {
+      "description": "CheckoutSaveOutcome is what saving the billing address, or saving or clearing the domain draft, resolves to.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CheckoutDone"
+        },
+        {
+          "$ref": "#/$defs/CheckoutSignedOut"
+        },
+        {
+          "$ref": "#/$defs/CheckoutError"
+        }
+      ]
+    },
+    "CheckoutQuoteLine": {
+      "description": "CheckoutQuoteLine is one priced item of a quote, in the order of the request's items.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "A plan or a domain.",
+          "$ref": "#/$defs/CheckoutItemKind"
+        },
+        "label": {
+          "description": "What the item is, written for the customer.",
+          "type": "string"
+        },
+        "price": {
+          "description": "What the item costs now: the first cycle of a plan, with its order-form options, or the domain's term.",
+          "$ref": "#/$defs/Money"
+        },
+        "setup_fee": {
+          "description": "The setup fee charged with it; zero when none.",
+          "$ref": "#/$defs/Money"
+        },
+        "error": {
+          "description": "Why the item cannot be ordered as it is; empty when it can.",
+          "type": "string"
+        },
+        "incomplete": {
+          "description": "True when a required order-form answer is still empty: priced, but not yet orderable.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "label",
+        "price",
+        "setup_fee",
+        "error",
+        "incomplete"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutQuote": {
+      "description": "CheckoutQuote is a priced order, in the store currency. Tax is an estimate for the country and state asked; the order is taxed from the customer's saved billing address when it is placed. Promotion codes and account credit are not reflected.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"ok\".",
+          "const": "ok"
+        },
+        "currency": {
+          "description": "The store currency every amount is in.",
+          "type": "string"
+        },
+        "lines": {
+          "description": "One per item.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutQuoteLine"
+          }
+        },
+        "subtotal": {
+          "description": "Before tax.",
+          "$ref": "#/$defs/Money"
+        },
+        "tax": {
+          "description": "The estimated tax.",
+          "$ref": "#/$defs/Money"
+        },
+        "total": {
+          "description": "Due now.",
+          "$ref": "#/$defs/Money"
+        },
+        "tax_inclusive": {
+          "description": "True when the prices already include the tax.",
+          "type": "boolean"
+        },
+        "incomplete": {
+          "description": "True when any line is incomplete: the order cannot be placed yet.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "currency",
+        "lines",
+        "subtotal",
+        "tax",
+        "total",
+        "tax_inclusive",
+        "incomplete"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutQuoteOutcome": {
+      "description": "CheckoutQuoteOutcome is what pricing an order resolves to.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CheckoutQuote"
+        },
+        {
+          "$ref": "#/$defs/CheckoutError"
+        }
+      ]
+    },
+    "CheckoutBankTransferDetails": {
+      "description": "CheckoutBankTransferDetails is what a customer needs to pay an order by bank transfer. Account fields the store has not set are empty.",
+      "type": "object",
+      "properties": {
+        "invoice_id": {
+          "description": "The invoice the transfer pays.",
+          "type": "string"
+        },
+        "invoice_number": {
+          "description": "Its number, for the customer.",
+          "type": "string"
+        },
+        "reference": {
+          "description": "The payment reference to quote exactly.",
+          "type": "string"
+        },
+        "amount": {
+          "description": "What to send.",
+          "$ref": "#/$defs/Money"
+        },
+        "due_at": {
+          "description": "When it is due, as an RFC 3339 time.",
+          "type": "string"
+        },
+        "account_name": {
+          "description": "The account holder.",
+          "type": "string"
+        },
+        "bank_name": {
+          "description": "The bank.",
+          "type": "string"
+        },
+        "account_number": {
+          "description": "The account number.",
+          "type": "string"
+        },
+        "sort_code": {
+          "description": "The sort code.",
+          "type": "string"
+        },
+        "iban": {
+          "description": "The IBAN.",
+          "type": "string"
+        },
+        "swift": {
+          "description": "The SWIFT or BIC code.",
+          "type": "string"
+        },
+        "instructions": {
+          "description": "What the store tells customers about paying by transfer.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "invoice_id",
+        "invoice_number",
+        "reference",
+        "amount",
+        "due_at",
+        "account_name",
+        "bank_name",
+        "account_number",
+        "sort_code",
+        "iban",
+        "swift",
+        "instructions"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutRedirect": {
+      "description": "CheckoutRedirect is a placed order whose payment happens on the payment provider's page: send the customer to url.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"redirect\".",
+          "const": "redirect"
+        },
+        "url": {
+          "description": "The payment page.",
+          "type": "string"
+        },
+        "order_id": {
+          "description": "The order, or empty.",
+          "type": "string"
+        },
+        "subscription_id": {
+          "description": "The subscription when the order made exactly one, or empty.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "url",
+        "order_id",
+        "subscription_id"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutBankTransferPlaced": {
+      "description": "CheckoutBankTransferPlaced is a placed order to be paid by bank transfer: show the details. Nothing starts until the money arrives.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"bank_transfer\".",
+          "const": "bank_transfer"
+        },
+        "order_id": {
+          "description": "The order.",
+          "type": "string"
+        },
+        "subscription_id": {
+          "description": "The subscription when the order made exactly one, or empty.",
+          "type": "string"
+        },
+        "details": {
+          "description": "Where to send the money, and how much.",
+          "$ref": "#/$defs/CheckoutBankTransferDetails"
+        }
+      },
+      "required": [
+        "status",
+        "order_id",
+        "subscription_id",
+        "details"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutPaid": {
+      "description": "CheckoutPaid is a placed order that needed no payment step: a free or free-trial plan, or a total covered by credit or a promotion. Send the customer to /checkout/success.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"paid\".",
+          "const": "paid"
+        },
+        "order_id": {
+          "description": "The order, or empty for a free or free-trial plan.",
+          "type": "string"
+        },
+        "subscription_id": {
+          "description": "The subscription when the order made exactly one, or empty.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "order_id",
+        "subscription_id"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutStartOutcome": {
+      "description": "CheckoutStartOutcome is what placing an order resolves to.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CheckoutRedirect"
+        },
+        {
+          "$ref": "#/$defs/CheckoutBankTransferPlaced"
+        },
+        {
+          "$ref": "#/$defs/CheckoutPaid"
+        },
+        {
+          "$ref": "#/$defs/CheckoutSignedOut"
+        },
+        {
+          "$ref": "#/$defs/CheckoutError"
+        }
+      ]
+    },
+    "CheckoutConfirmed": {
+      "description": "CheckoutConfirmed is a payment the platform has confirmed: \"paid\", or \"processing\" while the provider settles it, after which the order starts by itself.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"confirmed\".",
+          "const": "confirmed"
+        },
+        "payment": {
+          "description": "\"paid\" or \"processing\".",
+          "enum": [
+            "paid",
+            "processing"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "payment"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutConfirmOutcome": {
+      "description": "CheckoutConfirmOutcome is what confirming a payment resolves to. The success page must confirm: confirming is what completes a payment and starts the order.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CheckoutConfirmed"
+        },
+        {
+          "$ref": "#/$defs/CheckoutSignedOut"
+        },
+        {
+          "$ref": "#/$defs/CheckoutError"
+        }
+      ]
+    },
+    "CheckoutCancelled": {
+      "description": "CheckoutCancelled is an order whose abandoned payment has been cancelled.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"cancelled\".",
+          "const": "cancelled"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutCancelOutcome": {
+      "description": "CheckoutCancelOutcome is what cancelling an abandoned payment resolves to.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CheckoutCancelled"
+        },
+        {
+          "$ref": "#/$defs/CheckoutSignedOut"
+        },
+        {
+          "$ref": "#/$defs/CheckoutError"
+        }
+      ]
+    },
+    "DomainDraftFound": {
+      "description": "DomainDraftFound is a saved domain draft.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"found\".",
+          "const": "found"
+        },
+        "draft": {
+          "description": "The pick.",
+          "$ref": "#/$defs/DomainDraft"
+        }
+      },
+      "required": [
+        "status",
+        "draft"
+      ],
+      "additionalProperties": false
+    },
+    "DomainDraftNone": {
+      "description": "DomainDraftNone is the absence of a saved domain draft.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Always \"none\".",
+          "const": "none"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "DomainDraftOutcome": {
+      "description": "DomainDraftOutcome is what reading the domain draft resolves to.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DomainDraftFound"
+        },
+        {
+          "$ref": "#/$defs/DomainDraftNone"
+        },
+        {
+          "$ref": "#/$defs/CheckoutError"
+        }
+      ]
     },
     "NotFoundData": {
       "description": "NotFoundData is the data of the not-found page. It is always empty.",

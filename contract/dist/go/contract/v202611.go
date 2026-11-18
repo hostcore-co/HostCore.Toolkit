@@ -386,7 +386,8 @@ type V202611Nav struct {
 
 // V202611Action is an endpoint a page may call from the browser.
 type V202611Action struct {
-	// The HTTP method to call it with.
+	// The HTTP method to call it with. An open set: an action that is a page to go
+	// to is GET.
 	Method string `json:"method"`
 	// The endpoint, as a path on the store.
 	URL string `json:"url"`
@@ -406,6 +407,26 @@ type V202611Actions struct {
 	// Build the link with actionHref rather than by hand. Present exactly when
 	// domain_search is, so absent when the store sells no domains.
 	DomainCheckout *V202611Action `json:"domain_checkout,omitempty"`
+	// On checkout pages: the signed-in customer. A GET reads them; a PATCH saves
+	// their billing address. Use the SDK's checkout calls, never the endpoint
+	// itself.
+	CheckoutCustomer *V202611Action `json:"checkout_customer,omitempty"`
+	// On checkout pages: prices an order for display, with tax estimated from a
+	// country and state.
+	CheckoutQuote *V202611Action `json:"checkout_quote,omitempty"`
+	// On checkout pages: places the order and starts payment.
+	CheckoutStart *V202611Action `json:"checkout_start,omitempty"`
+	// On checkout pages: confirms the payment the customer returns from, which
+	// completes the order.
+	CheckoutConfirm *V202611Action `json:"checkout_confirm,omitempty"`
+	// On checkout pages: cancels the order whose payment the customer abandoned.
+	CheckoutCancel *V202611Action `json:"checkout_cancel,omitempty"`
+	// On checkout pages: the domain a visitor has picked, kept on their device. A
+	// GET reads it, a PUT saves it and a DELETE clears it.
+	CheckoutDraft *V202611Action `json:"checkout_draft,omitempty"`
+	// On checkout pages: renews the customer's session once when a call finds it
+	// expired.
+	SessionRefresh *V202611Action `json:"session_refresh,omitempty"`
 }
 
 // V202611PageEnvelope is every page response.
@@ -746,6 +767,322 @@ type V202611CheckoutSuccessData struct{}
 // abandoning payment, /checkout/cancel. It is always empty: the order reference
 // arrives in the address.
 type V202611CheckoutCancelData struct{}
+
+// V202611BillingAddress is the address a customer is invoiced and taxed at,
+// kept on their account. Any field may be empty.
+type V202611BillingAddress struct {
+	// An ISO 3166-1 alpha-2 code, such as "US", or empty.
+	Country string `json:"country"`
+	// The state, province or region.
+	State string `json:"state"`
+	// The first line of the street address.
+	AddressLine1 string `json:"address_line1"`
+	// The second line of the street address.
+	AddressLine2 string `json:"address_line2"`
+	// The city.
+	City string `json:"city"`
+	// The postal or ZIP code.
+	PostalCode string `json:"postal_code"`
+	// A VAT or other tax registration number.
+	TaxID string `json:"tax_id"`
+}
+
+// V202611DomainContact is the registrant contact registries require for a
+// domain: one contact for every domain in the order.
+type V202611DomainContact struct {
+	// Required.
+	FirstName string `json:"first_name"`
+	// Required.
+	LastName string `json:"last_name"`
+	// May be empty.
+	Organization string `json:"organization"`
+	// Required.
+	Email string `json:"email"`
+	// Required.
+	Phone string `json:"phone"`
+	// Required.
+	Address1 string `json:"address1"`
+	// May be empty.
+	Address2 string `json:"address2"`
+	// Required.
+	City string `json:"city"`
+	// May be empty.
+	State string `json:"state"`
+	// Required.
+	PostalCode string `json:"postal_code"`
+	// Required: an ISO 3166-1 alpha-2 code.
+	CountryCode string `json:"country_code"`
+}
+
+// V202611DomainConfig is what registering or transferring a domain needs beyond
+// its name.
+type V202611DomainConfig struct {
+	// The registrant contact.
+	Contact V202611DomainContact `json:"contact"`
+	// True to hide the contact from public WHOIS where the registry allows it.
+	Privacy bool `json:"privacy"`
+	// The authorisation code a transfer needs; absent for a registration.
+	EppCode string `json:"epp_code,omitempty"`
+}
+
+// V202611CheckoutItemKind is what an order item is: a plan or a domain.
+type V202611CheckoutItemKind string
+
+const (
+	V202611CheckoutItemKindPlan   V202611CheckoutItemKind = "plan"
+	V202611CheckoutItemKindDomain V202611CheckoutItemKind = "domain"
+)
+
+// V202611CheckoutBillingInterval is a billing cycle as the checkout calls name
+// it: monthly, quarterly, semiannually or annually, for the PriceInterval
+// month, quarter, semi_annual and year.
+type V202611CheckoutBillingInterval string
+
+const (
+	V202611CheckoutBillingIntervalMonthly      V202611CheckoutBillingInterval = "monthly"
+	V202611CheckoutBillingIntervalQuarterly    V202611CheckoutBillingInterval = "quarterly"
+	V202611CheckoutBillingIntervalSemiannually V202611CheckoutBillingInterval = "semiannually"
+	V202611CheckoutBillingIntervalAnnually     V202611CheckoutBillingInterval = "annually"
+)
+
+// V202611CheckoutItem is one item of an order. The first is what is being
+// bought; each one after it is an add-on of an offer that goes with it. A plan
+// item has service_id, plan_id, order_config and, for a recurring plan,
+// billing_interval; a domain item has domain, action and years, and in a start
+// request domain_config.
+type V202611CheckoutItem struct {
+	// A plan or a domain.
+	Kind V202611CheckoutItemKind `json:"kind"`
+	// A plan item: the service.
+	ServiceID string `json:"service_id,omitempty"`
+	// A plan item: the plan.
+	PlanID string `json:"plan_id,omitempty"`
+	// A recurring plan item: the billing cycle.
+	BillingInterval V202611CheckoutBillingInterval `json:"billing_interval,omitempty"`
+	// A plan item: the order form answers by key, text and choices as strings and
+	// checkboxes as booleans.
+	OrderConfig map[string]any `json:"order_config,omitempty"`
+	// A domain item: the domain name.
+	Domain string `json:"domain,omitempty"`
+	// A domain item: register or transfer.
+	Action string `json:"action,omitempty"`
+	// A domain item: the term in whole years.
+	Years int `json:"years,omitempty"`
+	// A domain item of a start request: the contact, privacy and transfer code.
+	DomainConfig *V202611DomainConfig `json:"domain_config,omitempty"`
+}
+
+// V202611CheckoutQuoteRequest is what pricing an order sends: the items, and
+// the country and state tax is estimated for.
+type V202611CheckoutQuoteRequest struct {
+	// The order items.
+	Items []V202611CheckoutItem `json:"items"`
+	// The billing country, or empty.
+	Country string `json:"country"`
+	// The billing state, or empty.
+	State string `json:"state"`
+}
+
+// V202611CheckoutStartRequest is what placing an order sends. For an order with
+// anything to pay, it names how: method "bank_transfer", or a gateway and the
+// currency to charge in.
+type V202611CheckoutStartRequest struct {
+	// The order items, domain items with their domain_config.
+	Items []V202611CheckoutItem `json:"items"`
+	// "bank_transfer" to pay by bank transfer; absent to pay with a gateway.
+	Method string `json:"method,omitempty"`
+	// The payment provider, when paying with one.
+	Gateway string `json:"gateway,omitempty"`
+	// The ISO 4217 code to charge in, uppercase, when paying with a gateway.
+	Currency string `json:"currency,omitempty"`
+	// A promotion code, or empty.
+	PromoCode string `json:"promo_code,omitempty"`
+}
+
+// V202611DomainDraft is a domain a visitor has picked to buy, kept on their
+// device while they check out.
+type V202611DomainDraft struct {
+	// The domain name.
+	Domain string `json:"domain"`
+	// register or transfer.
+	Action string `json:"action"`
+	// The term in whole years, from 1 to 10.
+	Years int `json:"years"`
+}
+
+// V202611CheckoutSignedOut is a checkout call that needs a signed-in customer
+// finding none, after one attempt to renew the session.
+type V202611CheckoutSignedOut struct {
+	// Always "signed_out".
+	Status string `json:"status"`
+	// The sign-in page, with a return path to this checkout page and its query.
+	SignInURL string `json:"sign_in_url"`
+}
+
+// V202611CheckoutError is a checkout call that failed.
+type V202611CheckoutError struct {
+	// Always "error".
+	Status string `json:"status"`
+	// The platform's reason when it gives one, such as "promo_invalid",
+	// "domain_unavailable" or "invalid_input"; "failed" otherwise. An open set.
+	Code string `json:"code"`
+	// A sentence a customer can read, in English.
+	Message string `json:"message"`
+}
+
+// V202611CheckoutCustomer is a signed-in customer, as checkout needs them.
+type V202611CheckoutCustomer struct {
+	// Always "signed_in".
+	Status string `json:"status"`
+	// Their billing address. The country is empty unless it is a two-letter code.
+	Billing V202611BillingAddress `json:"billing"`
+}
+
+// V202611CheckoutDone is a checkout call that did what it was asked.
+type V202611CheckoutDone struct {
+	// Always "ok".
+	Status string `json:"status"`
+}
+
+// V202611CheckoutQuoteLine is one priced item of a quote, in the order of the
+// request's items.
+type V202611CheckoutQuoteLine struct {
+	// A plan or a domain.
+	Kind V202611CheckoutItemKind `json:"kind"`
+	// What the item is, written for the customer.
+	Label string `json:"label"`
+	// What the item costs now: the first cycle of a plan, with its order-form
+	// options, or the domain's term.
+	Price V202611Money `json:"price"`
+	// The setup fee charged with it; zero when none.
+	SetupFee V202611Money `json:"setup_fee"`
+	// Why the item cannot be ordered as it is; empty when it can.
+	Error string `json:"error"`
+	// True when a required order-form answer is still empty: priced, but not yet
+	// orderable.
+	Incomplete bool `json:"incomplete"`
+}
+
+// V202611CheckoutQuote is a priced order, in the store currency. Tax is an
+// estimate for the country and state asked; the order is taxed from the
+// customer's saved billing address when it is placed. Promotion codes and
+// account credit are not reflected.
+type V202611CheckoutQuote struct {
+	// Always "ok".
+	Status string `json:"status"`
+	// The store currency every amount is in.
+	Currency string `json:"currency"`
+	// One per item.
+	Lines []V202611CheckoutQuoteLine `json:"lines"`
+	// Before tax.
+	Subtotal V202611Money `json:"subtotal"`
+	// The estimated tax.
+	Tax V202611Money `json:"tax"`
+	// Due now.
+	Total V202611Money `json:"total"`
+	// True when the prices already include the tax.
+	TaxInclusive bool `json:"tax_inclusive"`
+	// True when any line is incomplete: the order cannot be placed yet.
+	Incomplete bool `json:"incomplete"`
+}
+
+// V202611CheckoutBankTransferDetails is what a customer needs to pay an order
+// by bank transfer. Account fields the store has not set are empty.
+type V202611CheckoutBankTransferDetails struct {
+	// The invoice the transfer pays.
+	InvoiceID string `json:"invoice_id"`
+	// Its number, for the customer.
+	InvoiceNumber string `json:"invoice_number"`
+	// The payment reference to quote exactly.
+	Reference string `json:"reference"`
+	// What to send.
+	Amount V202611Money `json:"amount"`
+	// When it is due, as an RFC 3339 time.
+	DueAt string `json:"due_at"`
+	// The account holder.
+	AccountName string `json:"account_name"`
+	// The bank.
+	BankName string `json:"bank_name"`
+	// The account number.
+	AccountNumber string `json:"account_number"`
+	// The sort code.
+	SortCode string `json:"sort_code"`
+	// The IBAN.
+	IBAN string `json:"iban"`
+	// The SWIFT or BIC code.
+	SWIFT string `json:"swift"`
+	// What the store tells customers about paying by transfer.
+	Instructions string `json:"instructions"`
+}
+
+// V202611CheckoutRedirect is a placed order whose payment happens on the
+// payment provider's page: send the customer to url.
+type V202611CheckoutRedirect struct {
+	// Always "redirect".
+	Status string `json:"status"`
+	// The payment page.
+	URL string `json:"url"`
+	// The order, or empty.
+	OrderID string `json:"order_id"`
+	// The subscription when the order made exactly one, or empty.
+	SubscriptionID string `json:"subscription_id"`
+}
+
+// V202611CheckoutBankTransferPlaced is a placed order to be paid by bank
+// transfer: show the details. Nothing starts until the money arrives.
+type V202611CheckoutBankTransferPlaced struct {
+	// Always "bank_transfer".
+	Status string `json:"status"`
+	// The order.
+	OrderID string `json:"order_id"`
+	// The subscription when the order made exactly one, or empty.
+	SubscriptionID string `json:"subscription_id"`
+	// Where to send the money, and how much.
+	Details V202611CheckoutBankTransferDetails `json:"details"`
+}
+
+// V202611CheckoutPaid is a placed order that needed no payment step: a free or
+// free-trial plan, or a total covered by credit or a promotion. Send the
+// customer to /checkout/success.
+type V202611CheckoutPaid struct {
+	// Always "paid".
+	Status string `json:"status"`
+	// The order, or empty for a free or free-trial plan.
+	OrderID string `json:"order_id"`
+	// The subscription when the order made exactly one, or empty.
+	SubscriptionID string `json:"subscription_id"`
+}
+
+// V202611CheckoutConfirmed is a payment the platform has confirmed: "paid", or
+// "processing" while the provider settles it, after which the order starts by
+// itself.
+type V202611CheckoutConfirmed struct {
+	// Always "confirmed".
+	Status string `json:"status"`
+	// "paid" or "processing".
+	Payment string `json:"payment"`
+}
+
+// V202611CheckoutCancelled is an order whose abandoned payment has been
+// cancelled.
+type V202611CheckoutCancelled struct {
+	// Always "cancelled".
+	Status string `json:"status"`
+}
+
+// V202611DomainDraftFound is a saved domain draft.
+type V202611DomainDraftFound struct {
+	// Always "found".
+	Status string `json:"status"`
+	// The pick.
+	Draft V202611DomainDraft `json:"draft"`
+}
+
+// V202611DomainDraftNone is the absence of a saved domain draft.
+type V202611DomainDraftNone struct {
+	// Always "none".
+	Status string `json:"status"`
+}
 
 // V202611NotFoundData is the data of the not-found page. It is always empty.
 type V202611NotFoundData struct{}

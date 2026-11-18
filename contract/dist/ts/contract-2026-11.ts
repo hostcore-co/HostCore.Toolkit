@@ -421,8 +421,11 @@ export interface Nav {
 
 /** Action is an endpoint a page may call from the browser. */
 export interface Action {
-  /** The HTTP method to call it with. */
-  method: 'GET' | 'POST'
+  /**
+   * The HTTP method to call it with. An open set: an action that is a page to
+   * go to is GET.
+   */
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'QUERY' | (string & {})
   /** The endpoint, as a path on the store. */
   url: string
 }
@@ -447,6 +450,36 @@ export interface Actions {
    * exactly when domain_search is, so absent when the store sells no domains.
    */
   domain_checkout?: Action
+  /**
+   * On checkout pages: the signed-in customer. A GET reads them; a PATCH saves
+   * their billing address. Use the SDK's checkout calls, never the endpoint
+   * itself.
+   */
+  checkout_customer?: Action
+  /**
+   * On checkout pages: prices an order for display, with tax estimated from a
+   * country and state.
+   */
+  checkout_quote?: Action
+  /** On checkout pages: places the order and starts payment. */
+  checkout_start?: Action
+  /**
+   * On checkout pages: confirms the payment the customer returns from, which
+   * completes the order.
+   */
+  checkout_confirm?: Action
+  /** On checkout pages: cancels the order whose payment the customer abandoned. */
+  checkout_cancel?: Action
+  /**
+   * On checkout pages: the domain a visitor has picked, kept on their device.
+   * A GET reads it, a PUT saves it and a DELETE clears it.
+   */
+  checkout_draft?: Action
+  /**
+   * On checkout pages: renews the customer's session once when a call finds it
+   * expired.
+   */
+  session_refresh?: Action
 }
 
 /** PageEnvelope is every page response. */
@@ -867,6 +900,384 @@ export type CheckoutSuccessData = Record<string, never>
  * reference arrives in the address.
  */
 export type CheckoutCancelData = Record<string, never>
+
+/**
+ * BillingAddress is the address a customer is invoiced and taxed at, kept on
+ * their account. Any field may be empty.
+ */
+export interface BillingAddress {
+  /** An ISO 3166-1 alpha-2 code, such as "US", or empty. */
+  country: string
+  /** The state, province or region. */
+  state: string
+  /** The first line of the street address. */
+  address_line1: string
+  /** The second line of the street address. */
+  address_line2: string
+  /** The city. */
+  city: string
+  /** The postal or ZIP code. */
+  postal_code: string
+  /** A VAT or other tax registration number. */
+  tax_id: string
+}
+
+/**
+ * DomainContact is the registrant contact registries require for a domain: one
+ * contact for every domain in the order.
+ */
+export interface DomainContact {
+  /** Required. */
+  first_name: string
+  /** Required. */
+  last_name: string
+  /** May be empty. */
+  organization: string
+  /** Required. */
+  email: string
+  /** Required. */
+  phone: string
+  /** Required. */
+  address1: string
+  /** May be empty. */
+  address2: string
+  /** Required. */
+  city: string
+  /** May be empty. */
+  state: string
+  /** Required. */
+  postal_code: string
+  /** Required: an ISO 3166-1 alpha-2 code. */
+  country_code: string
+}
+
+/**
+ * DomainConfig is what registering or transferring a domain needs beyond its
+ * name.
+ */
+export interface DomainConfig {
+  /** The registrant contact. */
+  contact: DomainContact
+  /** True to hide the contact from public WHOIS where the registry allows it. */
+  privacy: boolean
+  /** The authorisation code a transfer needs; absent for a registration. */
+  epp_code?: string
+}
+
+/** CheckoutItemKind is what an order item is: a plan or a domain. */
+export type CheckoutItemKind = 'plan' | 'domain'
+
+export const CheckoutItemKindValues = ['plan', 'domain'] as const
+
+/**
+ * CheckoutBillingInterval is a billing cycle as the checkout calls name it:
+ * monthly, quarterly, semiannually or annually, for the PriceInterval month,
+ * quarter, semi_annual and year.
+ */
+export type CheckoutBillingInterval = 'monthly' | 'quarterly' | 'semiannually' | 'annually'
+
+export const CheckoutBillingIntervalValues = ['monthly', 'quarterly', 'semiannually', 'annually'] as const
+
+/**
+ * CheckoutItem is one item of an order. The first is what is being bought;
+ * each one after it is an add-on of an offer that goes with it. A plan item
+ * has service_id, plan_id, order_config and, for a recurring plan,
+ * billing_interval; a domain item has domain, action and years, and in a start
+ * request domain_config.
+ */
+export interface CheckoutItem {
+  /** A plan or a domain. */
+  kind: CheckoutItemKind
+  /** A plan item: the service. */
+  service_id?: string
+  /** A plan item: the plan. */
+  plan_id?: string
+  /** A recurring plan item: the billing cycle. */
+  billing_interval?: CheckoutBillingInterval
+  /**
+   * A plan item: the order form answers by key, text and choices as strings
+   * and checkboxes as booleans.
+   */
+  order_config?: Record<string, JsonValue>
+  /** A domain item: the domain name. */
+  domain?: string
+  /** A domain item: register or transfer. */
+  action?: string
+  /** A domain item: the term in whole years. */
+  years?: number
+  /** A domain item of a start request: the contact, privacy and transfer code. */
+  domain_config?: DomainConfig
+}
+
+/**
+ * CheckoutQuoteRequest is what pricing an order sends: the items, and the
+ * country and state tax is estimated for.
+ */
+export interface CheckoutQuoteRequest {
+  /** The order items. */
+  items: CheckoutItem[]
+  /** The billing country, or empty. */
+  country: string
+  /** The billing state, or empty. */
+  state: string
+}
+
+/**
+ * CheckoutStartRequest is what placing an order sends. For an order with
+ * anything to pay, it names how: method "bank_transfer", or a gateway and the
+ * currency to charge in.
+ */
+export interface CheckoutStartRequest {
+  /** The order items, domain items with their domain_config. */
+  items: CheckoutItem[]
+  /** "bank_transfer" to pay by bank transfer; absent to pay with a gateway. */
+  method?: string
+  /** The payment provider, when paying with one. */
+  gateway?: string
+  /** The ISO 4217 code to charge in, uppercase, when paying with a gateway. */
+  currency?: string
+  /** A promotion code, or empty. */
+  promo_code?: string
+}
+
+/**
+ * DomainDraft is a domain a visitor has picked to buy, kept on their device
+ * while they check out.
+ */
+export interface DomainDraft {
+  /** The domain name. */
+  domain: string
+  /** register or transfer. */
+  action: string
+  /** The term in whole years, from 1 to 10. */
+  years: number
+}
+
+/**
+ * CheckoutSignedOut is a checkout call that needs a signed-in customer finding
+ * none, after one attempt to renew the session.
+ */
+export interface CheckoutSignedOut {
+  /** Always "signed_out". */
+  status: 'signed_out'
+  /** The sign-in page, with a return path to this checkout page and its query. */
+  sign_in_url: string
+}
+
+/** CheckoutError is a checkout call that failed. */
+export interface CheckoutError {
+  /** Always "error". */
+  status: 'error'
+  /**
+   * The platform's reason when it gives one, such as "promo_invalid",
+   * "domain_unavailable" or "invalid_input"; "failed" otherwise. An open set.
+   */
+  code: string
+  /** A sentence a customer can read, in English. */
+  message: string
+}
+
+/** CheckoutCustomer is a signed-in customer, as checkout needs them. */
+export interface CheckoutCustomer {
+  /** Always "signed_in". */
+  status: 'signed_in'
+  /**
+   * Their billing address. The country is empty unless it is a two-letter
+   * code.
+   */
+  billing: BillingAddress
+}
+
+/** CheckoutCustomerOutcome is what reading the customer resolves to. */
+export type CheckoutCustomerOutcome = CheckoutCustomer | CheckoutSignedOut | CheckoutError
+
+/** CheckoutDone is a checkout call that did what it was asked. */
+export interface CheckoutDone {
+  /** Always "ok". */
+  status: 'ok'
+}
+
+/**
+ * CheckoutSaveOutcome is what saving the billing address, or saving or
+ * clearing the domain draft, resolves to.
+ */
+export type CheckoutSaveOutcome = CheckoutDone | CheckoutSignedOut | CheckoutError
+
+/**
+ * CheckoutQuoteLine is one priced item of a quote, in the order of the
+ * request's items.
+ */
+export interface CheckoutQuoteLine {
+  /** A plan or a domain. */
+  kind: CheckoutItemKind
+  /** What the item is, written for the customer. */
+  label: string
+  /**
+   * What the item costs now: the first cycle of a plan, with its order-form
+   * options, or the domain's term.
+   */
+  price: Money
+  /** The setup fee charged with it; zero when none. */
+  setup_fee: Money
+  /** Why the item cannot be ordered as it is; empty when it can. */
+  error: string
+  /**
+   * True when a required order-form answer is still empty: priced, but not yet
+   * orderable.
+   */
+  incomplete: boolean
+}
+
+/**
+ * CheckoutQuote is a priced order, in the store currency. Tax is an estimate
+ * for the country and state asked; the order is taxed from the customer's
+ * saved billing address when it is placed. Promotion codes and account credit
+ * are not reflected.
+ */
+export interface CheckoutQuote {
+  /** Always "ok". */
+  status: 'ok'
+  /** The store currency every amount is in. */
+  currency: string
+  /** One per item. */
+  lines: CheckoutQuoteLine[]
+  /** Before tax. */
+  subtotal: Money
+  /** The estimated tax. */
+  tax: Money
+  /** Due now. */
+  total: Money
+  /** True when the prices already include the tax. */
+  tax_inclusive: boolean
+  /** True when any line is incomplete: the order cannot be placed yet. */
+  incomplete: boolean
+}
+
+/** CheckoutQuoteOutcome is what pricing an order resolves to. */
+export type CheckoutQuoteOutcome = CheckoutQuote | CheckoutError
+
+/**
+ * CheckoutBankTransferDetails is what a customer needs to pay an order by bank
+ * transfer. Account fields the store has not set are empty.
+ */
+export interface CheckoutBankTransferDetails {
+  /** The invoice the transfer pays. */
+  invoice_id: string
+  /** Its number, for the customer. */
+  invoice_number: string
+  /** The payment reference to quote exactly. */
+  reference: string
+  /** What to send. */
+  amount: Money
+  /** When it is due, as an RFC 3339 time. */
+  due_at: string
+  /** The account holder. */
+  account_name: string
+  /** The bank. */
+  bank_name: string
+  /** The account number. */
+  account_number: string
+  /** The sort code. */
+  sort_code: string
+  /** The IBAN. */
+  iban: string
+  /** The SWIFT or BIC code. */
+  swift: string
+  /** What the store tells customers about paying by transfer. */
+  instructions: string
+}
+
+/**
+ * CheckoutRedirect is a placed order whose payment happens on the payment
+ * provider's page: send the customer to url.
+ */
+export interface CheckoutRedirect {
+  /** Always "redirect". */
+  status: 'redirect'
+  /** The payment page. */
+  url: string
+  /** The order, or empty. */
+  order_id: string
+  /** The subscription when the order made exactly one, or empty. */
+  subscription_id: string
+}
+
+/**
+ * CheckoutBankTransferPlaced is a placed order to be paid by bank transfer:
+ * show the details. Nothing starts until the money arrives.
+ */
+export interface CheckoutBankTransferPlaced {
+  /** Always "bank_transfer". */
+  status: 'bank_transfer'
+  /** The order. */
+  order_id: string
+  /** The subscription when the order made exactly one, or empty. */
+  subscription_id: string
+  /** Where to send the money, and how much. */
+  details: CheckoutBankTransferDetails
+}
+
+/**
+ * CheckoutPaid is a placed order that needed no payment step: a free or
+ * free-trial plan, or a total covered by credit or a promotion. Send the
+ * customer to /checkout/success.
+ */
+export interface CheckoutPaid {
+  /** Always "paid". */
+  status: 'paid'
+  /** The order, or empty for a free or free-trial plan. */
+  order_id: string
+  /** The subscription when the order made exactly one, or empty. */
+  subscription_id: string
+}
+
+/** CheckoutStartOutcome is what placing an order resolves to. */
+export type CheckoutStartOutcome = CheckoutRedirect | CheckoutBankTransferPlaced | CheckoutPaid | CheckoutSignedOut | CheckoutError
+
+/**
+ * CheckoutConfirmed is a payment the platform has confirmed: "paid", or
+ * "processing" while the provider settles it, after which the order starts by
+ * itself.
+ */
+export interface CheckoutConfirmed {
+  /** Always "confirmed". */
+  status: 'confirmed'
+  /** "paid" or "processing". */
+  payment: 'paid' | 'processing'
+}
+
+/**
+ * CheckoutConfirmOutcome is what confirming a payment resolves to. The success
+ * page must confirm: confirming is what completes a payment and starts the
+ * order.
+ */
+export type CheckoutConfirmOutcome = CheckoutConfirmed | CheckoutSignedOut | CheckoutError
+
+/** CheckoutCancelled is an order whose abandoned payment has been cancelled. */
+export interface CheckoutCancelled {
+  /** Always "cancelled". */
+  status: 'cancelled'
+}
+
+/** CheckoutCancelOutcome is what cancelling an abandoned payment resolves to. */
+export type CheckoutCancelOutcome = CheckoutCancelled | CheckoutSignedOut | CheckoutError
+
+/** DomainDraftFound is a saved domain draft. */
+export interface DomainDraftFound {
+  /** Always "found". */
+  status: 'found'
+  /** The pick. */
+  draft: DomainDraft
+}
+
+/** DomainDraftNone is the absence of a saved domain draft. */
+export interface DomainDraftNone {
+  /** Always "none". */
+  status: 'none'
+}
+
+/** DomainDraftOutcome is what reading the domain draft resolves to. */
+export type DomainDraftOutcome = DomainDraftFound | DomainDraftNone | CheckoutError
 
 /** NotFoundData is the data of the not-found page. It is always empty. */
 export type NotFoundData = Record<string, never>

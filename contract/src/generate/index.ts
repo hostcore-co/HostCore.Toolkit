@@ -6,6 +6,8 @@ import { contract202611 } from '../contract-2026-11'
 import { downgrade } from '../downgrade'
 import { LINK_CASES } from '../link-cases'
 import { DOMAIN_SEARCH_CASES } from '../domain-search-cases'
+import { CHECKOUT_CALL_CASES, SIGN_IN_URL } from '../checkout-call-cases'
+import { CHECKOUT_OUTCOME_TYPES, checkoutCallOutcome } from '../checkout-calls'
 import { domainSearchOutcome } from '../domain-search'
 import { normaliseRegistry, readRegistry, validateRegistry } from '../registry'
 import { linkValueError } from '../settings'
@@ -129,10 +131,26 @@ function domainSearchFixture(): string {
 }
 
 /**
+ * The cases of the checkout calls as `fixtures/checkout-calls.json`, each
+ * checked against the conversions and the contract's outcome type first.
+ */
+function checkoutCallsFixture(): string {
+  const errors: string[] = []
+  const cases = CHECKOUT_CALL_CASES.map((c) => {
+    const got = checkoutCallOutcome(c.call, c.status, c.body, SIGN_IN_URL)
+    if (canonical(got) !== canonical(c.outcome)) errors.push(`"${c.name}": ${c.call} gives ${JSON.stringify(got)}`)
+    errors.push(...validateType('2026-11', CHECKOUT_OUTCOME_TYPES[c.call], c.outcome).map((e) => `"${c.name}" outcome ${e.path}: ${e.message}`))
+    return { name: c.name, call: c.call, status: c.status, body: c.body, outcome: got }
+  })
+  if (errors.length > 0) throw new ContractError(`the checkout call cases are wrong:\n  ${errors.join('\n  ')}`)
+  return json({ sign_in_url: SIGN_IN_URL, cases })
+}
+
+/**
  * Every generated file, keyed by path relative to the contract directory:
  * `dist/`, the contract "1" fixtures, which are the reference downgrade of
  * the "2026-11" fixtures, and the tables of rules other implementations test
- * against (`fixtures/links.json`, `fixtures/tokens.json`, `fixtures/domain-search.json`).
+ * against (`fixtures/links.json`, `fixtures/tokens.json`, `fixtures/domain-search.json`, `fixtures/checkout-calls.json`).
  */
 export function generateAll(contractDir: string): Record<string, string> {
   const registry = loadCheckedRegistry(contractDir)
@@ -156,6 +174,7 @@ export function generateAll(contractDir: string): Record<string, string> {
   files['fixtures/links.json'] = linkFixture()
   files['fixtures/tokens.json'] = tokenFixture()
   files['fixtures/domain-search.json'] = domainSearchFixture()
+  files['fixtures/checkout-calls.json'] = checkoutCallsFixture()
 
   const sourceDir = join(contractDir, 'fixtures', '2026-11')
   const fixtureErrors: string[] = []

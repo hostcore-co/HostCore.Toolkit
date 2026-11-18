@@ -9,9 +9,13 @@
           "optional": false,
           "values": [
             "GET",
-            "POST"
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "QUERY"
           ],
-          "open": false
+          "open": true
         },
         "url": {
           "type": "string",
@@ -22,6 +26,30 @@
     "Actions": {
       "kind": "object",
       "fields": {
+        "checkout_cancel": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_confirm": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_customer": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_draft": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_quote": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_start": {
+          "type": "Action",
+          "optional": true
+        },
         "domain_checkout": {
           "type": "Action",
           "optional": true
@@ -29,6 +57,44 @@
         "domain_search": {
           "type": "Action",
           "optional": true
+        },
+        "session_refresh": {
+          "type": "Action",
+          "optional": true
+        }
+      }
+    },
+    "BillingAddress": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "address_line1": {
+          "type": "string",
+          "optional": false
+        },
+        "address_line2": {
+          "type": "string",
+          "optional": false
+        },
+        "city": {
+          "type": "string",
+          "optional": false
+        },
+        "country": {
+          "type": "string",
+          "optional": false
+        },
+        "postal_code": {
+          "type": "string",
+          "optional": false
+        },
+        "state": {
+          "type": "string",
+          "optional": false
+        },
+        "tax_id": {
+          "type": "string",
+          "optional": false
         }
       }
     },
@@ -75,9 +141,142 @@
         }
       }
     },
+    "CheckoutBankTransferDetails": {
+      "kind": "object",
+      "fields": {
+        "account_name": {
+          "type": "string",
+          "optional": false
+        },
+        "account_number": {
+          "type": "string",
+          "optional": false
+        },
+        "amount": {
+          "type": "Money",
+          "optional": false
+        },
+        "bank_name": {
+          "type": "string",
+          "optional": false
+        },
+        "due_at": {
+          "type": "string",
+          "optional": false
+        },
+        "iban": {
+          "type": "string",
+          "optional": false
+        },
+        "instructions": {
+          "type": "string",
+          "optional": false
+        },
+        "invoice_id": {
+          "type": "string",
+          "optional": false
+        },
+        "invoice_number": {
+          "type": "string",
+          "optional": false
+        },
+        "reference": {
+          "type": "string",
+          "optional": false
+        },
+        "sort_code": {
+          "type": "string",
+          "optional": false
+        },
+        "swift": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutBankTransferPlaced": {
+      "kind": "object",
+      "fields": {
+        "details": {
+          "type": "CheckoutBankTransferDetails",
+          "optional": false
+        },
+        "order_id": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"bank_transfer\"",
+          "optional": false
+        },
+        "subscription_id": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutBillingInterval": {
+      "kind": "enum",
+      "values": [
+        "monthly",
+        "quarterly",
+        "semiannually",
+        "annually"
+      ],
+      "open": false
+    },
     "CheckoutCancelData": {
       "kind": "object",
       "fields": {}
+    },
+    "CheckoutCancelOutcome": {
+      "kind": "union(status: cancelled=CheckoutCancelled, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutCancelled": {
+      "kind": "object",
+      "fields": {
+        "status": {
+          "type": "\"cancelled\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutConfirmOutcome": {
+      "kind": "union(status: confirmed=CheckoutConfirmed, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutConfirmed": {
+      "kind": "object",
+      "fields": {
+        "payment": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "paid",
+            "processing"
+          ],
+          "open": false
+        },
+        "status": {
+          "type": "\"confirmed\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutCustomer": {
+      "kind": "object",
+      "fields": {
+        "billing": {
+          "type": "BillingAddress",
+          "optional": false
+        },
+        "status": {
+          "type": "\"signed_in\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutCustomerOutcome": {
+      "kind": "union(status: signed_in=CheckoutCustomer, signed_out=CheckoutSignedOut, error=CheckoutError)"
     },
     "CheckoutCycle": {
       "kind": "object",
@@ -113,6 +312,32 @@
         }
       }
     },
+    "CheckoutDone": {
+      "kind": "object",
+      "fields": {
+        "status": {
+          "type": "\"ok\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutError": {
+      "kind": "object",
+      "fields": {
+        "code": {
+          "type": "string",
+          "optional": false
+        },
+        "message": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"error\"",
+          "optional": false
+        }
+      }
+    },
     "CheckoutGateway": {
       "kind": "object",
       "fields": {
@@ -129,6 +354,56 @@
           "optional": false
         }
       }
+    },
+    "CheckoutItem": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "action": {
+          "type": "string",
+          "optional": true
+        },
+        "billing_interval": {
+          "type": "CheckoutBillingInterval",
+          "optional": true
+        },
+        "domain": {
+          "type": "string",
+          "optional": true
+        },
+        "domain_config": {
+          "type": "DomainConfig",
+          "optional": true
+        },
+        "kind": {
+          "type": "CheckoutItemKind",
+          "optional": false
+        },
+        "order_config": {
+          "type": "Record<string, json>",
+          "optional": true
+        },
+        "plan_id": {
+          "type": "string",
+          "optional": true
+        },
+        "service_id": {
+          "type": "string",
+          "optional": true
+        },
+        "years": {
+          "type": "integer",
+          "optional": true
+        }
+      }
+    },
+    "CheckoutItemKind": {
+      "kind": "enum",
+      "values": [
+        "plan",
+        "domain"
+      ],
+      "open": false
     },
     "CheckoutOffer": {
       "kind": "object",
@@ -221,6 +496,23 @@
         },
         "transfer": {
           "type": "DomainTermPrice[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutPaid": {
+      "kind": "object",
+      "fields": {
+        "order_id": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"paid\"",
+          "optional": false
+        },
+        "subscription_id": {
+          "type": "string",
           "optional": false
         }
       }
@@ -324,12 +616,276 @@
         }
       }
     },
+    "CheckoutQuote": {
+      "kind": "object",
+      "fields": {
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "incomplete": {
+          "type": "boolean",
+          "optional": false
+        },
+        "lines": {
+          "type": "CheckoutQuoteLine[]",
+          "optional": false
+        },
+        "status": {
+          "type": "\"ok\"",
+          "optional": false
+        },
+        "subtotal": {
+          "type": "Money",
+          "optional": false
+        },
+        "tax": {
+          "type": "Money",
+          "optional": false
+        },
+        "tax_inclusive": {
+          "type": "boolean",
+          "optional": false
+        },
+        "total": {
+          "type": "Money",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutQuoteLine": {
+      "kind": "object",
+      "fields": {
+        "error": {
+          "type": "string",
+          "optional": false
+        },
+        "incomplete": {
+          "type": "boolean",
+          "optional": false
+        },
+        "kind": {
+          "type": "CheckoutItemKind",
+          "optional": false
+        },
+        "label": {
+          "type": "string",
+          "optional": false
+        },
+        "price": {
+          "type": "Money",
+          "optional": false
+        },
+        "setup_fee": {
+          "type": "Money",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutQuoteOutcome": {
+      "kind": "union(status: ok=CheckoutQuote, error=CheckoutError)"
+    },
+    "CheckoutQuoteRequest": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "country": {
+          "type": "string",
+          "optional": false
+        },
+        "items": {
+          "type": "CheckoutItem[]",
+          "optional": false
+        },
+        "state": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutRedirect": {
+      "kind": "object",
+      "fields": {
+        "order_id": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"redirect\"",
+          "optional": false
+        },
+        "subscription_id": {
+          "type": "string",
+          "optional": false
+        },
+        "url": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutSaveOutcome": {
+      "kind": "union(status: ok=CheckoutDone, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutSignedOut": {
+      "kind": "object",
+      "fields": {
+        "sign_in_url": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"signed_out\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutStartOutcome": {
+      "kind": "union(status: redirect=CheckoutRedirect, bank_transfer=CheckoutBankTransferPlaced, paid=CheckoutPaid, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutStartRequest": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "currency": {
+          "type": "string",
+          "optional": true
+        },
+        "gateway": {
+          "type": "string",
+          "optional": true
+        },
+        "items": {
+          "type": "CheckoutItem[]",
+          "optional": false
+        },
+        "method": {
+          "type": "string",
+          "optional": true
+        },
+        "promo_code": {
+          "type": "string",
+          "optional": true
+        }
+      }
+    },
     "CheckoutSuccessData": {
       "kind": "object",
       "fields": {}
     },
     "ContractVersion": {
       "kind": "\"2026-11\""
+    },
+    "DomainConfig": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "contact": {
+          "type": "DomainContact",
+          "optional": false
+        },
+        "epp_code": {
+          "type": "string",
+          "optional": true
+        },
+        "privacy": {
+          "type": "boolean",
+          "optional": false
+        }
+      }
+    },
+    "DomainContact": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "address1": {
+          "type": "string",
+          "optional": false
+        },
+        "address2": {
+          "type": "string",
+          "optional": false
+        },
+        "city": {
+          "type": "string",
+          "optional": false
+        },
+        "country_code": {
+          "type": "string",
+          "optional": false
+        },
+        "email": {
+          "type": "string",
+          "optional": false
+        },
+        "first_name": {
+          "type": "string",
+          "optional": false
+        },
+        "last_name": {
+          "type": "string",
+          "optional": false
+        },
+        "organization": {
+          "type": "string",
+          "optional": false
+        },
+        "phone": {
+          "type": "string",
+          "optional": false
+        },
+        "postal_code": {
+          "type": "string",
+          "optional": false
+        },
+        "state": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "DomainDraft": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "action": {
+          "type": "string",
+          "optional": false
+        },
+        "domain": {
+          "type": "string",
+          "optional": false
+        },
+        "years": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "DomainDraftFound": {
+      "kind": "object",
+      "fields": {
+        "draft": {
+          "type": "DomainDraft",
+          "optional": false
+        },
+        "status": {
+          "type": "\"found\"",
+          "optional": false
+        }
+      }
+    },
+    "DomainDraftNone": {
+      "kind": "object",
+      "fields": {
+        "status": {
+          "type": "\"none\"",
+          "optional": false
+        }
+      }
+    },
+    "DomainDraftOutcome": {
+      "kind": "union(status: found=DomainDraftFound, none=DomainDraftNone, error=CheckoutError)"
     },
     "DomainSearchAction": {
       "kind": "enum",

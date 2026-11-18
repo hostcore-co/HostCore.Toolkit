@@ -13,6 +13,7 @@ fixtures/1/*.json        the same payloads downgraded to contract "1" (generated
 fixtures/links.json      the cases of the link rule (generated)
 fixtures/tokens.json     the cases of the colour rule (generated)
 fixtures/domain-search.json  domain search answers and their outcomes (generated)
+fixtures/checkout-calls.json checkout call answers and their outcomes (generated)
 baselines/<version>.json what a template can observe of each version, frozen (hct contract accept)
 dist/                    generated, committed; copy these files, do not edit them
   ts/contract-1.ts  ts/contract-2026-11.ts  ts/registry.ts
@@ -133,6 +134,52 @@ shape, becomes the error `failed`). Without it, `searchDomains` posts
 (generated from `src/domain-search-cases.ts`, each case checked) lists
 `{ name, status, body, outcome }`: an HTTP status and body the endpoint
 answers, and the outcome a page's implementation must give for it.
+
+## Checkout calls
+
+A checkout page (registry tier `checkout`) is rendered with nothing about the
+customer in its data. What depends on the customer happens in the browser,
+through the SDK's checkout calls, each typed here with an outcome that is
+never a rejection:
+
+| call | action | request | outcome |
+| --- | --- | --- | --- |
+| read the customer | `checkout_customer` (GET) | none | `CheckoutCustomerOutcome`: `CheckoutCustomer` (`{ status: "signed_in", billing: BillingAddress }`), `CheckoutSignedOut` or `CheckoutError` |
+| save the billing address | `checkout_customer` (PATCH) | `BillingAddress` | `CheckoutSaveOutcome`: `CheckoutDone`, `CheckoutSignedOut` or `CheckoutError` |
+| price the order | `checkout_quote` (QUERY) | `CheckoutQuoteRequest` | `CheckoutQuoteOutcome`: `CheckoutQuote` or `CheckoutError` |
+| place the order | `checkout_start` (POST) | `CheckoutStartRequest` | `CheckoutStartOutcome`: `CheckoutRedirect` (go to `url`), `CheckoutBankTransferPlaced` (show `details`), `CheckoutPaid` (go to `/checkout/success`), `CheckoutSignedOut` or `CheckoutError` |
+| confirm a payment | `checkout_confirm` (GET, `subscription_id`, `session_id`) | none | `CheckoutConfirmOutcome`: `CheckoutConfirmed` (`payment` `paid` or `processing`), `CheckoutSignedOut` or `CheckoutError` |
+| cancel an abandoned payment | `checkout_cancel` (GET, `subscription_id`) | none | `CheckoutCancelOutcome`: `CheckoutCancelled`, `CheckoutSignedOut` or `CheckoutError` |
+| read, save, clear the domain draft | `checkout_draft` (GET, PUT, DELETE) | `DomainDraft` | `DomainDraftOutcome` (`DomainDraftFound`, `DomainDraftNone`, `CheckoutError`); `CheckoutSaveOutcome` |
+
+`CheckoutItem`, `DomainConfig` and `DomainContact` make up the requests. The
+`actions` entries are present on checkout pages only, with
+`session_refresh` (POST), which renews an expired session. Money is in the
+contract's usual convention (`Money`, `amount = amount_minor / 100`); a quote
+is in the store currency, and its tax is an estimate.
+
+**Signed out.** A call that needs a signed-in customer and gets 401 renews
+the session once (`session_refresh`, one renewal shared by calls made at the
+same time), retries once, and if that is 401 as well, or the renewal fails,
+resolves to `CheckoutSignedOut`, whose `sign_in_url` is `nav.links.login`
+with `redirectTo` set to the page's path and query, so the customer comes
+back to the same checkout page.
+
+**The page interface.** A checkout page may provide `window.hc.checkout`, an
+object with these methods, each resolving to the outcome above and never
+rejecting, and handling an expired session as just described:
+`customer()`, `saveBillingAddress(address)`, `quote(request)`,
+`start(request)`, `confirm(reference, sessionId)`, `cancel(reference)`,
+`readDraft()`, `saveDraft(draft)`, `clearDraft()`, and the synchronous
+`displayCurrency()` (the visitor's chosen currency, else the store's,
+uppercase) and `setDisplayCurrency(code)`. `PageCheckout` in
+`src/checkout-calls.ts` is its type. When it is there, the SDK uses it and
+makes no requests of its own; otherwise the SDK makes the requests itself
+and converts the answers with `src/checkout-calls.ts`.
+`fixtures/checkout-calls.json` (generated from `src/checkout-call-cases.ts`,
+each case checked) is `{ sign_in_url, cases: [{ name, call, status, body,
+outcome }] }`: what each endpoint answers, after the one renewal and retry,
+and the outcome an implementation must give for it.
 
 ## Standard settings
 
