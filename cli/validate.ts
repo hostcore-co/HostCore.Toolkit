@@ -1,5 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises'
-import { join, relative, sep } from 'node:path'
+import { existsSync } from 'node:fs'
+import { dirname, join, relative, sep } from 'node:path'
 import { Glob } from 'bun'
 import {
   BANNED_IMPORT_PREFIXES,
@@ -12,7 +13,8 @@ import {
   SOURCE_GLOB,
   STYLESHEET_GLOB,
 } from './policy'
-import { discoverSources } from './sources'
+import { discoverSources, SOURCE_EXTENSIONS } from './sources'
+import { PAGES } from '../contract/dist/ts/registry'
 import { externalStylesheetUrls } from './stylesheet'
 import { isFormat2, type LoadedTemplate } from './template'
 
@@ -55,9 +57,11 @@ export async function validateTemplate(
     ...checkAllowedPackages(template),
   ]
   const format2 = isFormat2(template)
+  let checkoutFiles = new Set<string>()
   if (format2) {
-    const { problems } = await discoverSources(template.root)
+    const { sources, problems } = await discoverSources(template.root)
     findings.push(...problems.map((p) => ({ ...p, line: 0 })))
+    checkoutFiles = await checkoutClosure(template.root, sources.pages)
   }
   const declaredSettings = new Set((template.manifest.settings ?? []).map((s) => s.id))
 
@@ -75,6 +79,7 @@ export async function validateTemplate(
     findings.push(...scanImports(transpiler, source, relPath, narrowed))
     findings.push(...scanSource(source, relPath))
     if (format2 && /^src\/slots\/[^/]+$/.test(relPath)) findings.push(...scanSlot(source, relPath))
+    if (format2 && !checkoutFiles.has(relPath)) findings.push(...scanCheckoutUse(source, relPath))
     if (format2) {
       findings.push(...scanPlatformUrls(source, relPath))
       findings.push(...scanSettingIds(source, relPath, declaredSettings))
@@ -286,6 +291,60 @@ function scanPlatformUrls(source: string, file: string): Finding[] {
         line: index + 1,
         rule: 'hand-built-platform-url',
         message: `"${rule.path}…" is a platform URL; ${platformUrlAdvice(rule)}`,
+      })
+    }
+  })
+  return findings
+}
+
+/** The SDK's checkout hooks and calls, which act for the signed-in customer. */
+const CHECKOUT_NAMES =
+  /\b(useCheckoutPlan|useCheckoutDomains|useCheckoutSuccess|useCheckoutCancel|checkoutCustomer|saveBillingAddress|quoteCheckout|startCheckout|confirmCheckout|cancelCheckout|readDomainDraft|saveDomainDraft|clearDomainDraft)\b/g
+
+/**
+ * The checkout pages' files and every file of the template they import,
+ * directly or not, by path relative to the template.
+ */
+async function checkoutClosure(root: string, pages: Record<string, string>): Promise<Set<string>> {
+  const transpiler = new Bun.Transpiler({ loader: 'tsx' })
+  const checkoutPages = PAGES.filter((p) => p.tier === 'checkout').map((p) => p.id)
+  const queue = checkoutPages.flatMap((id) => (pages[id] ? [pages[id]!] : []))
+  const seen = new Set<string>()
+  while (queue.length > 0) {
+    const file = queue.shift()!
+    if (seen.has(file)) continue
+    seen.add(file)
+    let imports: Array<{ path: string }> = []
+    try {
+      imports = transpiler.scanImports(await readFile(file, 'utf8'))
+    } catch {
+      continue
+    }
+    for (const { path } of imports) {
+      const base = path.startsWith('.') ? join(dirname(file), path) : path === '@template' || path.startsWith('@template/') || path === '@' || path.startsWith('@/') ? join(root, 'src', path.replace(/^@template\/?|^@\/?/, '')) : null
+      if (base === null) continue
+      for (const candidate of [base, ...SOURCE_EXTENSIONS.map((e) => `${base}${e}`), ...SOURCE_EXTENSIONS.map((e) => join(base, `index${e}`))]) {
+        if (existsSync(candidate) && !candidate.endsWith('.css')) {
+          queue.push(candidate)
+          break
+        }
+      }
+    }
+  }
+  return new Set([...seen].map((f) => relative(root, f).split(sep).join('/')))
+}
+
+/** A checkout hook or call outside the checkout pages and what they import. */
+function scanCheckoutUse(source: string, file: string): Finding[] {
+  const findings: Finding[] = []
+  source.split('\n').forEach((text, index) => {
+    if (isCommentOnly(text)) return
+    for (const match of text.matchAll(CHECKOUT_NAMES)) {
+      findings.push({
+        file,
+        line: index + 1,
+        rule: 'checkout-outside-checkout',
+        message: `${match[1]} is for the checkout pages: use it in src/pages/checkout.*.tsx or in a file they import`,
       })
     }
   })

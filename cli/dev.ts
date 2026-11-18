@@ -8,6 +8,7 @@ import { effectiveTokens, TOKENS } from '../contract/src/tokens'
 import { buildFormat2 } from './build-v2'
 import { layoutVariantFor, readFixtures } from './check'
 import { CommandError, stringFlag, type Flags } from './commands'
+import { CheckoutSimulator } from './dev-checkout'
 import type { ManifestV2 } from './manifest'
 import { RUNTIME_CLIENT_FILES, buildRuntime, writeRuntime } from './runtime'
 import { loadBundle, type LoadedBundle } from './sandbox'
@@ -146,6 +147,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
   const runtimeDir = join(scratch, 'runtime')
   await writeRuntime(await buildRuntime(root), runtimeDir)
   const fixtures = await readFixtures('2026-11')
+  const checkout = new CheckoutSimulator(fixtures)
 
   let build: Build | null = null
   let buildError = ''
@@ -241,7 +243,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     return page(
       'hct dev',
       '',
-      `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Platform pages</h2><p>${platformPagesSentence(platformLink)}</p></main>`,
+      `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Checkout</h2><p>The checkout pages talk to a stand-in for the platform: switch the customer between signed in (with a sample profile) and signed out, and choose how a placed order ends — on a stand-in payment page that returns to the success or cancel page, with bank transfer details, or paid at once — from the toolbar of a checkout page. Quotes are priced from the fixtures. <a href="/_dev/requests">See what your pages sent</a>.</p><h2>Platform pages</h2><p>${platformPagesSentence(platformLink)}</p></main>`,
     )
   }
 
@@ -261,7 +263,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
       .join('')
   }
 
-  function preview(pageId: string, fixtureName: string, payload: Record<string, any>, variant: 'default' | 'minimal', problems: string[]): Response {
+  function preview(pageId: string, fixtureName: string, payload: Record<string, any>, variant: 'default' | 'minimal', problems: string[], search = ''): Response {
     const b = build!
     const implemented = b.bundle.pages.includes(pageId)
     const hasLayout = b.bundle.layouts.length > 0
@@ -333,6 +335,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
       `<span><code>${escapeHtml(pageId)}</code> · ${escapeHtml(fixtureName)} · ${escapeHtml(shown)}</span>`,
       ...(usesLayout ? [`<span>layout: ${variants.join(' ')}</span>`] : []),
       ...(problems.length > 0 ? [`<span title="${escapeHtml(problems.join('\n'))}" style="color:#fca5a5">${problems.length} contract problem(s) in the payload</span>`] : []),
+      ...(PAGES.find((p) => p.id === pageId)?.tier === 'checkout' ? checkout.toolbar(`${here}${search}`, link) : []),
     ])
     const title = typeof payload.meta?.title === 'string' && payload.meta.title !== '' ? payload.meta.title : pageId
     return new Response(page(title, head, `<div id="hc-root">${rootHtml}</div>${bar}${script}`), {
@@ -367,6 +370,11 @@ export async function startDevServer(root: string, options: DevServerOptions = {
       if (path.startsWith(RUNTIME_BASE)) {
         return (await fileIn(runtimeDir, path.slice(RUNTIME_BASE.length))) ?? new Response('not found', { status: 404 })
       }
+      // The checkout endpoints and the switches of the checkout simulation.
+      const control = checkout.control(url)
+      if (control) return control
+      const simulated = await checkout.handle(request, url)
+      if (simulated) return simulated
       if (path === '/' || path === '') return html(indexPage())
       if (buildError) return html(errorPage('The template did not build', buildError), 500)
       if (!build) return html(errorPage('Building…', 'The first build has not finished yet.'), 503)
@@ -384,7 +392,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
         if (pageId === '_' && fixtureName === PAYLOAD_FIXTURE && options.payloadFile) {
           try {
             const { payload, problems } = await payloadFromFile()
-            return preview(payload.page.id, PAYLOAD_FIXTURE, payload, variant, problems)
+            return preview(payload.page.id, PAYLOAD_FIXTURE, payload, variant, problems, url.search)
           } catch (e) {
             return html(errorPage('Your payload could not be read', (e as Error).message), 400)
           }
@@ -400,7 +408,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
         } else if (payload.page.id !== pageId) {
           return html(errorPage('No such page', `fixture ${fixtureName} is for ${payload.page.id}, not ${pageId}`), 404)
         }
-        return preview(pageId, fixtureName, payload, variant, [])
+        return preview(pageId, fixtureName, payload, variant, [], url.search)
       }
       // Root-absolute references to public files (url('/images/x.svg')).
       const file = await fileIn(clientDir, path.slice(1))

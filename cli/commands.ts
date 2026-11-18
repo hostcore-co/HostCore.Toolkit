@@ -46,6 +46,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     summary: 'preview a template locally against the contract fixtures',
     description: [
       'Format 2: builds the template and serves it the way the platform renders it, through its real server entry, hydrated by its real client entry. The start page lists every page id with every fixture for it; each preview has a switch between the default and minimal layout variants. A page the template does not implement shows where the platform default page goes. The template is rebuilt and the browser reloads when a file changes.',
+      'The checkout pages talk to a stand-in for the platform, so the whole flow can be taken offline: the toolbar switches the customer between signed in, with a sample profile, and signed out, and chooses how a placed order ends — on a stand-in payment page that returns to the success or cancel page, with bank transfer details, or paid at once. Quotes are priced from the fixtures, and /_dev/requests shows every request the pages sent.',
       "Format 1: runs the template's own Vite dev server, as before.",
     ],
     flags: [
@@ -58,7 +59,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     usage: 'hct validate [dir]',
     summary: 'check a template against the build policy',
     description: [
-      'Checks template.json, the dependencies, the files under src/ and what the source imports and reaches for. Every import must be of a package the platform allows and, when template.json declares allowedPackages, of one listed there (@hostcore/toolkit, react and react-dom need not be). Format 2 also flags hand-built platform URLs and useSetting() ids template.json does not declare.',
+      'Checks template.json, the dependencies, the files under src/ and what the source imports and reaches for. Every import must be of a package the platform allows and, when template.json declares allowedPackages, of one listed there (@hostcore/toolkit, react and react-dom need not be). Format 2 also flags hand-built platform URLs, useSetting() ids template.json does not declare, and the checkout hooks and calls anywhere but the checkout pages and the files they import.',
       'Every stylesheet may only load files from the store\'s own site: each @import and url() must be relative, root-relative (/fonts/a.woff2), a data: URI or a fragment (#id). The stylesheet is also used on the platform\'s checkout and sign-in pages, where nothing may load from another site.',
     ],
     flags: [],

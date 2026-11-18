@@ -429,6 +429,20 @@ ${fixed.map((path) => `      <a href="${path}">x</a>`).join('\n')}
     ])
   })
 
+  it('keeps the checkout hooks and calls to the checkout pages and what they import', async () => {
+    const found = await findings2({
+      'src/pages/checkout.plan.tsx': "import { island } from '@hostcore/toolkit'\nimport Pay from '../islands/pay'\nexport const hydrate = 'islands'\nconst P = island(Pay)\nexport default function Page() { return <P /> }\n",
+      'src/islands/pay.tsx': "import { useCheckoutPlan } from '@hostcore/toolkit'\nimport { total } from '../shared/money'\nexport default function Pay() { return <p>{total(useCheckoutPlan().dueNow)}</p> }\n",
+      'src/shared/money.ts': "import { quoteCheckout } from '@hostcore/toolkit'\nexport const total = (m: { amount: number }) => String(m.amount) + String(typeof quoteCheckout)\n",
+      'src/pages/home.tsx': "import { useCheckoutPlan } from '@hostcore/toolkit'\nexport default function Home() {\n  return <p>{useCheckoutPlan().plan.name}</p>\n}\n",
+    })
+    expect(found.map((f) => [f.file, f.line, f.rule])).toEqual([
+      ['src/pages/home.tsx', 1, 'checkout-outside-checkout'],
+      ['src/pages/home.tsx', 3, 'checkout-outside-checkout'],
+    ])
+    expect(found[0]!.message).toBe('useCheckoutPlan is for the checkout pages: use it in src/pages/checkout.*.tsx or in a file they import')
+  })
+
   it('agrees with the upgrade guide', () => {
     const upgrading = generateDocs()['upgrading.md']!
     for (const rule of PLATFORM_URL_RULES) expect(upgrading).toContain(`| \`${rule.path}\` |`)

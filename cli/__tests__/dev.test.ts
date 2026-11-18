@@ -173,6 +173,53 @@ describe('hct dev', () => {
     expect(root((await get('/page/login/home?variant=minimal')).text)).not.toContain('data-hc-slot')
   })
 
+  it('simulates the checkout calls, so the flow can be taken offline', async () => {
+    const call = async (method: string, path: string, body?: unknown) => {
+      const response = await fetch(`${base}${path.slice(1)}`, { method, redirect: 'manual', ...(body === undefined ? {} : { body: JSON.stringify(body) }) })
+      const text = await response.text()
+      return { status: response.status, body: text ? JSON.parse(text) : null }
+    }
+    expect((await call('GET', '/api/v1/user')).body.data[0].attributes).toMatchObject({ country: 'GB', city: 'London' })
+    const plan = JSON.parse(await readFile(join(FIXTURES, 'checkout.plan.json'), 'utf8')).data.plan
+    const quote = await call('QUERY', '/api/v1/public/checkout/quote', {
+      items: [{ kind: 'plan', service_id: plan.service_id, plan_id: plan.id, billing_interval: 'monthly', order_config: { server_name: 'x', backups: true, MAP_SIZE: '4500' } }],
+      country: 'GB',
+      state: '',
+    })
+    expect(quote.body.data[0].attributes).toMatchObject({ subtotal_cents: 1299 + 200 + 300 + 500, total_cents: 2299, incomplete: false })
+    const started = await call('POST', '/api/v1/user/checkout/start', { items: [{ kind: 'plan', service_id: plan.service_id, plan_id: plan.id }], gateway: 'stripe', currency: 'USD' })
+    const payment = started.body.data[0].attributes.approval_url as string
+    expect(payment).toStartWith('/_dev/pay?ref=ord%3A')
+    const pay = await get(payment)
+    expect(pay.text).toContain('/checkout/success?subscription_id=ord%3A')
+    expect(pay.text).toContain('/checkout/cancel?subscription_id=ord%3A')
+    expect((await get('/_dev/start?mode=bank_transfer&back=%2F')).status).toBe(302)
+    const transfer = await call('POST', '/api/v1/user/checkout/start', { items: [{ kind: 'plan', service_id: plan.service_id, plan_id: plan.id }], method: 'bank_transfer' })
+    expect(transfer.body.data[0].attributes.bank_transfer.reference).toStartWith('HC-DEV-')
+    await get('/_dev/start?mode=auto&back=%2F')
+    await get('/_dev/customer?state=signed_out&back=%2F')
+    expect((await call('GET', '/api/v1/user')).status).toBe(401)
+    expect((await call('POST', '/api/v1/auth/session/refresh')).status).toBe(401)
+    await get('/_dev/customer?state=signed_in&back=%2F')
+    expect((await call('PUT', '/checkout/_draft', { domain: 'acme.example', action: 'register', years: 1 })).status).toBe(204)
+    expect((await call('GET', '/checkout/_draft')).body).toEqual({ domain: 'acme.example', action: 'register', years: 1 })
+    const log = await get('/_dev/requests')
+    expect(log.text).toContain('POST /api/v1/user/checkout/start')
+    expect(log.text).toContain('&quot;method&quot;: &quot;bank_transfer&quot;')
+  })
+
+  it('previews a checkout page in the minimal layout, with the simulation switches, keeping the query', async () => {
+    const success = await get('/checkout/success?subscription_id=ord%3A1&session_id=s')
+    expect(success.status).toBe(302)
+    expect(success.headers.get('location')).toBe('/page/checkout.success/checkout.success?subscription_id=ord%3A1&session_id=s')
+    const plan = await get('/page/checkout.plan/checkout.plan')
+    expect(global(plan.text)).toMatchObject({ page: 'checkout.plan', variant: 'minimal' })
+    expect(plan.text).toContain('customer: ')
+    expect(plan.text).toContain('href="/_dev/requests"')
+    const signIn = await get('/login?redirectTo=%2Fcheckout%2Frust%2Fstarter')
+    expect(signIn.text).toContain('/_dev/customer?state=signed_in&amp;back=%2Fcheckout%2Frust%2Fstarter')
+  })
+
   it('shows the account area with the design tokens and without the layout', async () => {
     const page = await get('/page/dashboard/home')
     expect(page.status).toBe(200)
