@@ -266,8 +266,10 @@ result.action, years })`, `years` one of that action's terms.
 `actions.domain_search` yourself or read its answer: on a store page the
 platform's own script makes the request, so it can change what the
 endpoint takes and answers without your template changing. `hct dev` has
-no such script and serves no domain search, so there `searchDomains`
-makes the request itself and resolves to the error `unavailable`.
+no such script, so there `searchDomains` makes the request itself, and
+`hct dev` answers it with sample results: the domain searched for, or a
+bare name under each extension the fixtures offer, available unless it
+starts with `taken`.
 
 ### Typed data in shared components
 
@@ -352,22 +354,64 @@ through the SDK, so your page supplies the markup and the SDK carries the
 flow:
 
 ```tsx
-// src/islands/checkout-plan.tsx, used by src/pages/checkout.plan.tsx
-import { formatMoney, useCheckoutPlan } from '@hostcore/toolkit'
+// src/pages/checkout.plan.tsx
+import { island, type PageProps } from '@hostcore/toolkit'
+import CheckoutPlan from '../islands/checkout-plan'
+
+export const hydrate = 'islands'
+const CheckoutPlanIsland = island(CheckoutPlan)
+
+export default function CheckoutPlanPage({ data }: PageProps<'checkout.plan'>) {
+  return (
+    <section>
+      <h1>Checkout: {data.service.name}</h1>
+      <CheckoutPlanIsland />
+    </section>
+  )
+}
+```
+
+```tsx
+// src/islands/checkout-plan.tsx, shortened from examples/basic
+import { formatMoney, useCheckoutPlan, type Money } from '@hostcore/toolkit'
+
+const show = (money: Money) => formatMoney(money.amount, money.currency)
 
 export default function CheckoutPlan() {
   const c = useCheckoutPlan()
+  if (c.placed) {
+    const transfer = c.placed.details
+    return <p>Send {show(transfer.amount)} to {transfer.account_name} ({transfer.iban}), reference {transfer.reference}.</p>
+  }
   return (
-    <>
-      <p>Due now: {formatMoney(c.dueNow.amount, c.dueNow.currency)}</p>
-      {c.cycles.map((cycle) => (
-        <button key={cycle.interval} onClick={() => c.setCycle(cycle.interval)}>{cycle.interval}</button>
-      ))}
+    <div>
+      <p>Due now: {show(c.dueNow)}</p>
+      {c.primaryPaid &&
+        c.cycles.map((cycle) => (
+          <label key={cycle.interval}>
+            <input type="radio" checked={cycle.interval === c.cycle?.interval} onChange={() => c.setCycle(cycle.interval)} />
+            {cycle.interval}: {show(c.cyclePrice(cycle))}
+          </label>
+        ))}
+      {c.anyPaid && (
+        <input placeholder="Country (US)" value={c.address.country} onChange={(e) => c.setAddress({ country: e.target.value })} />
+      )}
+      {c.anyPaid &&
+        c.gateways.map((g) => (
+          <label key={g.gateway}>
+            <input type="radio" checked={c.gateway === g.gateway} onChange={() => c.setGateway(g.gateway)} />
+            {g.gateway}
+          </label>
+        ))}
       {c.problem && <p role="alert">{c.problem.message}</p>}
-      {c.customer === 'signed_out'
-        ? <a href={c.signInUrl}>Sign in to complete your order</a>
-        : <button onClick={() => void c.submit()} disabled={c.submitting}>Pay</button>}
-    </>
+      {c.customer === 'signed_out' ? (
+        <a href={c.signInUrl}>Sign in to complete your order</a>
+      ) : (
+        <button type="button" onClick={() => void c.submit()} disabled={c.submitting}>
+          {c.anyPaid ? 'Pay' : 'Start now'}
+        </button>
+      )}
+    </div>
   )
 }
 ```

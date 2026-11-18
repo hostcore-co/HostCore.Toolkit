@@ -119,3 +119,13 @@ describe("the README's command list", () => {
     }
   })
 })
+
+describe("the README's checkout example", () => {
+  it('uses only what the SDK exports', async () => {
+    const readme = await readFile(join(REPO, 'README.md'), 'utf8')
+    const block = readme.slice(readme.indexOf('// src/islands/checkout-plan.tsx'), readme.indexOf('```', readme.indexOf('// src/islands/checkout-plan.tsx')))
+    const imported = /import \{([^}]*)\} from '@hostcore\/toolkit'/.exec(block)![1]!.split(',').map((n) => n.trim().replace(/^type /, ''))
+    for (const name of imported) expect([name, name in sdk || ['Money'].includes(name)]).toEqual([name, true])
+    expect(block).toContain('useCheckoutPlan()')
+  })
+})

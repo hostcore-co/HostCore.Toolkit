@@ -203,6 +203,9 @@ describe('hct dev', () => {
     await get('/_dev/customer?state=signed_in&back=%2F')
     expect((await call('PUT', '/checkout/_draft', { domain: 'acme.example', action: 'register', years: 1 })).status).toBe(204)
     expect((await call('GET', '/checkout/_draft')).body).toEqual({ domain: 'acme.example', action: 'register', years: 1 })
+    const search = (await call('POST', '/api/v1/public/domains/search', { query: 'acme' })).body.data[0].attributes
+    expect(search.results.map((r: { domain: string; available: boolean }) => [r.domain, r.available])).toEqual([['acme.example', true], ['acme.test', true]])
+    expect((await call('POST', '/api/v1/public/domains/search', { query: 'taken.example' })).body.data[0].attributes.results[0].available).toBe(false)
     const log = await get('/_dev/requests')
     expect(log.text).toContain('POST /api/v1/user/checkout/start')
     expect(log.text).toContain('&quot;method&quot;: &quot;bank_transfer&quot;')
