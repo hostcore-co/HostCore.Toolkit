@@ -198,7 +198,7 @@ function pagesPage(contractDir: string): string {
     '',
     '### Checkout pages',
     '',
-    `The pages of the \`checkout\` tier (${engine.filter((p) => p.tier === 'checkout').map((p) => code(p.id)).join(', ')}) are the order flow. Each is rendered from a store's template when the template implements it and the platform has turned the template's checkout on for the store, and otherwise by the platform's own checkout page, as the registry's \`fallback\` says. A checkout page is drawn inside your layout in its \`minimal\` variant.`,
+    `The pages of the \`checkout\` tier (${engine.filter((p) => p.tier === 'checkout').map((p) => code(p.id)).join(', ')}) are the order flow. Each is rendered from a store's template when the template implements it and the platform has turned the template's checkout on for the store, and otherwise by the platform's own checkout page, as the registry's \`fallback\` says. A store gets your checkout pages once HostCore has reviewed them for the version you upload, and keeps the platform's checkout until then or when it chooses to. A checkout page is drawn inside your layout in its \`minimal\` variant; sign-in and sign-up always stay the platform's. Build one with the SDK's checkout hooks (see [The SDK](sdk.md)); the checkout calls and the page interface they use are in the contract reference.`,
     '',
   ]
   for (const p of engine) {
@@ -269,6 +269,12 @@ function contractPage(): string {
     `# Contract ${contract202611.version}`,
     '',
     'The data a format-2 template is rendered with. Every page receives a [PageEnvelope](#pageenvelope) whose `data` depends on the page id ([Pages](pages.md)). A field is never renamed, retyped or removed within a contract version; new fields may appear, so ignore keys you do not know.',
+    '',
+    '## Checkout calls',
+    '',
+    'On a checkout page, what depends on the customer happens in the browser through the SDK\'s checkout calls, each resolving to a typed outcome and never rejecting: [CheckoutCustomerOutcome](#checkoutcustomeroutcome), [CheckoutSaveOutcome](#checkoutsaveoutcome), [CheckoutQuoteOutcome](#checkoutquoteoutcome), [CheckoutStartOutcome](#checkoutstartoutcome), [CheckoutConfirmOutcome](#checkoutconfirmoutcome), [CheckoutCancelOutcome](#checkoutcanceloutcome) and [DomainDraftOutcome](#domaindraftoutcome). A call that finds the session expired renews it once and retries before it reports [CheckoutSignedOut](#checkoutsignedout), whose `sign_in_url` returns to the page.',
+    '',
+    'A store page may provide `window.hc.checkout`: `customer()`, `saveBillingAddress(address)`, `quote(request)`, `start(request)`, `confirm(reference, sessionId)`, `cancel(reference)`, `readDraft()`, `saveDraft(draft)` and `clearDraft()`, each resolving to the outcome above and never rejecting, and `displayCurrency()` and `setDisplayCurrency(code)`. When it is there the SDK uses it; otherwise the SDK requests the actions itself. `contract/fixtures/checkout-calls.json` lists what each endpoint answers and the outcome it gives.',
     '',
     '## Types',
     '',

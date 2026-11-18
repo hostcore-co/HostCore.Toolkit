@@ -87,7 +87,8 @@ components for the parts of the storefront you want to look different:
 template.json
 src/layout.tsx              the header, footer and frame around every page
 src/pages/<page-id>.tsx     one file per page: home, catalog.group,
-                            catalog.service, domains, not-found
+                            catalog.service, domains, not-found, and the
+                            checkout pages (see Checkout)
 src/islands/<name>.tsx      components hydrated on their own (see Islands)
 src/slots/<slot-id>.tsx     static content for a place on the platform's
                             own pages (see Slots)
@@ -321,6 +322,92 @@ island is hydrated on its own with the same hooks available. Island props
 travel to the browser as JSON, so they must be strings, numbers, booleans,
 null, arrays and plain objects; a function, an element or a `Date` fails the
 render with an error naming the prop.
+
+### Checkout
+
+A template may also render the order flow. The checkout pages are in the
+[page registry](contract/registry.json) under the tier `checkout`:
+
+| page | path | what it is |
+| --- | --- | --- |
+| `checkout.plan` | `/checkout/{service}/{plan}`, and `/checkout/{service}` for a service with one plan | configure a plan, add add-ons, pay |
+| `checkout.domains` | `/checkout/domains` | buy the domain picked in a search |
+| `checkout.success` | `/checkout/success` | where the customer returns after paying |
+| `checkout.cancel` | `/checkout/cancel` | where the customer returns after abandoning payment |
+
+Implement any of them as `src/pages/<page id>.tsx`, like any other page;
+each one you leave out stays the platform's own checkout page, drawn inside
+your layout's `minimal` variant. Your checkout pages are drawn inside your
+layout's `minimal` variant too. Sign-in and sign-up always stay the
+platform's. A store gets your checkout pages once HostCore has reviewed them
+for the version you upload; until then, and whenever a store chooses the
+platform's checkout, its customers see the platform's own pages.
+
+A checkout page's data (`CheckoutPlanData`, `CheckoutDomainsData`) holds
+the plan with every billing cycle and setup fee, the order form, the
+add-on offers, how the store takes payment and its exchange rates; nothing
+about the customer. Everything about the customer happens in the browser,
+through the SDK, so your page supplies the markup and the SDK carries the
+flow:
+
+```tsx
+// src/islands/checkout-plan.tsx, used by src/pages/checkout.plan.tsx
+import { formatMoney, useCheckoutPlan } from '@hostcore/toolkit'
+
+export default function CheckoutPlan() {
+  const c = useCheckoutPlan()
+  return (
+    <>
+      <p>Due now: {formatMoney(c.dueNow.amount, c.dueNow.currency)}</p>
+      {c.cycles.map((cycle) => (
+        <button key={cycle.interval} onClick={() => c.setCycle(cycle.interval)}>{cycle.interval}</button>
+      ))}
+      {c.problem && <p role="alert">{c.problem.message}</p>}
+      {c.customer === 'signed_out'
+        ? <a href={c.signInUrl}>Sign in to complete your order</a>
+        : <button onClick={() => void c.submit()} disabled={c.submitting}>Pay</button>}
+    </>
+  )
+}
+```
+
+- **`useCheckoutPlan()`** and **`useCheckoutDomains()`** hold the order:
+  the billing cycle (the first enabled one to start), the order form
+  answers, the add-on offers (`offers[i].add()`, `setPlan`, `setCycle`,
+  `setOrderValue`, or `search`, `pick`, `setPrivacy` and `setEppCode` for a
+  domain offer), the domain contact, the billing address (prefilled from
+  the signed-in customer), the promotion code, the gateway and bank
+  transfer when the order may be paid that way. They requote as the order
+  changes (`quote`, `dueNow`, and `cyclePrice(cycle)` in the visitor's
+  currency, which `setCurrency` changes), check the order before placing
+  it with the platform's own messages (`problem`), and `submit()` saves the
+  billing address, places the order and hands off: to the payment page, to
+  the bank transfer details (`placed`), or to the success page. A
+  signed-out customer gets `signInUrl`, which brings them back to the same
+  page. Order-form options are priced once per billing cycle, as the
+  platform charges them.
+- **`useCheckoutSuccess()`** confirms the payment the customer returns
+  from, which is what completes the order, and **`useCheckoutCancel()`**
+  cancels an abandoned one; each gives a `state` to show.
+- The calls underneath (`checkoutCustomer`, `quoteCheckout`,
+  `startCheckout`, `confirmCheckout` and the rest) are exported too, for a
+  flow of your own. They resolve to typed outcomes and never reject, and on
+  a live store they go through the platform's own script, so the platform
+  can change its endpoints without your template changing.
+- The checkout hooks and calls belong to the checkout pages and the files
+  they import; `hct validate` refuses them anywhere else.
+
+`examples/basic` implements all four pages: every field and choice the
+platform's own checkout has, laid out simply, with the parts that need
+state as islands. The checkout fixtures cover a plan with several cycles,
+setup fees, a priced order form, add-ons and two gateways; a free plan; a
+free trial; a plan with one cycle; bank transfer; a service with one plan;
+a store with no exchange rates; and domain checkout with and without
+add-ons. In `hct dev` the checkout pages talk to a stand-in for the
+platform: switch the customer between signed in and signed out, choose how
+a placed order ends (a stand-in payment page that returns to the success
+or cancel page, bank transfer details, or paid at once), and see every
+request your pages sent at `/_dev/requests`.
 
 ### Slots
 

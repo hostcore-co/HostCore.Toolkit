@@ -104,5 +104,7 @@ export const NEW_IN_2026_11: readonly { field: string; use: string }[] = [
   { field: 'page.params', use: 'the path parameters the page was matched with' },
   { field: 'redirect', use: 'set when the platform answers with a redirect; a page never renders it' },
   { field: 'settings', use: "the store's values for every setting your template declares" },
+  { field: 'checkout pages (checkout.plan, checkout.domains, checkout.success, checkout.cancel)', use: "render the order flow yourself, with useCheckoutPlan(), useCheckoutDomains(), useCheckoutSuccess() and useCheckoutCancel(); a store uses them once HostCore has reviewed them, and keeps the platform's checkout for any you leave out" },
+  { field: 'actions.checkout_*, actions.session_refresh', use: 'the checkout calls, present on checkout pages; the checkout hooks use them for you' },
   { field: 'slots (src/slots/<slot id>.tsx)', use: "put static content of your own at a named place on the platform's pages, such as checkout.summary under the order summary at checkout" },
 ]
