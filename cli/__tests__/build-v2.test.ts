@@ -150,9 +150,9 @@ describe('examples/basic', () => {
     expect(basic.contract).toBe('2026-11')
     expect(basic.toolchain).toEqual({ line: 2, revision: 0 })
     expect(basic.runtime.id).toBe(runtime.runtime_id)
-    expect(basic.pages).toEqual(['home', 'catalog.group', 'catalog.service'])
+    expect(basic.pages).toEqual(['home', 'catalog.group', 'catalog.service', 'checkout.plan', 'checkout.domains', 'checkout.success', 'checkout.cancel'])
     expect(basic.layouts).toEqual(['default', 'minimal'])
-    expect(basic.islands).toEqual(['domain-search', 'faq'])
+    expect(basic.islands).toEqual(['checkout-cancel', 'checkout-domains', 'checkout-plan', 'checkout-success', 'domain-search', 'faq'])
     expect(basic.tokens['color.accent']).toBe('#5b8cff')
     expect(basic.settings.map((s) => (s as { id: string }).id)).toContain('footer.note')
     expect(basic.media_base).toBe('')
@@ -176,7 +176,7 @@ describe('examples/basic', () => {
 
   it('keeps client-only libraries out of the server bundle', async () => {
     const server = await readFile(join(BASIC_OUT, basic.entry.server), 'utf8')
-    expect(basic.files[basic.entry.server]!.bytes).toBeLessThan(40_000)
+    expect(basic.files[basic.entry.server]!.bytes).toBeLessThan(80_000)
     // gsap's own code names its company and its tween internals; the stand-in does not.
     expect(server).not.toContain('GreenSock')
     expect(server).not.toContain('_gsap')
@@ -206,7 +206,7 @@ describe('examples/basic', () => {
 
   it('exports protocol 2 with its pages and layouts', () => {
     expect(basicBundle.protocol).toBe(2)
-    expect(basicBundle.pages).toEqual(['home', 'catalog.group', 'catalog.service'])
+    expect(basicBundle.pages).toEqual(['home', 'catalog.group', 'catalog.service', 'checkout.plan', 'checkout.domains', 'checkout.success', 'checkout.cancel'])
     expect(basicBundle.layouts).toEqual(['default', 'minimal'])
   })
 
@@ -227,7 +227,7 @@ describe('examples/basic', () => {
       expect(document.replace(`<hc-outlet>${body}</hc-outlet>`, '<hc-outlet></hc-outlet>'), name).toBe(layout)
       rendered++
     }
-    expect(rendered).toBe(13)
+    expect(rendered).toBe(24)
   })
 
   it('renders the minimal layout variant', async () => {
@@ -282,10 +282,27 @@ describe('examples/basic', () => {
     expect(props).toEqual({ items: home.settings['faq.items'] })
   })
 
+  it('implements every part of the checkout pages', async () => {
+    const body = async (name: string) => html(basicBundle.render(request('body', await readJson<Record<string, any>>(join(FIXTURES, `${name}.json`)))))
+    const plan = await body('checkout.plan')
+    for (const part of ['Monthly', 'Quarterly', 'Annually', 'Server name', 'Daily backups', 'Map size', 'Location', 'Slots', 'Add off-site backups', 'Add a domain', 'Billing address', 'Payment', 'Card (Stripe)', 'PayPal', 'Promo code', 'One-time setup fee', 'Pay &amp; complete order', 'Terms of Service']) {
+      expect([part, plan.includes(part)]).toEqual([part, true])
+    }
+    expect(plan).not.toContain('Bank transfer')
+    expect(await body('checkout.plan.bank-transfer')).toContain('Bank transfer')
+    const free = await body('checkout.plan.free')
+    expect(free).toContain('Start now')
+    expect(free).not.toContain('Billing address')
+    expect(await body('checkout.plan.free-trial')).toContain('Free for 7 days')
+    expect(await body('checkout.domains')).toContain('Loading your domain')
+    expect(await body('checkout.success')).toContain('Confirming your payment')
+    expect(await body('checkout.cancel')).toContain('Checkout cancelled')
+  })
+
   it('fails clearly for a page or layout variant it does not implement', async () => {
     const domains = await readJson<Record<string, any>>(join(FIXTURES, 'domains.json'))
     expect(() => basicBundle.render(request('body', domains))).toThrow(
-      'HC_PAGE_NOT_IMPLEMENTED: this template does not implement page "domains" (it implements: home, catalog.group, catalog.service)',
+      'HC_PAGE_NOT_IMPLEMENTED: this template does not implement page "domains" (it implements: home, catalog.group, catalog.service, checkout.plan, checkout.domains, checkout.success, checkout.cancel)',
     )
     const notFound = await readJson<Record<string, any>>(join(FIXTURES, 'not-found.json'))
     expect(() => basicBundle.render(request('document', notFound))).toThrow('HC_PAGE_NOT_IMPLEMENTED')

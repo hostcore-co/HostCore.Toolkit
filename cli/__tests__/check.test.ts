@@ -62,7 +62,7 @@ describe('hct check --json', () => {
   it('renders every implemented page against every fixture for it, as a document and a body, the layout per variant, and every slot against every fixture', async () => {
     const expected: string[] = ['home/home/layout/default', 'home/home/layout/minimal']
     for (const f of await fixturesFor('2026-11')) {
-      if (!['home', 'catalog.group', 'catalog.service'].includes(f.page)) continue
+      if (!['home', 'catalog.group', 'catalog.service', 'checkout.plan', 'checkout.domains', 'checkout.success', 'checkout.cancel'].includes(f.page)) continue
       expected.push(`${f.page}/${f.name}/document/`, `${f.page}/${f.name}/body/`)
     }
     for (const f of await fixturesFor('2026-11')) expected.push(`checkout.summary/${f.name}/slot/`)
