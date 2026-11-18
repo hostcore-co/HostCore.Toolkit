@@ -35,6 +35,10 @@ export interface SurfaceType {
 
 export interface SurfacePage {
   path: string | null
+  /** Every path; a baseline recorded before pages could have several has none, which reads as [path]. */
+  paths?: string[]
+  /** Who serves the page when its upstream does not; absent reads as null. */
+  fallback?: string | null
   prefix: boolean
   tier: string
   upstream: string
@@ -136,7 +140,7 @@ export function contractSurface(contract: Contract, sources?: SurfaceSources): C
   surface.registry = sorted(
     sources.registry.pages.map((p): [string, SurfacePage] => [
       p.id,
-      { path: p.path, prefix: p.prefix, tier: p.tier, upstream: p.upstream, requires: p.requires },
+      { path: p.path, paths: p.paths, fallback: p.fallback, prefix: p.prefix, tier: p.tier, upstream: p.upstream, requires: p.requires },
     ]),
   )
   surface.slots = sorted(sources.registry.slots.map((slot): [string, string] => [slot.id, slot.page]))
@@ -280,6 +284,13 @@ export function diffSurface(before: ContractSurface, after: ContractSurface): Co
     else {
       for (const key of ['path', 'prefix', 'tier', 'upstream', 'requires'] as const) {
         if (!same(b[key], a[key])) out.push(removed(at, `its ${key} changed from ${JSON.stringify(b[key])} to ${JSON.stringify(a[key])}`))
+      }
+      const pathsBefore = b.paths ?? (b.path === null ? [] : [b.path])
+      const pathsAfter = a.paths ?? (a.path === null ? [] : [a.path])
+      for (const path of pathsBefore) if (!pathsAfter.includes(path)) out.push(removed(at, `it is no longer reached by ${path}`))
+      for (const path of pathsAfter) if (!pathsBefore.includes(path)) out.push(added(at, `it is also reached by ${path}`))
+      if (!same(b.fallback ?? null, a.fallback ?? null)) {
+        out.push(removed(at, `its fallback changed from ${JSON.stringify(b.fallback ?? null)} to ${JSON.stringify(a.fallback ?? null)}`))
       }
     }
   }

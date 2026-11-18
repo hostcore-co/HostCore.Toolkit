@@ -13,13 +13,14 @@ import { settingValueError, standardSetting } from './settings'
  * Objects are built in the field order contract "1" declares.
  */
 
-const PAGE_TYPES = {
+/** The pages contract "1" has, by 2026-11 page id. A page not listed is served only to 2026-11 templates. */
+const PAGE_TYPES: Partial<Record<V202611.ContractPageId, V1.PageType>> = {
   home: 'home',
   'catalog.group': 'group',
   'catalog.service': 'service',
   domains: 'domains',
   'not-found': 'not-found',
-} as const satisfies Record<V202611.ContractPageId, V1.PageType>
+}
 
 /** The service types contract "1" knows. A service with no type set has the empty string in both contracts. */
 const SERVICE_TYPES: readonly string[] = ['game-server', 'web-hosting', 'dedicated-server', 'vps', 'other', '']
@@ -260,5 +261,7 @@ export function downgrade(envelope: V202611.AnyPageEnvelope): V1.PageData {
     }
     case 'not-found':
       return { page_type: 'not-found', ...base }
+    default:
+      throw new DowngradeError(`page ${String(pageId)} has no contract "1" payload`)
   }
 }

@@ -91,10 +91,22 @@ describe('fixtures', () => {
       'catalog.group.missing-optional',
       'home.unset-settings',
       'catalog.service.empty-type',
+      'checkout.plan',
+      'checkout.plan.free',
+      'checkout.plan.free-trial',
+      'checkout.plan.single-cycle',
+      'checkout.plan.bank-transfer',
+      'checkout.plan.only-plan',
+      'checkout.plan.no-exchange-rates',
+      'checkout.domains',
+      'checkout.domains.no-offers',
+      'checkout.success',
+      'checkout.cancel',
     ]) {
       expect(names2026).toContain(`${name}.json`)
     }
-    expect(fixtureNames('1')).toEqual(names2026)
+    // The checkout pages are served only to 2026-11 templates, so contract "1" has no fixtures for them.
+    expect(fixtureNames('1')).toEqual(names2026.filter((n) => !n.startsWith('checkout.')))
   })
 
   for (const contract of ['2026-11', '1']) {
@@ -142,7 +154,7 @@ describe('fixtures', () => {
       }
       if (e.data?.service) {
         checkService(e.data.service)
-        for (const p of e.data.plans) checkPlan(e.data.service, p)
+        for (const p of e.data.plans ?? []) checkPlan(e.data.service, p)
         if (e.redirect && e.redirect.location !== e.data.service.url) problems.push(`redirect ${e.redirect.location}, expected ${e.data.service.url}`)
       }
       expect(problems).toEqual([])
@@ -158,7 +170,14 @@ describe('fixtures', () => {
 })
 
 describe('downgrade', () => {
-  for (const name of fixtureNames('2026-11')) {
+  for (const name of fixtureNames('2026-11').filter((n) => n.startsWith('checkout.'))) {
+    it(`has no contract "1" payload for ${name}, a page served only to 2026-11 templates`, () => {
+      const envelope = load<V202611.AnyPageEnvelope>('2026-11', name.replace(/\.json$/, ''))
+      expect(() => downgrade(envelope)).toThrow('has no contract "1" payload')
+    })
+  }
+
+  for (const name of fixtureNames('1')) {
     it(`reproduces fixtures/1/${name}`, () => {
       const envelope = load<V202611.AnyPageEnvelope>('2026-11', name.replace(/\.json$/, ''))
       const expected = load('1', name.replace(/\.json$/, ''))

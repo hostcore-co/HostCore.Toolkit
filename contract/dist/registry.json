@@ -3,9 +3,13 @@
     {
       "id": "home",
       "path": "/",
+      "paths": [
+        "/"
+      ],
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
+      "fallback": null,
       "cache": {
         "ttl": 3600,
         "swr": 86400
@@ -15,9 +19,13 @@
     {
       "id": "domains",
       "path": "/domains",
+      "paths": [
+        "/domains"
+      ],
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
+      "fallback": null,
       "cache": {
         "ttl": 3600,
         "swr": 86400
@@ -27,9 +35,13 @@
     {
       "id": "catalog.group",
       "path": "/{group}",
+      "paths": [
+        "/{group}"
+      ],
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
+      "fallback": null,
       "cache": {
         "ttl": 3600,
         "swr": 86400
@@ -39,9 +51,13 @@
     {
       "id": "catalog.service",
       "path": "/{group}/{service}",
+      "paths": [
+        "/{group}/{service}"
+      ],
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
+      "fallback": null,
       "cache": {
         "ttl": 3600,
         "swr": 86400
@@ -51,9 +67,11 @@
     {
       "id": "not-found",
       "path": null,
+      "paths": [],
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
+      "fallback": null,
       "cache": {
         "ttl": 0,
         "swr": 0
@@ -61,83 +79,184 @@
       "requires": null
     },
     {
+      "id": "checkout.plan",
+      "path": "/checkout/{service}/{plan}",
+      "paths": [
+        "/checkout/{service}/{plan}",
+        "/checkout/{service}"
+      ],
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "fallback": "frontend",
+      "cache": {
+        "ttl": 300,
+        "swr": 3600
+      },
+      "requires": null
+    },
+    {
+      "id": "checkout.domains",
+      "path": "/checkout/domains",
+      "paths": [
+        "/checkout/domains"
+      ],
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "fallback": "frontend",
+      "cache": {
+        "ttl": 300,
+        "swr": 3600
+      },
+      "requires": null
+    },
+    {
+      "id": "checkout.success",
+      "path": "/checkout/success",
+      "paths": [
+        "/checkout/success"
+      ],
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "fallback": "frontend",
+      "cache": {
+        "ttl": 300,
+        "swr": 3600
+      },
+      "requires": null
+    },
+    {
+      "id": "checkout.cancel",
+      "path": "/checkout/cancel",
+      "paths": [
+        "/checkout/cancel"
+      ],
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "fallback": "frontend",
+      "cache": {
+        "ttl": 300,
+        "swr": 3600
+      },
+      "requires": null
+    },
+    {
       "id": "checkout",
       "path": "/checkout",
+      "paths": [
+        "/checkout"
+      ],
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     },
     {
       "id": "login",
       "path": "/login",
+      "paths": [
+        "/login"
+      ],
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     },
     {
       "id": "signup",
       "path": "/signup",
+      "paths": [
+        "/signup"
+      ],
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     },
     {
       "id": "forgotpassword",
       "path": "/forgotpassword",
+      "paths": [
+        "/forgotpassword"
+      ],
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     },
     {
       "id": "auth",
       "path": "/auth",
+      "paths": [
+        "/auth"
+      ],
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     },
     {
       "id": "connect",
       "path": "/connect",
+      "paths": [
+        "/connect"
+      ],
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     },
     {
       "id": "order",
       "path": "/order",
+      "paths": [
+        "/order"
+      ],
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     },
     {
       "id": "dashboard",
       "path": "/dashboard",
+      "paths": [
+        "/dashboard"
+      ],
       "prefix": true,
       "tier": "private",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     },
     {
       "id": "admin",
       "path": "/admin",
+      "paths": [
+        "/admin"
+      ],
       "prefix": true,
       "tier": "staff",
       "upstream": "frontend",
+      "fallback": null,
       "cache": null,
       "requires": null
     }

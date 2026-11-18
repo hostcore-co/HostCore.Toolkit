@@ -6,12 +6,12 @@
 // template settings and the design token table.
 
 /** PageId is any page in the registry. */
-export type PageId = 'home' | 'domains' | 'catalog.group' | 'catalog.service' | 'not-found' | 'checkout' | 'login' | 'signup' | 'forgotpassword' | 'auth' | 'connect' | 'order' | 'dashboard' | 'admin'
+export type PageId = 'home' | 'domains' | 'catalog.group' | 'catalog.service' | 'not-found' | 'checkout.plan' | 'checkout.domains' | 'checkout.success' | 'checkout.cancel' | 'checkout' | 'login' | 'signup' | 'forgotpassword' | 'auth' | 'connect' | 'order' | 'dashboard' | 'admin'
 
 /** EnginePageId is a page the rendering engine renders from a template. */
-export type EnginePageId = 'home' | 'domains' | 'catalog.group' | 'catalog.service' | 'not-found'
+export type EnginePageId = 'home' | 'domains' | 'catalog.group' | 'catalog.service' | 'not-found' | 'checkout.plan' | 'checkout.domains' | 'checkout.success' | 'checkout.cancel'
 
-export type Tier = 'open' | 'guarded' | 'private' | 'staff'
+export type Tier = 'open' | 'checkout' | 'guarded' | 'private' | 'staff'
 
 export type Upstream = 'engine' | 'frontend'
 
@@ -26,12 +26,20 @@ export interface CachePolicy {
 /** RegistryPage is one page of the registry. */
 export interface RegistryPage {
   id: PageId
-  /** Null for a page no path reaches. */
+  /** The canonical path: the first of paths. Null for a page no path reaches. */
   path: string | null
+  /** Every path the page is reached by, the canonical one first; empty for a page no path reaches. */
+  paths: readonly string[]
   /** True when the page also owns every path below its own, on a "/" boundary. */
   prefix: boolean
   tier: Tier
   upstream: Upstream
+  /**
+   * Set for checkout pages: who serves the page when its upstream does not for a store. A
+   * checkout page is rendered from the store's template when the template implements it and
+   * the platform has it enabled for the store, and otherwise by the platform's front end.
+   */
+  fallback: Upstream | null
   /** Set for engine pages. A store's own per-page setting overrides it. */
   cache: CachePolicy | null
   /** What a store must offer for the page to exist. */
@@ -42,9 +50,13 @@ export const PAGES: readonly RegistryPage[] = [
   {
     "id": "home",
     "path": "/",
+    "paths": [
+      "/"
+    ],
     "prefix": false,
     "tier": "open",
     "upstream": "engine",
+    "fallback": null,
     "cache": {
       "ttl": 3600,
       "swr": 86400
@@ -54,9 +66,13 @@ export const PAGES: readonly RegistryPage[] = [
   {
     "id": "domains",
     "path": "/domains",
+    "paths": [
+      "/domains"
+    ],
     "prefix": false,
     "tier": "open",
     "upstream": "engine",
+    "fallback": null,
     "cache": {
       "ttl": 3600,
       "swr": 86400
@@ -66,9 +82,13 @@ export const PAGES: readonly RegistryPage[] = [
   {
     "id": "catalog.group",
     "path": "/{group}",
+    "paths": [
+      "/{group}"
+    ],
     "prefix": false,
     "tier": "open",
     "upstream": "engine",
+    "fallback": null,
     "cache": {
       "ttl": 3600,
       "swr": 86400
@@ -78,9 +98,13 @@ export const PAGES: readonly RegistryPage[] = [
   {
     "id": "catalog.service",
     "path": "/{group}/{service}",
+    "paths": [
+      "/{group}/{service}"
+    ],
     "prefix": false,
     "tier": "open",
     "upstream": "engine",
+    "fallback": null,
     "cache": {
       "ttl": 3600,
       "swr": 86400
@@ -90,9 +114,11 @@ export const PAGES: readonly RegistryPage[] = [
   {
     "id": "not-found",
     "path": null,
+    "paths": [],
     "prefix": false,
     "tier": "open",
     "upstream": "engine",
+    "fallback": null,
     "cache": {
       "ttl": 0,
       "swr": 0
@@ -100,83 +126,184 @@ export const PAGES: readonly RegistryPage[] = [
     "requires": null
   },
   {
+    "id": "checkout.plan",
+    "path": "/checkout/{service}/{plan}",
+    "paths": [
+      "/checkout/{service}/{plan}",
+      "/checkout/{service}"
+    ],
+    "prefix": false,
+    "tier": "checkout",
+    "upstream": "engine",
+    "fallback": "frontend",
+    "cache": {
+      "ttl": 300,
+      "swr": 3600
+    },
+    "requires": null
+  },
+  {
+    "id": "checkout.domains",
+    "path": "/checkout/domains",
+    "paths": [
+      "/checkout/domains"
+    ],
+    "prefix": false,
+    "tier": "checkout",
+    "upstream": "engine",
+    "fallback": "frontend",
+    "cache": {
+      "ttl": 300,
+      "swr": 3600
+    },
+    "requires": null
+  },
+  {
+    "id": "checkout.success",
+    "path": "/checkout/success",
+    "paths": [
+      "/checkout/success"
+    ],
+    "prefix": false,
+    "tier": "checkout",
+    "upstream": "engine",
+    "fallback": "frontend",
+    "cache": {
+      "ttl": 300,
+      "swr": 3600
+    },
+    "requires": null
+  },
+  {
+    "id": "checkout.cancel",
+    "path": "/checkout/cancel",
+    "paths": [
+      "/checkout/cancel"
+    ],
+    "prefix": false,
+    "tier": "checkout",
+    "upstream": "engine",
+    "fallback": "frontend",
+    "cache": {
+      "ttl": 300,
+      "swr": 3600
+    },
+    "requires": null
+  },
+  {
     "id": "checkout",
     "path": "/checkout",
+    "paths": [
+      "/checkout"
+    ],
     "prefix": true,
     "tier": "guarded",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   },
   {
     "id": "login",
     "path": "/login",
+    "paths": [
+      "/login"
+    ],
     "prefix": true,
     "tier": "guarded",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   },
   {
     "id": "signup",
     "path": "/signup",
+    "paths": [
+      "/signup"
+    ],
     "prefix": true,
     "tier": "guarded",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   },
   {
     "id": "forgotpassword",
     "path": "/forgotpassword",
+    "paths": [
+      "/forgotpassword"
+    ],
     "prefix": true,
     "tier": "guarded",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   },
   {
     "id": "auth",
     "path": "/auth",
+    "paths": [
+      "/auth"
+    ],
     "prefix": true,
     "tier": "guarded",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   },
   {
     "id": "connect",
     "path": "/connect",
+    "paths": [
+      "/connect"
+    ],
     "prefix": true,
     "tier": "guarded",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   },
   {
     "id": "order",
     "path": "/order",
+    "paths": [
+      "/order"
+    ],
     "prefix": true,
     "tier": "guarded",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   },
   {
     "id": "dashboard",
     "path": "/dashboard",
+    "paths": [
+      "/dashboard"
+    ],
     "prefix": true,
     "tier": "private",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   },
   {
     "id": "admin",
     "path": "/admin",
+    "paths": [
+      "/admin"
+    ],
     "prefix": true,
     "tier": "staff",
     "upstream": "frontend",
+    "fallback": null,
     "cache": null,
     "requires": null
   }
@@ -274,8 +401,8 @@ export function matchPath(pathname: string): PathMatch<PageId> | null {
 
 export interface RoutePage {
   id: string
-  /** Null for a page no path reaches, such as not-found. */
-  path: string | null
+  /** Every path the page is reached by; empty for a page no path reaches, such as not-found. */
+  paths: readonly string[]
   /** True when the page also owns every path below its own. */
   prefix: boolean
 }
@@ -300,6 +427,7 @@ export interface PathMatch<Id extends string = string> {
  *   store may not give a new group, not a path that stops matching.
  * - A prefix page matches its own path and every path below it, on a "/"
  *   boundary: /order matches /order and /order/x but not /orders.
+ * - A page with several paths matches by any of them.
  * - When several pages match, the one whose earliest differing segment is
  *   static wins; then the longer pattern; then an exact page over a prefix
  *   page; then registry order.
@@ -312,41 +440,44 @@ export function matchRoute(pages: readonly RoutePage[], pathname: string): PathM
 
   const owned = new Set<string>()
   for (const page of pages) {
-    const first = page.path === null || page.path === '/' ? '' : page.path.slice(1).split('/')[0]!
-    if (first !== '' && !first.startsWith('{')) owned.add(first)
+    for (const path of page.paths) {
+      const first = path === '/' ? '' : path.slice(1).split('/')[0]!
+      if (first !== '' && !first.startsWith('{')) owned.add(first)
+    }
   }
 
   let best: { match: PathMatch; rank: number[]; prefix: boolean } | null = null
 
   for (const page of pages) {
-    if (page.path === null) continue
-    const pattern = page.path === '/' ? [] : page.path.slice(1).split('/')
-    if (page.prefix ? segments.length < pattern.length : segments.length !== pattern.length) continue
+    for (const path of page.paths) {
+      const pattern = path === '/' ? [] : path.slice(1).split('/')
+      if (page.prefix ? segments.length < pattern.length : segments.length !== pattern.length) continue
 
-    const params: Record<string, string> = {}
-    const rank: number[] = []
-    let matched = true
-    for (let i = 0; i < pattern.length; i++) {
-      const part = pattern[i]!
-      const segment = segments[i]!
-      if (part.startsWith('{')) {
-        if (i === 0 && owned.has(segment)) {
+      const params: Record<string, string> = {}
+      const rank: number[] = []
+      let matched = true
+      for (let i = 0; i < pattern.length; i++) {
+        const part = pattern[i]!
+        const segment = segments[i]!
+        if (part.startsWith('{')) {
+          if (i === 0 && owned.has(segment)) {
+            matched = false
+            break
+          }
+          params[part.slice(1, -1)] = segment
+          rank.push(1)
+        } else if (part === segment) {
+          rank.push(0)
+        } else {
           matched = false
           break
         }
-        params[part.slice(1, -1)] = segment
-        rank.push(1)
-      } else if (part === segment) {
-        rank.push(0)
-      } else {
-        matched = false
-        break
       }
-    }
-    if (!matched) continue
+      if (!matched) continue
 
-    if (best === null || outranks(rank, page.prefix, best.rank, best.prefix)) {
-      best = { match: { id: page.id, params }, rank, prefix: page.prefix }
+      if (best === null || outranks(rank, page.prefix, best.rank, best.prefix)) {
+        best = { match: { id: page.id, params }, rank, prefix: page.prefix }
+      }
     }
   }
 

@@ -40,9 +40,12 @@ function loadCheckedRegistry(contractDir: string) {
   const errors = validateRegistry(registry)
   for (const contract of [contract1, contract202611]) {
     errors.push(...checkContract(contract).map((e) => `contract ${contract.version}: ${e}`))
-    for (const page of registry.pages.filter((p) => p.upstream === 'engine')) {
-      if (!contract.pages[page.id]) errors.push(`contract ${contract.version} has no data type for engine page ${page.id}`)
-    }
+  }
+  // The newest contract describes every engine page; an older one only those it was cut with.
+  for (const page of registry.pages.filter((p) => p.upstream === 'engine')) {
+    if (!contract202611.pages[page.id]) errors.push(`contract ${contract202611.version} has no data type for engine page ${page.id}`)
+  }
+  for (const contract of [contract1, contract202611]) {
     for (const page of Object.keys(contract.pages)) {
       if (!registry.pages.some((p) => p.id === page && p.upstream === 'engine')) {
         errors.push(`contract ${contract.version} describes ${page}, which is not an engine page in the registry`)
@@ -164,6 +167,8 @@ export function generateAll(contractDir: string): Record<string, string> {
       fixtureErrors.push(...errors.map((e) => `fixtures/2026-11/${name} ${e.path}: ${e.message}`))
       continue
     }
+    // A page contract "1" does not have is served only to 2026-11 templates.
+    if (!contract1.pages[pageId]) continue
     const legacy = downgrade(envelope)
     const legacyErrors = validate('1', pageId, legacy)
     fixtureErrors.push(...legacyErrors.map((e) => `fixtures/1/${name} ${e.path}: ${e.message}`))

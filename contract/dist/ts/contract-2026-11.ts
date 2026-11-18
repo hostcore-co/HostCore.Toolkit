@@ -625,6 +625,249 @@ export interface DomainSearchError {
  */
 export type DomainSearchOutcome = DomainSearchSuccess | DomainSearchError
 
+/**
+ * Money is an amount of money that is not a price per billing cycle, such as a
+ * setup fee or a total.
+ */
+export interface Money {
+  /** Major units, ready to render. */
+  amount: number
+  /** The same amount in minor units (cents), for arithmetic. */
+  amount_minor: number
+  /** An ISO 4217 code. */
+  currency: string
+}
+
+/**
+ * CheckoutCycle is one billing cycle a plan can be bought on, with its price
+ * and its setup fee. Order-form options are priced per cycle on top of the
+ * rate: the same amount whatever the cycle.
+ */
+export interface CheckoutCycle {
+  /** The billing cycle. */
+  interval: PriceInterval
+  /** The rate charged every cycle, in the store currency. */
+  price: Price
+  /** Charged once, with the first invoice; zero when the plan has none. */
+  setup_fee: Money
+}
+
+/**
+ * CheckoutPlan is a plan as checkout needs it: every billing cycle it can be
+ * bought on, its order form, and whether it may be paid by bank transfer.
+ */
+export interface CheckoutPlan {
+  /** A stable id, unique within the store. */
+  id: string
+  /** The id of the service the plan belongs to. */
+  service_id: string
+  /** The display name. */
+  name: string
+  /** The plan's path segment at checkout. */
+  slug: string
+  /** A short description. May be empty. */
+  description: string
+  /** An image URL, or empty. */
+  image: string
+  /**
+   * Whether the plan is free, starts with a free trial, or is paid every
+   * cycle.
+   */
+  payment_type: PaymentType
+  /** Days of free trial. Zero unless payment_type is free_trial. */
+  trial_days: number
+  /**
+   * How an order is fulfilled: "module" (automatically) or "manual" (by the
+   * store's staff).
+   */
+  provisioning: string
+  /**
+   * The billing cycles the plan can be bought on, monthly first, then
+   * quarterly, semi-annual and yearly; only the ones the store has enabled.
+   * Empty for a free or free-trial plan with no pricing.
+   */
+  cycles: CheckoutCycle[]
+  /** Never null; empty when the plan asks nothing. */
+  order_form: OrderFormComponent[]
+  /**
+   * True when an order of this plan may be paid by bank transfer, if the store
+   * accepts it.
+   */
+  allow_bank_transfer: boolean
+}
+
+/**
+ * CheckoutGateway is a payment provider the store takes payments with. The
+ * customer pays on the provider's own page.
+ */
+export interface CheckoutGateway {
+  /** The provider: "stripe" or "paypal". An open set. */
+  gateway: string
+  /** The ISO 4217 codes it can charge in. */
+  supported_currencies: string[]
+  /** The code it charges in when the customer has not chosen one. */
+  default_currency: string
+}
+
+/**
+ * CheckoutBankTransfer says the store accepts payment by bank transfer. The
+ * account details and the payment reference come with the order, after it is
+ * placed.
+ */
+export interface CheckoutBankTransfer {
+  /** What the store tells customers about paying by transfer. May be empty. */
+  instructions: string
+  /** Days the customer has to send the money. */
+  due_days: number
+}
+
+/** CheckoutPayment is how the store takes payment. */
+export interface CheckoutPayment {
+  /** The payment providers, in no particular order. */
+  gateways: CheckoutGateway[]
+  /** Set when the store accepts bank transfer, or null. */
+  bank_transfer: CheckoutBankTransfer | null
+  /** The store currency: the one every catalogue price is in. */
+  currency: string
+}
+
+/**
+ * CheckoutOfferKind is what an add-on offer adds to the order: a plan of
+ * another service, or a domain.
+ */
+export type CheckoutOfferKind = 'service' | 'domain'
+
+export const CheckoutOfferKindValues = ['service', 'domain'] as const
+
+/** CheckoutOfferService is the service a service offer adds a plan of. */
+export interface CheckoutOfferService {
+  /** A stable id, unique within the store. */
+  id: string
+  /** The id of the group the service is in. */
+  group_id: string
+  /** The display name. */
+  name: string
+  /** The service's path segment. */
+  slug: string
+  /** An image URL, or empty. */
+  image: string
+  /** Copy the store wrote for the service. */
+  marketing: Marketing
+}
+
+/**
+ * CheckoutOfferTld is one extension a domain offer sells, with its prices for
+ * every term.
+ */
+export interface CheckoutOfferTld {
+  /** The extension, without a leading dot: "com". */
+  tld: string
+  /** True for extensions the store highlights. */
+  featured: boolean
+  /** The terms it can be registered for, by years ascending; empty when none. */
+  register: DomainTermPrice[]
+  /**
+   * The terms it can be transferred in for, by years ascending; empty when
+   * none.
+   */
+  transfer: DomainTermPrice[]
+  /** The terms it renews for, by years ascending; empty when none. */
+  renew: DomainTermPrice[]
+}
+
+/**
+ * CheckoutOffer is an add-on the store offers with the item being bought. A
+ * customer may add one item per offer: one of its plans, or one domain. Only
+ * the plans listed may go with the item, and a domain offer takes any domain a
+ * search finds.
+ */
+export interface CheckoutOffer {
+  /** A stable id, unique within the store. */
+  id: string
+  /** What it adds. */
+  kind: CheckoutOfferKind
+  /** The heading the store wrote. */
+  title: string
+  /** The text the store wrote. May be empty. */
+  description: string
+  /** For a service offer, the service; null for a domain offer. */
+  service: CheckoutOfferService | null
+  /**
+   * For a service offer, the plans that may be added, in display order; empty
+   * for a domain offer.
+   */
+  plans: CheckoutPlan[]
+  /** For a domain offer, the extensions on sale; empty for a service offer. */
+  tlds: CheckoutOfferTld[]
+}
+
+/**
+ * ExchangeRates is how many units of each currency one US dollar buys, by ISO
+ * 4217 code. A price converts from the store currency to another by the ratio
+ * of their rates.
+ */
+export type ExchangeRates = Record<string, number>
+
+/**
+ * CheckoutPlanData is the data of the plan checkout page,
+ * /checkout/{service}/{plan}, or /checkout/{service} for a service with one
+ * plan. It carries nothing about the customer: whether they are signed in and
+ * their billing address come from the browser, through the SDK's checkout
+ * calls.
+ */
+export interface CheckoutPlanData {
+  /** The service being bought. */
+  service: Service
+  /** The group the service is in, or null when it is in none. */
+  group: Group | null
+  /** The plan being bought. */
+  plan: CheckoutPlan
+  /** How the store takes payment. */
+  payment: CheckoutPayment
+  /**
+   * Set when the store shows prices in other currencies, or null: then only
+   * the store currency is offered.
+   */
+  exchange_rates: ExchangeRates | null
+  /**
+   * The add-ons offered with this plan, in display order. Empty when there are
+   * none.
+   */
+  offers: CheckoutOffer[]
+}
+
+/**
+ * CheckoutDomainsData is the data of the domain checkout page,
+ * /checkout/domains. The domain being bought comes from the address (domain,
+ * action and years in the query) or from the visitor's saved pick, not from
+ * the page data.
+ */
+export interface CheckoutDomainsData {
+  /** How the store takes payment. Bank transfer is never offered for domains. */
+  payment: CheckoutPayment
+  /** Set when the store shows prices in other currencies, or null. */
+  exchange_rates: ExchangeRates | null
+  /**
+   * The add-ons offered with a domain, in display order. Empty when there are
+   * none.
+   */
+  offers: CheckoutOffer[]
+}
+
+/**
+ * CheckoutSuccessData is the data of the page a customer returns to after
+ * paying, /checkout/success. It is always empty: the order reference arrives
+ * in the address, and the page confirms the payment through the SDK.
+ */
+export type CheckoutSuccessData = Record<string, never>
+
+/**
+ * CheckoutCancelData is the data of the page a customer returns to after
+ * abandoning payment, /checkout/cancel. It is always empty: the order
+ * reference arrives in the address.
+ */
+export type CheckoutCancelData = Record<string, never>
+
 /** NotFoundData is the data of the not-found page. It is always empty. */
 export type NotFoundData = Record<string, never>
 
@@ -635,6 +878,10 @@ export interface PageDataMap {
   'catalog.service': CatalogServiceData
   domains: DomainsData
   'not-found': NotFoundData
+  'checkout.plan': CheckoutPlanData
+  'checkout.domains': CheckoutDomainsData
+  'checkout.success': CheckoutSuccessData
+  'checkout.cancel': CheckoutCancelData
 }
 
 /** ContractPageId is a page that carries data in this contract. */

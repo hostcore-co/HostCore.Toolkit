@@ -1,0 +1,346 @@
+{
+  "contract": "2026-11",
+  "page": {
+    "id": "checkout.plan",
+    "params": {
+      "service": "rust",
+      "plan": "free"
+    }
+  },
+  "redirect": null,
+  "meta": {
+    "title": "Checkout — Rust Free",
+    "description": "",
+    "og_image": "",
+    "no_index": true
+  },
+  "store": {
+    "name": "Acme Hosting",
+    "domain": "acme.test",
+    "logo_url": "https://cdn.example.com/acme/logo.svg",
+    "favicon_url": "https://cdn.example.com/acme/favicon.ico",
+    "locale": "en",
+    "currency": "USD",
+    "business": {
+      "address_line1": "1 Example Street",
+      "address_line2": "Suite 2",
+      "city": "Springfield",
+      "state": "OR",
+      "country": "US",
+      "postal_code": "97403",
+      "business_number": "EX-1234567",
+      "tax_number": "EX-TAX-0001",
+      "phone_number": "+1 555 0100",
+      "billing_email": "billing@acme.test"
+    },
+    "theme": {
+      "background": "#141517",
+      "surface": "#111214",
+      "surface_raised": "#191A1C",
+      "border": "#27282A",
+      "text": "#FFFFFF",
+      "text_muted": "#A2A3A7",
+      "accent": "#34D0FF",
+      "accent_strong": "#1F9DFF"
+    },
+    "root_redirect_url": "",
+    "login_image_url": "https://cdn.example.com/acme/login.jpg",
+    "signup_image_url": ""
+  },
+  "nav": {
+    "groups": [
+      {
+        "id": "grp_games",
+        "name": "Game Servers",
+        "slug": "games",
+        "url": "/games",
+        "description": "Low-latency servers for the games you play.",
+        "image": "https://cdn.example.com/acme/games.jpg",
+        "marketing": {
+          "title": "Game servers",
+          "description": "Your own server, online in minutes.",
+          "features": [
+            {
+              "icon": "bolt",
+              "text": "Instant setup"
+            },
+            {
+              "icon": "shield",
+              "text": "DDoS protection"
+            }
+          ]
+        }
+      },
+      {
+        "id": "grp_web",
+        "name": "Web Hosting & Email",
+        "slug": "web",
+        "url": "/web",
+        "description": "Sites, mail and databases.",
+        "image": "",
+        "marketing": {
+          "title": "",
+          "description": "",
+          "features": []
+        }
+      }
+    ],
+    "links": {
+      "home": "/",
+      "login": "/login",
+      "signup": "/signup",
+      "account": "/dashboard",
+      "domains": "/domains",
+      "terms": "https://acme.test/legal/terms",
+      "privacy": "https://acme.test/legal/privacy"
+    }
+  },
+  "settings": {
+    "hero.title": "Servers that just work",
+    "hero.subtitle": "Game servers and hosting from Acme.",
+    "hero.highlights": [
+      "Online in minutes",
+      "Backups included"
+    ],
+    "hero.primary_cta": {
+      "label": "See plans",
+      "href": "/games"
+    },
+    "hero.secondary_cta": {
+      "label": "Search domains",
+      "href": "/domains"
+    },
+    "categories.title": "What we host",
+    "categories.subtitle": "Pick a category.",
+    "features.title": "Why Acme",
+    "features.subtitle": "",
+    "features.cards": [
+      {
+        "title": "Fast",
+        "description": "NVMe everywhere."
+      }
+    ],
+    "faq.title": "Questions",
+    "faq.subtitle": "Answers to common ones.",
+    "faq.items": [
+      {
+        "question": "Can I upgrade?",
+        "answer": "Yes, at any time."
+      }
+    ],
+    "acme.banner_color": "#ff8800"
+  },
+  "actions": {
+    "domain_search": {
+      "method": "POST",
+      "url": "/api/v1/public/domains/search"
+    },
+    "domain_checkout": {
+      "method": "GET",
+      "url": "/checkout/domains"
+    }
+  },
+  "data": {
+    "service": {
+      "id": "svc_rust",
+      "group_id": "grp_games",
+      "name": "Rust",
+      "slug": "rust",
+      "url": "/games/rust",
+      "description": "Survive, build and raid.",
+      "image": "https://cdn.example.com/acme/rust.jpg",
+      "type": "game-server",
+      "marketing": {
+        "title": "Rust servers",
+        "description": "Survive, build and raid.",
+        "features": [
+          {
+            "icon": "cpu",
+            "text": "High clock CPUs"
+          }
+        ]
+      },
+      "single_plan": false
+    },
+    "group": {
+      "id": "grp_games",
+      "name": "Game Servers",
+      "slug": "games",
+      "url": "/games",
+      "description": "Low-latency servers for the games you play.",
+      "image": "https://cdn.example.com/acme/games.jpg",
+      "marketing": {
+        "title": "Game servers",
+        "description": "Your own server, online in minutes.",
+        "features": [
+          {
+            "icon": "bolt",
+            "text": "Instant setup"
+          },
+          {
+            "icon": "shield",
+            "text": "DDoS protection"
+          }
+        ]
+      }
+    },
+    "plan": {
+      "id": "pln_rust_free",
+      "service_id": "svc_rust",
+      "name": "Free",
+      "slug": "free",
+      "description": "A small server, free.",
+      "image": "https://cdn.example.com/acme/starter.png",
+      "payment_type": "free",
+      "trial_days": 0,
+      "provisioning": "module",
+      "cycles": [],
+      "order_form": [],
+      "allow_bank_transfer": false
+    },
+    "payment": {
+      "gateways": [
+        {
+          "gateway": "paypal",
+          "supported_currencies": [
+            "USD",
+            "EUR"
+          ],
+          "default_currency": "USD"
+        },
+        {
+          "gateway": "stripe",
+          "supported_currencies": [
+            "USD",
+            "EUR",
+            "GBP"
+          ],
+          "default_currency": "USD"
+        }
+      ],
+      "bank_transfer": null,
+      "currency": "USD"
+    },
+    "exchange_rates": {
+      "USD": 1,
+      "EUR": 0.92,
+      "GBP": 0.79
+    },
+    "offers": [
+      {
+        "id": "off_backups",
+        "kind": "service",
+        "title": "Add off-site backups",
+        "description": "Nightly copies kept for 30 days.",
+        "service": {
+          "id": "svc_backups",
+          "group_id": "grp_web",
+          "name": "Backups",
+          "slug": "backups",
+          "image": "",
+          "marketing": {
+            "title": "",
+            "description": "",
+            "features": []
+          }
+        },
+        "plans": [
+          {
+            "id": "pln_backups_50",
+            "service_id": "svc_backups",
+            "name": "50 GB",
+            "slug": "50-gb",
+            "description": "50 GB of storage.",
+            "image": "",
+            "payment_type": "recurring",
+            "trial_days": 0,
+            "provisioning": "module",
+            "cycles": [
+              {
+                "interval": "month",
+                "price": {
+                  "amount": 3,
+                  "amount_minor": 300,
+                  "currency": "USD",
+                  "interval": "month"
+                },
+                "setup_fee": {
+                  "amount": 0,
+                  "amount_minor": 0,
+                  "currency": "USD"
+                }
+              },
+              {
+                "interval": "year",
+                "price": {
+                  "amount": 30,
+                  "amount_minor": 3000,
+                  "currency": "USD",
+                  "interval": "year"
+                },
+                "setup_fee": {
+                  "amount": 0,
+                  "amount_minor": 0,
+                  "currency": "USD"
+                }
+              }
+            ],
+            "order_form": [],
+            "allow_bank_transfer": true
+          },
+          {
+            "id": "pln_backups_200",
+            "service_id": "svc_backups",
+            "name": "200 GB",
+            "slug": "200-gb",
+            "description": "200 GB of storage.",
+            "image": "",
+            "payment_type": "recurring",
+            "trial_days": 0,
+            "provisioning": "module",
+            "cycles": [
+              {
+                "interval": "month",
+                "price": {
+                  "amount": 9,
+                  "amount_minor": 900,
+                  "currency": "USD",
+                  "interval": "month"
+                },
+                "setup_fee": {
+                  "amount": 0,
+                  "amount_minor": 0,
+                  "currency": "USD"
+                }
+              }
+            ],
+            "order_form": [
+              {
+                "order": 0,
+                "type": "dropdown",
+                "label": "Retention",
+                "description": "",
+                "key": "retention",
+                "required": true,
+                "children": [
+                  {
+                    "label": "30 days",
+                    "value": "30",
+                    "price": 0
+                  },
+                  {
+                    "label": "90 days",
+                    "value": "90",
+                    "price": 250
+                  }
+                ]
+              }
+            ],
+            "allow_bank_transfer": false
+          }
+        ],
+        "tlds": []
+      }
+    ]
+  }
+}

@@ -32,7 +32,31 @@ describe('validateRegistry', () => {
 
   it('rejects two pages that match the same paths', () => {
     const errors = validateRegistry(withPages([engine('a', '/{group}'), engine('b', '/{other}')]))
-    expect(errors).toContain('page b: path matches exactly the same paths as page a')
+    expect(errors).toContain('page b: path /{other} matches exactly the same paths as page a')
+  })
+
+  it('takes several paths for one page, and a fallback only on checkout pages', () => {
+    const ok = validateRegistry(
+      withPages([
+        { id: 'x.y', paths: ['/checkout/{a}/{b}', '/checkout/{a}'], tier: 'checkout', upstream: 'engine', fallback: 'frontend', cache: { ttl: 1, swr: 1 } },
+      ]),
+    )
+    expect(ok).toEqual([])
+    const errors = validateRegistry(
+      withPages([
+        { id: 'p', paths: ['/checkout/{a}'], tier: 'checkout', upstream: 'engine', fallback: 'frontend', cache: { ttl: 1, swr: 1 } },
+        { id: 'q', path: '/checkout/q', paths: ['/checkout/q', '/checkout/r'], tier: 'open', upstream: 'engine', cache: { ttl: 1, swr: 1 } },
+        { id: 'r', path: '/checkout/s', tier: 'checkout', upstream: 'engine', cache: { ttl: 1, swr: 1 } },
+        { id: 's', path: '/checkout/t', tier: 'open', upstream: 'frontend', fallback: 'frontend', prefix: true },
+      ]),
+    )
+    expect(errors).toEqual([
+      'page p: paths lists two or more paths; a page with one path gives path',
+      'page q: give path or paths, not both',
+      'page r: a checkout page, and only a checkout page, has a fallback',
+      'page s: only an engine page has a fallback, and it is frontend',
+      'page s: a checkout page, and only a checkout page, has a fallback',
+    ])
   })
 
   it('enforces the shape of engine and frontend pages', () => {
@@ -49,7 +73,7 @@ describe('validateRegistry', () => {
     expect(errors).toContain('page y: a frontend page has no cache policy')
     expect(errors).toContain('page z: only an engine page may have no path')
     expect(errors).toContain('page w: a frontend page path has no parameters')
-    expect(errors).toContain('page w: tier must be one of open, guarded, private, staff')
+    expect(errors).toContain('page w: tier must be one of open, checkout, guarded, private, staff')
     expect(errors.some((e) => e.startsWith('page Bad Id: id must match'))).toBe(true)
     expect(errors.some((e) => e.startsWith('page Bad Id: segment "_hc"'))).toBe(true)
   })
@@ -71,8 +95,21 @@ describe('matchPath', () => {
 
   it('prefers a static path over a parameter', () => {
     expect(matchPath('/domains')?.id).toBe('domains')
-    expect(matchPath('/checkout/rust')?.id).toBe('checkout')
     expect(matchPath('/admin/settings')?.id).toBe('admin')
+  })
+
+  it('matches the checkout pages, static paths before the service and plan', () => {
+    expect(matchPath('/checkout/rust/starter')).toEqual({ id: 'checkout.plan', params: { service: 'rust', plan: 'starter' } })
+    expect(matchPath('/checkout/rust')).toEqual({ id: 'checkout.plan', params: { service: 'rust' } })
+    expect(matchPath('/checkout/domains')).toEqual({ id: 'checkout.domains', params: {} })
+    expect(matchPath('/checkout/success')).toEqual({ id: 'checkout.success', params: {} })
+    expect(matchPath('/checkout/cancel')).toEqual({ id: 'checkout.cancel', params: {} })
+    expect(matchPath('/checkout')).toEqual({ id: 'checkout', params: {} })
+    expect(matchPath('/checkout/a/b/c')).toEqual({ id: 'checkout', params: {} })
+    expect(matchPath('/checkout/_draft')).toBeNull()
+    const plan = PAGES.find((p) => p.id === 'checkout.plan')!
+    expect(plan).toMatchObject({ path: '/checkout/{service}/{plan}', paths: ['/checkout/{service}/{plan}', '/checkout/{service}'], tier: 'checkout', upstream: 'engine', fallback: 'frontend' })
+    expect(PAGES.find((p) => p.id === 'checkout')).toMatchObject({ upstream: 'frontend', fallback: null, prefix: true })
   })
 
   it('matches prefix pages on a / boundary only', () => {

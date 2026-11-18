@@ -7,7 +7,14 @@ import { matchRoute, type PathMatch } from './match'
  * platform serves it, who may see it, and how long it may be cached.
  */
 
-export const TIERS = ['open', 'guarded', 'private', 'staff'] as const
+/**
+ * Who may see a page, and so what of a template it shows: `open` pages are
+ * the storefront; `checkout` pages are the order flow, which a template may
+ * render; `guarded` pages (sign-in, sign-up and the like) are drawn inside the
+ * template's minimal layout; `private` pages (the account area) take its
+ * design tokens; `staff` pages show nothing of it.
+ */
+export const TIERS = ['open', 'checkout', 'guarded', 'private', 'staff'] as const
 export const UPSTREAMS = ['engine', 'frontend'] as const
 export const REQUIREMENTS = ['domains'] as const
 
@@ -24,10 +31,20 @@ export interface CachePolicy {
 
 export interface RegistryPage {
   id: string
-  path: string | null
+  /** The page's path; null for a page no path reaches. A page with several paths gives `paths` instead. */
+  path?: string | null
+  /** Every path of a page reached by more than one, the canonical one first. */
+  paths?: string[]
   prefix?: boolean
   tier: Tier
   upstream: Upstream
+  /**
+   * The part of the platform that serves the page when its upstream does not
+   * for a store: a checkout page is rendered from the store's template when
+   * the template implements it and the platform has it enabled for the
+   * store, and otherwise by the platform's front end.
+   */
+  fallback?: Upstream
   cache?: CachePolicy
   requires?: Requirement
 }
@@ -55,10 +72,14 @@ export interface Registry {
 /** A registry page with every optional key spelled out. */
 export interface NormalisedPage {
   id: string
+  /** The canonical path: the first of `paths`, or null. */
   path: string | null
+  /** Every path the page is reached by; empty for a page no path reaches. */
+  paths: string[]
   prefix: boolean
   tier: Tier
   upstream: Upstream
+  fallback: Upstream | null
   cache: CachePolicy | null
   requires: Requirement | null
 }
@@ -73,7 +94,13 @@ const PAGE_ID = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/
 const STATIC_SEGMENT = /^[a-z0-9][a-z0-9-]*$/
 const PARAM_SEGMENT = /^\{[a-z][a-z0-9_]*\}$/
 const RESERVED_SLUG = /^[a-z0-9_][a-z0-9_-]*$/
-const PAGE_KEYS = new Set(['id', 'path', 'prefix', 'tier', 'upstream', 'cache', 'requires'])
+const PAGE_KEYS = new Set(['id', 'path', 'paths', 'prefix', 'tier', 'upstream', 'fallback', 'cache', 'requires'])
+
+/** Every path of a registry page, as written: `paths`, or `path` alone, or none. */
+export function pagePaths(page: { path?: string | null; paths?: string[] }): string[] {
+  if (Array.isArray(page.paths)) return page.paths
+  return typeof page.path === 'string' ? [page.path] : []
+}
 
 export function readRegistry(contractDir: string): Registry {
   return JSON.parse(readFileSync(join(contractDir, 'registry.json'), 'utf8')) as Registry
@@ -145,34 +172,49 @@ export function validateRegistry(raw: unknown): string[] {
       if (page.prefix !== true) errors.push(`${at}: a frontend page must be a prefix page`)
     }
 
-    if (page.path === null) {
+    if (page.fallback !== undefined) {
+      if (page.upstream !== 'engine' || page.fallback !== 'frontend') errors.push(`${at}: only an engine page has a fallback, and it is frontend`)
+    }
+    if ((page.tier === 'checkout') !== (page.fallback !== undefined)) {
+      errors.push(`${at}: a checkout page, and only a checkout page, has a fallback`)
+    }
+
+    if (page.paths !== undefined && page.path !== undefined) errors.push(`${at}: give path or paths, not both`)
+    if (page.paths !== undefined && (!Array.isArray(page.paths) || page.paths.length < 2)) {
+      errors.push(`${at}: paths lists two or more paths; a page with one path gives path`)
+      return
+    }
+    if (page.paths === undefined && page.path === null) {
       if (page.upstream !== 'engine') errors.push(`${at}: only an engine page may have no path`)
       return
     }
-    if (typeof page.path !== 'string' || !page.path.startsWith('/')) {
-      errors.push(`${at}: path must start with /`)
-      return
-    }
-    if (page.path !== '/' && page.path.endsWith('/')) errors.push(`${at}: path must not end with /`)
-
-    const segments = page.path === '/' ? [] : page.path.slice(1).split('/')
-    const params = new Set<string>()
-    segments.forEach((segment, j) => {
-      if (PARAM_SEGMENT.test(segment)) {
-        if (page.upstream === 'frontend') errors.push(`${at}: a frontend page path has no parameters`)
-        if (params.has(segment)) errors.push(`${at}: parameter ${segment} is used twice`)
-        params.add(segment)
-      } else if (!STATIC_SEGMENT.test(segment)) {
-        errors.push(`${at}: segment ${JSON.stringify(segment)} must match ${STATIC_SEGMENT.source} or be a {param}`)
-      } else if (j === 0 && !reserved.has(segment)) {
-        errors.push(`${at}: first segment ${segment} must be in reserved_slugs, or a store could create a group that shadows it`)
+    const paths = page.paths ?? [page.path]
+    for (const path of paths) {
+      if (typeof path !== 'string' || !path.startsWith('/')) {
+        errors.push(`${at}: path must start with /`)
+        continue
       }
-    })
+      if (path !== '/' && path.endsWith('/')) errors.push(`${at}: path ${path} must not end with /`)
 
-    const shape = `${page.prefix === true ? 'prefix' : 'exact'} ${segments.map((s) => (s.startsWith('{') ? '{}' : s)).join('/')}`
-    const clash = shapes.get(shape)
-    if (clash !== undefined) errors.push(`${at}: path matches exactly the same paths as page ${clash}`)
-    else shapes.set(shape, id)
+      const segments = path === '/' ? [] : path.slice(1).split('/')
+      const params = new Set<string>()
+      segments.forEach((segment, j) => {
+        if (PARAM_SEGMENT.test(segment)) {
+          if (page.upstream === 'frontend') errors.push(`${at}: a frontend page path has no parameters`)
+          if (params.has(segment)) errors.push(`${at}: parameter ${segment} is used twice`)
+          params.add(segment)
+        } else if (!STATIC_SEGMENT.test(segment)) {
+          errors.push(`${at}: segment ${JSON.stringify(segment)} must match ${STATIC_SEGMENT.source} or be a {param}`)
+        } else if (j === 0 && !reserved.has(segment)) {
+          errors.push(`${at}: first segment ${segment} must be in reserved_slugs, or a store could create a group that shadows it`)
+        }
+      })
+
+      const shape = `${page.prefix === true ? 'prefix' : 'exact'} ${segments.map((s) => (s.startsWith('{') ? '{}' : s)).join('/')}`
+      const clash = shapes.get(shape)
+      if (clash !== undefined) errors.push(`${at}: path ${path} matches exactly the same paths as page ${clash}`)
+      else shapes.set(shape, id)
+    }
   })
 
   errors.push(...slotErrors(raw.slots, raw.pages))
@@ -213,10 +255,12 @@ export function normaliseRegistry(registry: Registry): NormalisedRegistry {
   return {
     pages: registry.pages.map((p) => ({
       id: p.id,
-      path: p.path,
+      path: pagePaths(p)[0] ?? null,
+      paths: pagePaths(p),
       prefix: p.prefix ?? false,
       tier: p.tier,
       upstream: p.upstream,
+      fallback: p.fallback ?? null,
       cache: p.cache ? { ttl: p.cache.ttl, swr: p.cache.swr } : null,
       requires: p.requires ?? null,
     })),
@@ -227,7 +271,7 @@ export function normaliseRegistry(registry: Registry): NormalisedRegistry {
 
 export function matchRegistryPath(registry: Registry, pathname: string): PathMatch | null {
   return matchRoute(
-    registry.pages.map((p) => ({ id: p.id, path: p.path, prefix: p.prefix ?? false })),
+    registry.pages.map((p) => ({ id: p.id, paths: pagePaths(p), prefix: p.prefix ?? false })),
     pathname,
   )
 }

@@ -1,7 +1,7 @@
 import { createElement, type ComponentType, type ReactNode } from 'react'
 import { renderToString } from 'react-dom/server'
 import type { AnyPageEnvelope } from '../../contract/dist/ts/contract-2026-11'
-import { SLOTS } from '../../contract/dist/ts/registry'
+import { PAGES, SLOTS } from '../../contract/dist/ts/registry'
 import type { SettingValue } from '../../contract/src/settings'
 import { PageContext, type OutletState, type PageContextValue } from './context'
 import { setCurrentEnv } from './env'
@@ -14,8 +14,8 @@ import type { Env, LayoutProps, LayoutVariant, PageProps } from './types'
  * `createServer`; everything below is the same for every template.
  */
 
-/** The order page ids are listed in, matching the page registry. */
-export const PAGE_ORDER = ['home', 'domains', 'catalog.group', 'catalog.service', 'not-found'] as const
+/** The pages a template can implement, in page registry order. */
+export const PAGE_ORDER: readonly string[] = PAGES.filter((p) => p.upstream === 'engine').map((p) => p.id)
 
 export const LAYOUT_VARIANTS: readonly LayoutVariant[] = ['default', 'minimal']
 

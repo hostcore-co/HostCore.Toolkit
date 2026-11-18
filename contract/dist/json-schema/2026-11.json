@@ -132,6 +132,110 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "page": {
+            "properties": {
+              "id": {
+                "const": "checkout.plan"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "page"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/CheckoutPlanData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "page": {
+            "properties": {
+              "id": {
+                "const": "checkout.domains"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "page"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/CheckoutDomainsData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "page": {
+            "properties": {
+              "id": {
+                "const": "checkout.success"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "page"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/CheckoutSuccessData"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "page": {
+            "properties": {
+              "id": {
+                "const": "checkout.cancel"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "required": [
+          "page"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/CheckoutCancelData"
+          }
+        }
+      }
     }
   ],
   "properties": {
@@ -143,7 +247,11 @@
             "catalog.group",
             "catalog.service",
             "domains",
-            "not-found"
+            "not-found",
+            "checkout.plan",
+            "checkout.domains",
+            "checkout.success",
+            "checkout.cancel"
           ]
         }
       }
@@ -1341,6 +1449,466 @@
           "$ref": "#/$defs/DomainSearchError"
         }
       ]
+    },
+    "Money": {
+      "description": "Money is an amount of money that is not a price per billing cycle, such as a setup fee or a total.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "description": "Major units, ready to render.",
+          "type": "number"
+        },
+        "amount_minor": {
+          "description": "The same amount in minor units (cents), for arithmetic.",
+          "type": "integer"
+        },
+        "currency": {
+          "description": "An ISO 4217 code.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "amount_minor",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutCycle": {
+      "description": "CheckoutCycle is one billing cycle a plan can be bought on, with its price and its setup fee. Order-form options are priced per cycle on top of the rate: the same amount whatever the cycle.",
+      "type": "object",
+      "properties": {
+        "interval": {
+          "description": "The billing cycle.",
+          "$ref": "#/$defs/PriceInterval"
+        },
+        "price": {
+          "description": "The rate charged every cycle, in the store currency.",
+          "$ref": "#/$defs/Price"
+        },
+        "setup_fee": {
+          "description": "Charged once, with the first invoice; zero when the plan has none.",
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "interval",
+        "price",
+        "setup_fee"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutPlan": {
+      "description": "CheckoutPlan is a plan as checkout needs it: every billing cycle it can be bought on, its order form, and whether it may be paid by bank transfer.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "A stable id, unique within the store.",
+          "type": "string"
+        },
+        "service_id": {
+          "description": "The id of the service the plan belongs to.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The display name.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "The plan's path segment at checkout.",
+          "type": "string"
+        },
+        "description": {
+          "description": "A short description. May be empty.",
+          "type": "string"
+        },
+        "image": {
+          "description": "An image URL, or empty.",
+          "type": "string"
+        },
+        "payment_type": {
+          "description": "Whether the plan is free, starts with a free trial, or is paid every cycle.",
+          "$ref": "#/$defs/PaymentType"
+        },
+        "trial_days": {
+          "description": "Days of free trial. Zero unless payment_type is free_trial.",
+          "type": "integer"
+        },
+        "provisioning": {
+          "description": "How an order is fulfilled: \"module\" (automatically) or \"manual\" (by the store's staff).",
+          "type": "string"
+        },
+        "cycles": {
+          "description": "The billing cycles the plan can be bought on, monthly first, then quarterly, semi-annual and yearly; only the ones the store has enabled. Empty for a free or free-trial plan with no pricing.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutCycle"
+          }
+        },
+        "order_form": {
+          "description": "Never null; empty when the plan asks nothing.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OrderFormComponent"
+          }
+        },
+        "allow_bank_transfer": {
+          "description": "True when an order of this plan may be paid by bank transfer, if the store accepts it.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "service_id",
+        "name",
+        "slug",
+        "description",
+        "image",
+        "payment_type",
+        "trial_days",
+        "provisioning",
+        "cycles",
+        "order_form",
+        "allow_bank_transfer"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutGateway": {
+      "description": "CheckoutGateway is a payment provider the store takes payments with. The customer pays on the provider's own page.",
+      "type": "object",
+      "properties": {
+        "gateway": {
+          "description": "The provider: \"stripe\" or \"paypal\". An open set.",
+          "type": "string"
+        },
+        "supported_currencies": {
+          "description": "The ISO 4217 codes it can charge in.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default_currency": {
+          "description": "The code it charges in when the customer has not chosen one.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gateway",
+        "supported_currencies",
+        "default_currency"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutBankTransfer": {
+      "description": "CheckoutBankTransfer says the store accepts payment by bank transfer. The account details and the payment reference come with the order, after it is placed.",
+      "type": "object",
+      "properties": {
+        "instructions": {
+          "description": "What the store tells customers about paying by transfer. May be empty.",
+          "type": "string"
+        },
+        "due_days": {
+          "description": "Days the customer has to send the money.",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "instructions",
+        "due_days"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutPayment": {
+      "description": "CheckoutPayment is how the store takes payment.",
+      "type": "object",
+      "properties": {
+        "gateways": {
+          "description": "The payment providers, in no particular order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutGateway"
+          }
+        },
+        "bank_transfer": {
+          "description": "Set when the store accepts bank transfer, or null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckoutBankTransfer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "description": "The store currency: the one every catalogue price is in.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gateways",
+        "bank_transfer",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutOfferKind": {
+      "description": "CheckoutOfferKind is what an add-on offer adds to the order: a plan of another service, or a domain.",
+      "enum": [
+        "service",
+        "domain"
+      ]
+    },
+    "CheckoutOfferService": {
+      "description": "CheckoutOfferService is the service a service offer adds a plan of.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "A stable id, unique within the store.",
+          "type": "string"
+        },
+        "group_id": {
+          "description": "The id of the group the service is in.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The display name.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "The service's path segment.",
+          "type": "string"
+        },
+        "image": {
+          "description": "An image URL, or empty.",
+          "type": "string"
+        },
+        "marketing": {
+          "description": "Copy the store wrote for the service.",
+          "$ref": "#/$defs/Marketing"
+        }
+      },
+      "required": [
+        "id",
+        "group_id",
+        "name",
+        "slug",
+        "image",
+        "marketing"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutOfferTld": {
+      "description": "CheckoutOfferTld is one extension a domain offer sells, with its prices for every term.",
+      "type": "object",
+      "properties": {
+        "tld": {
+          "description": "The extension, without a leading dot: \"com\".",
+          "type": "string"
+        },
+        "featured": {
+          "description": "True for extensions the store highlights.",
+          "type": "boolean"
+        },
+        "register": {
+          "description": "The terms it can be registered for, by years ascending; empty when none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DomainTermPrice"
+          }
+        },
+        "transfer": {
+          "description": "The terms it can be transferred in for, by years ascending; empty when none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DomainTermPrice"
+          }
+        },
+        "renew": {
+          "description": "The terms it renews for, by years ascending; empty when none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DomainTermPrice"
+          }
+        }
+      },
+      "required": [
+        "tld",
+        "featured",
+        "register",
+        "transfer",
+        "renew"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutOffer": {
+      "description": "CheckoutOffer is an add-on the store offers with the item being bought. A customer may add one item per offer: one of its plans, or one domain. Only the plans listed may go with the item, and a domain offer takes any domain a search finds.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "A stable id, unique within the store.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "What it adds.",
+          "$ref": "#/$defs/CheckoutOfferKind"
+        },
+        "title": {
+          "description": "The heading the store wrote.",
+          "type": "string"
+        },
+        "description": {
+          "description": "The text the store wrote. May be empty.",
+          "type": "string"
+        },
+        "service": {
+          "description": "For a service offer, the service; null for a domain offer.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckoutOfferService"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plans": {
+          "description": "For a service offer, the plans that may be added, in display order; empty for a domain offer.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutPlan"
+          }
+        },
+        "tlds": {
+          "description": "For a domain offer, the extensions on sale; empty for a service offer.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutOfferTld"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "description",
+        "service",
+        "plans",
+        "tlds"
+      ],
+      "additionalProperties": false
+    },
+    "ExchangeRates": {
+      "description": "ExchangeRates is how many units of each currency one US dollar buys, by ISO 4217 code. A price converts from the store currency to another by the ratio of their rates.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "CheckoutPlanData": {
+      "description": "CheckoutPlanData is the data of the plan checkout page, /checkout/{service}/{plan}, or /checkout/{service} for a service with one plan. It carries nothing about the customer: whether they are signed in and their billing address come from the browser, through the SDK's checkout calls.",
+      "type": "object",
+      "properties": {
+        "service": {
+          "description": "The service being bought.",
+          "$ref": "#/$defs/Service"
+        },
+        "group": {
+          "description": "The group the service is in, or null when it is in none.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Group"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plan": {
+          "description": "The plan being bought.",
+          "$ref": "#/$defs/CheckoutPlan"
+        },
+        "payment": {
+          "description": "How the store takes payment.",
+          "$ref": "#/$defs/CheckoutPayment"
+        },
+        "exchange_rates": {
+          "description": "Set when the store shows prices in other currencies, or null: then only the store currency is offered.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExchangeRates"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offers": {
+          "description": "The add-ons offered with this plan, in display order. Empty when there are none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutOffer"
+          }
+        }
+      },
+      "required": [
+        "service",
+        "group",
+        "plan",
+        "payment",
+        "exchange_rates",
+        "offers"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutDomainsData": {
+      "description": "CheckoutDomainsData is the data of the domain checkout page, /checkout/domains. The domain being bought comes from the address (domain, action and years in the query) or from the visitor's saved pick, not from the page data.",
+      "type": "object",
+      "properties": {
+        "payment": {
+          "description": "How the store takes payment. Bank transfer is never offered for domains.",
+          "$ref": "#/$defs/CheckoutPayment"
+        },
+        "exchange_rates": {
+          "description": "Set when the store shows prices in other currencies, or null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExchangeRates"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offers": {
+          "description": "The add-ons offered with a domain, in display order. Empty when there are none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckoutOffer"
+          }
+        }
+      },
+      "required": [
+        "payment",
+        "exchange_rates",
+        "offers"
+      ],
+      "additionalProperties": false
+    },
+    "CheckoutSuccessData": {
+      "description": "CheckoutSuccessData is the data of the page a customer returns to after paying, /checkout/success. It is always empty: the order reference arrives in the address, and the page confirms the payment through the SDK.",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "CheckoutCancelData": {
+      "description": "CheckoutCancelData is the data of the page a customer returns to after abandoning payment, /checkout/cancel. It is always empty: the order reference arrives in the address.",
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
     },
     "NotFoundData": {
       "description": "NotFoundData is the data of the not-found page. It is always empty.",

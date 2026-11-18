@@ -6,7 +6,7 @@ import { matchPath, PAGES, SLOTS } from '../contract/dist/ts/registry'
 import { validate } from '../contract/src/validate'
 import { effectiveTokens, TOKENS } from '../contract/src/tokens'
 import { buildFormat2 } from './build-v2'
-import { readFixtures } from './check'
+import { layoutVariantFor, readFixtures } from './check'
 import { CommandError, stringFlag, type Flags } from './commands'
 import type { ManifestV2 } from './manifest'
 import { RUNTIME_CLIENT_FILES, buildRuntime, writeRuntime } from './runtime'
@@ -377,7 +377,8 @@ export async function startDevServer(root: string, options: DevServerOptions = {
 
       const match = /^\/page\/([^/]+)\/([^/]+)$/.exec(path)
       if (match) {
-        const variant = url.searchParams.get('variant') === 'minimal' ? 'minimal' : 'default'
+        const asked = url.searchParams.get('variant')
+        const variant = asked === 'minimal' || asked === 'default' ? asked : layoutVariantFor(decodeURIComponent(match[1]!))
         const pageId = decodeURIComponent(match[1]!)
         const fixtureName = decodeURIComponent(match[2]!)
         if (pageId === '_' && fixtureName === PAYLOAD_FIXTURE && options.payloadFile) {
@@ -412,7 +413,10 @@ export async function startDevServer(root: string, options: DevServerOptions = {
         const exact = candidates.find((f) => JSON.stringify(f.value.page.params ?? {}) === JSON.stringify(routed.params))
         const fixture = exact ?? candidates[0] ?? fixtures.find((f) => f.name === 'home')
         if (fixture) {
-          const target = `/page/${encodeURIComponent(routed.id)}/${encodeURIComponent(fixture.name)}${MINIMAL_LAYOUT_PAGE_IDS.includes(routed.id) ? '?variant=minimal' : ''}`
+          // The query travels with the page: a checkout page reads its order reference or domain from it.
+          const query = new URLSearchParams(url.search)
+          if (MINIMAL_LAYOUT_PAGE_IDS.includes(routed.id)) query.set('variant', 'minimal')
+          const target = `/page/${encodeURIComponent(routed.id)}/${encodeURIComponent(fixture.name)}${query.size > 0 ? `?${query}` : ''}`
           return new Response(null, { status: 302, headers: { location: target } })
         }
       }

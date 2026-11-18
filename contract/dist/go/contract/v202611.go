@@ -551,5 +551,201 @@ type V202611DomainSearchError struct {
 	Message string `json:"message"`
 }
 
+// V202611Money is an amount of money that is not a price per billing cycle,
+// such as a setup fee or a total.
+type V202611Money struct {
+	// Major units, ready to render.
+	Amount float64 `json:"amount"`
+	// The same amount in minor units (cents), for arithmetic.
+	AmountMinor int64 `json:"amount_minor"`
+	// An ISO 4217 code.
+	Currency string `json:"currency"`
+}
+
+// V202611CheckoutCycle is one billing cycle a plan can be bought on, with its
+// price and its setup fee. Order-form options are priced per cycle on top of
+// the rate: the same amount whatever the cycle.
+type V202611CheckoutCycle struct {
+	// The billing cycle.
+	Interval V202611PriceInterval `json:"interval"`
+	// The rate charged every cycle, in the store currency.
+	Price V202611Price `json:"price"`
+	// Charged once, with the first invoice; zero when the plan has none.
+	SetupFee V202611Money `json:"setup_fee"`
+}
+
+// V202611CheckoutPlan is a plan as checkout needs it: every billing cycle it
+// can be bought on, its order form, and whether it may be paid by bank
+// transfer.
+type V202611CheckoutPlan struct {
+	// A stable id, unique within the store.
+	ID string `json:"id"`
+	// The id of the service the plan belongs to.
+	ServiceID string `json:"service_id"`
+	// The display name.
+	Name string `json:"name"`
+	// The plan's path segment at checkout.
+	Slug string `json:"slug"`
+	// A short description. May be empty.
+	Description string `json:"description"`
+	// An image URL, or empty.
+	Image string `json:"image"`
+	// Whether the plan is free, starts with a free trial, or is paid every cycle.
+	PaymentType V202611PaymentType `json:"payment_type"`
+	// Days of free trial. Zero unless payment_type is free_trial.
+	TrialDays int `json:"trial_days"`
+	// How an order is fulfilled: "module" (automatically) or "manual" (by the
+	// store's staff).
+	Provisioning string `json:"provisioning"`
+	// The billing cycles the plan can be bought on, monthly first, then quarterly,
+	// semi-annual and yearly; only the ones the store has enabled. Empty for a
+	// free or free-trial plan with no pricing.
+	Cycles []V202611CheckoutCycle `json:"cycles"`
+	// Never null; empty when the plan asks nothing.
+	OrderForm []V202611OrderFormComponent `json:"order_form"`
+	// True when an order of this plan may be paid by bank transfer, if the store
+	// accepts it.
+	AllowBankTransfer bool `json:"allow_bank_transfer"`
+}
+
+// V202611CheckoutGateway is a payment provider the store takes payments with.
+// The customer pays on the provider's own page.
+type V202611CheckoutGateway struct {
+	// The provider: "stripe" or "paypal". An open set.
+	Gateway string `json:"gateway"`
+	// The ISO 4217 codes it can charge in.
+	SupportedCurrencies []string `json:"supported_currencies"`
+	// The code it charges in when the customer has not chosen one.
+	DefaultCurrency string `json:"default_currency"`
+}
+
+// V202611CheckoutBankTransfer says the store accepts payment by bank transfer.
+// The account details and the payment reference come with the order, after it
+// is placed.
+type V202611CheckoutBankTransfer struct {
+	// What the store tells customers about paying by transfer. May be empty.
+	Instructions string `json:"instructions"`
+	// Days the customer has to send the money.
+	DueDays int `json:"due_days"`
+}
+
+// V202611CheckoutPayment is how the store takes payment.
+type V202611CheckoutPayment struct {
+	// The payment providers, in no particular order.
+	Gateways []V202611CheckoutGateway `json:"gateways"`
+	// Set when the store accepts bank transfer, or null.
+	BankTransfer *V202611CheckoutBankTransfer `json:"bank_transfer"`
+	// The store currency: the one every catalogue price is in.
+	Currency string `json:"currency"`
+}
+
+// V202611CheckoutOfferKind is what an add-on offer adds to the order: a plan of
+// another service, or a domain.
+type V202611CheckoutOfferKind string
+
+const (
+	V202611CheckoutOfferKindService V202611CheckoutOfferKind = "service"
+	V202611CheckoutOfferKindDomain  V202611CheckoutOfferKind = "domain"
+)
+
+// V202611CheckoutOfferService is the service a service offer adds a plan of.
+type V202611CheckoutOfferService struct {
+	// A stable id, unique within the store.
+	ID string `json:"id"`
+	// The id of the group the service is in.
+	GroupID string `json:"group_id"`
+	// The display name.
+	Name string `json:"name"`
+	// The service's path segment.
+	Slug string `json:"slug"`
+	// An image URL, or empty.
+	Image string `json:"image"`
+	// Copy the store wrote for the service.
+	Marketing V202611Marketing `json:"marketing"`
+}
+
+// V202611CheckoutOfferTld is one extension a domain offer sells, with its
+// prices for every term.
+type V202611CheckoutOfferTld struct {
+	// The extension, without a leading dot: "com".
+	TLD string `json:"tld"`
+	// True for extensions the store highlights.
+	Featured bool `json:"featured"`
+	// The terms it can be registered for, by years ascending; empty when none.
+	Register []V202611DomainTermPrice `json:"register"`
+	// The terms it can be transferred in for, by years ascending; empty when none.
+	Transfer []V202611DomainTermPrice `json:"transfer"`
+	// The terms it renews for, by years ascending; empty when none.
+	Renew []V202611DomainTermPrice `json:"renew"`
+}
+
+// V202611CheckoutOffer is an add-on the store offers with the item being
+// bought. A customer may add one item per offer: one of its plans, or one
+// domain. Only the plans listed may go with the item, and a domain offer takes
+// any domain a search finds.
+type V202611CheckoutOffer struct {
+	// A stable id, unique within the store.
+	ID string `json:"id"`
+	// What it adds.
+	Kind V202611CheckoutOfferKind `json:"kind"`
+	// The heading the store wrote.
+	Title string `json:"title"`
+	// The text the store wrote. May be empty.
+	Description string `json:"description"`
+	// For a service offer, the service; null for a domain offer.
+	Service *V202611CheckoutOfferService `json:"service"`
+	// For a service offer, the plans that may be added, in display order; empty
+	// for a domain offer.
+	Plans []V202611CheckoutPlan `json:"plans"`
+	// For a domain offer, the extensions on sale; empty for a service offer.
+	TLDs []V202611CheckoutOfferTld `json:"tlds"`
+}
+
+// V202611CheckoutPlanData is the data of the plan checkout page,
+// /checkout/{service}/{plan}, or /checkout/{service} for a service with one
+// plan. It carries nothing about the customer: whether they are signed in and
+// their billing address come from the browser, through the SDK's checkout
+// calls.
+type V202611CheckoutPlanData struct {
+	// The service being bought.
+	Service V202611Service `json:"service"`
+	// The group the service is in, or null when it is in none.
+	Group *V202611Group `json:"group"`
+	// The plan being bought.
+	Plan V202611CheckoutPlan `json:"plan"`
+	// How the store takes payment.
+	Payment V202611CheckoutPayment `json:"payment"`
+	// Set when the store shows prices in other currencies, or null: then only the
+	// store currency is offered.
+	ExchangeRates *map[string]float64 `json:"exchange_rates"`
+	// The add-ons offered with this plan, in display order. Empty when there are
+	// none.
+	Offers []V202611CheckoutOffer `json:"offers"`
+}
+
+// V202611CheckoutDomainsData is the data of the domain checkout page,
+// /checkout/domains. The domain being bought comes from the address (domain,
+// action and years in the query) or from the visitor's saved pick, not from the
+// page data.
+type V202611CheckoutDomainsData struct {
+	// How the store takes payment. Bank transfer is never offered for domains.
+	Payment V202611CheckoutPayment `json:"payment"`
+	// Set when the store shows prices in other currencies, or null.
+	ExchangeRates *map[string]float64 `json:"exchange_rates"`
+	// The add-ons offered with a domain, in display order. Empty when there are
+	// none.
+	Offers []V202611CheckoutOffer `json:"offers"`
+}
+
+// V202611CheckoutSuccessData is the data of the page a customer returns to
+// after paying, /checkout/success. It is always empty: the order reference
+// arrives in the address, and the page confirms the payment through the SDK.
+type V202611CheckoutSuccessData struct{}
+
+// V202611CheckoutCancelData is the data of the page a customer returns to after
+// abandoning payment, /checkout/cancel. It is always empty: the order reference
+// arrives in the address.
+type V202611CheckoutCancelData struct{}
+
 // V202611NotFoundData is the data of the not-found page. It is always empty.
 type V202611NotFoundData struct{}

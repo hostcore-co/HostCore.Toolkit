@@ -117,6 +117,18 @@ describe('diffSurface classifies', () => {
     ])
   })
 
+  it('a path added to a page as additive, and one taken away as breaking', () => {
+    expect(change((s) => s.registry!['checkout.plan']!.paths!.push('/buy/{service}'))).toEqual([
+      ['additive', 'page checkout.plan', 'it is also reached by /buy/{service}'],
+    ])
+    expect(change((s) => (s.registry!['checkout.plan']!.paths = ['/checkout/{service}/{plan}']))).toEqual([
+      ['breaking', 'page checkout.plan', 'it is no longer reached by /checkout/{service}'],
+    ])
+    expect(change((s) => (s.registry!['checkout.plan']!.fallback = null))).toEqual([
+      ['breaking', 'page checkout.plan', 'its fallback changed from "frontend" to null'],
+    ])
+  })
+
   it('a narrowed limit as breaking and a widened one as additive', () => {
     expect(change((s) => (s.standard_settings!['hero.title']!.max = 80))).toEqual([
       ['breaking', 'standard setting hero.title', 'max narrowed from 160 to 80'],

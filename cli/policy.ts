@@ -183,13 +183,15 @@ const PAGE_LINKS: Readonly<Record<string, string>> = {
   login: 'useNav().links.login',
   signup: 'useNav().links.signup',
   dashboard: 'useNav().links.account',
+  'checkout.domains': "actionHref(useAction('domain_checkout'), { domain, action, years })",
+  'checkout.success': 'nothing: the platform sends the customer there after payment',
+  'checkout.cancel': 'nothing: the platform sends the customer there when they abandon payment',
 }
 
 /**
  * Platform URLs a format-2 template must not write by hand: the path of
  * every page in the page registry that has a fixed path, so a page added to
- * the registry is covered too, `/checkout/domains`, where a searched domain
- * is bought through actionHref and the domain_checkout action, and `/api`,
+ * the registry is covered too, and `/api`,
  * whose endpoints come from useAction(name). A link a template needs is in
  * the page payload, so a template that takes it from there keeps working if
  * the platform moves the page; a page the payload has no link to is not one
@@ -201,11 +203,9 @@ const PAGE_LINKS: Readonly<Record<string, string>> = {
  * way to link to it.
  */
 export const PLATFORM_URL_RULES: readonly PlatformUrlRule[] = [
-  ...PAGES.filter((p) => p.path !== null && p.path !== '/' && !p.path.includes('{')).map((p) => ({
-    path: p.path!,
-    use: PAGE_LINKS[p.id] ?? null,
-  })),
-  { path: '/checkout/domains', use: "actionHref(useAction('domain_checkout'), { domain, action, years })" },
+  ...PAGES.flatMap((p) =>
+    p.paths.filter((path) => path !== '/' && !path.includes('{')).map((path) => ({ path, use: PAGE_LINKS[p.id] ?? null })),
+  ),
   { path: '/api', use: 'useAction(name), whose url is the endpoint to call' },
 ]
 

@@ -401,9 +401,10 @@ export default function Home() { const nav = useNav(); return <Link href={nav.li
   })
 
   it('flags every fixed path of the page registry, and not the home page', async () => {
-    const fixed = PAGES.filter((p) => p.path !== null && !p.path.includes('{') && p.path !== '/').map((p) => p.path!)
+    const fixed = PAGES.flatMap((p) => p.paths).filter((path) => !path.includes('{') && path !== '/')
     expect(fixed).toContain('/domains')
-    expect(PLATFORM_URL_RULES.map((r) => r.path)).toEqual([...fixed, '/checkout/domains', '/api'])
+    expect(fixed).toContain('/checkout/domains')
+    expect(PLATFORM_URL_RULES.map((r) => r.path)).toEqual([...fixed, '/api'])
     const found = await findings2({
       'src/pages/home.tsx': `export default function Home() {
   return (

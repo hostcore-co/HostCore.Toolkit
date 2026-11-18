@@ -157,22 +157,27 @@ function pagesPage(contractDir: string): string {
   const out = [
     '# Pages',
     '',
-    'Every page a store\'s domain serves. A template implements the storefront pages, one file each in `src/pages/<page id>.tsx`; a page it leaves out is rendered by the platform\'s default template. ' + platformPagesSentence(code),
+    'Every page a store\'s domain serves. A template implements the storefront pages, one file each in `src/pages/<page id>.tsx`; a page it leaves out is rendered by the platform\'s default template. It may also implement the checkout pages (below); one it leaves out is the platform\'s own checkout page. ' + platformPagesSentence(code),
     '',
-    '## Storefront pages',
+    '## Pages a template implements',
     '',
     table(
-      ['page id', 'path', 'data', 'cache', 'fixtures'],
+      ['page id', 'path', 'tier', 'data', 'cache', 'fixtures'],
       engine.map((p) => [
         code(p.id),
-        p.path === null ? 'no path; shown for any path no page matches' : code(p.path),
+        p.paths.length === 0 ? 'no path; shown for any path no page matches' : p.paths.map(code).join(' and '),
+        p.tier,
         `[${contract202611.pages[p.id]}](contract-2026-11.md#${anchor(contract202611.pages[p.id]!)})`,
         p.cache ? `fresh ${p.cache.ttl} s, stale up to ${p.cache.swr} s` : '',
         (fixtures[p.id] ?? []).map(code).join(', '),
       ]),
     ),
     '',
-    'Every page receives a [PageEnvelope](contract-2026-11.md#pageenvelope); `data` has the type in the table. Paths with `{group}` and `{service}` take the group and service slugs, and `page.params` carries them.',
+    'Every page receives a [PageEnvelope](contract-2026-11.md#pageenvelope); `data` has the type in the table. Paths with `{group}`, `{service}` and `{plan}` take the slugs, and `page.params` carries them.',
+    '',
+    '### Checkout pages',
+    '',
+    `The pages of the \`checkout\` tier (${engine.filter((p) => p.tier === 'checkout').map((p) => code(p.id)).join(', ')}) are the order flow. Each is rendered from a store's template when the template implements it and the platform has turned the template's checkout on for the store, and otherwise by the platform's own checkout page, as the registry's \`fallback\` says. A checkout page is drawn inside your layout in its \`minimal\` variant.`,
     '',
   ]
   for (const p of engine) {

@@ -14,30 +14,35 @@ import (
 type PageID string
 
 const (
-	PageHome           PageID = "home"
-	PageDomains        PageID = "domains"
-	PageCatalogGroup   PageID = "catalog.group"
-	PageCatalogService PageID = "catalog.service"
-	PageNotFound       PageID = "not-found"
-	PageCheckout       PageID = "checkout"
-	PageLogin          PageID = "login"
-	PageSignup         PageID = "signup"
-	PageForgotpassword PageID = "forgotpassword"
-	PageAuth           PageID = "auth"
-	PageConnect        PageID = "connect"
-	PageOrder          PageID = "order"
-	PageDashboard      PageID = "dashboard"
-	PageAdmin          PageID = "admin"
+	PageHome            PageID = "home"
+	PageDomains         PageID = "domains"
+	PageCatalogGroup    PageID = "catalog.group"
+	PageCatalogService  PageID = "catalog.service"
+	PageNotFound        PageID = "not-found"
+	PageCheckoutPlan    PageID = "checkout.plan"
+	PageCheckoutDomains PageID = "checkout.domains"
+	PageCheckoutSuccess PageID = "checkout.success"
+	PageCheckoutCancel  PageID = "checkout.cancel"
+	PageCheckout        PageID = "checkout"
+	PageLogin           PageID = "login"
+	PageSignup          PageID = "signup"
+	PageForgotpassword  PageID = "forgotpassword"
+	PageAuth            PageID = "auth"
+	PageConnect         PageID = "connect"
+	PageOrder           PageID = "order"
+	PageDashboard       PageID = "dashboard"
+	PageAdmin           PageID = "admin"
 )
 
 // Tier is who may see a page.
 type Tier string
 
 const (
-	TierOpen    Tier = "open"
-	TierGuarded Tier = "guarded"
-	TierPrivate Tier = "private"
-	TierStaff   Tier = "staff"
+	TierOpen     Tier = "open"
+	TierCheckout Tier = "checkout"
+	TierGuarded  Tier = "guarded"
+	TierPrivate  Tier = "private"
+	TierStaff    Tier = "staff"
 )
 
 // Upstream is the part of the platform that serves a page.
@@ -56,36 +61,48 @@ type CachePolicy struct {
 	SWR int `json:"swr"`
 }
 
-// Page is one entry of the page registry. Path is empty for a page no path
-// reaches. A Prefix page also owns every path below its own, on a "/" boundary.
-// Cache is set for engine pages only. Requires names what a store must offer
-// for the page to exist, or is empty.
+// Page is one entry of the page registry. Path is the canonical path, empty for
+// a page no path reaches; Paths is every path the page is reached by, the
+// canonical one first, and holds more than one for a page reached several ways.
+// A Prefix page also owns every path below its own, on a "/" boundary.
+// Fallback, set on checkout pages, is who serves the page when its upstream
+// does not for a store: a checkout page is rendered from the store's template
+// when the template implements it and the platform has it enabled for the
+// store, and otherwise by the platform's front end. Cache is set for engine
+// pages only. Requires names what a store must offer for the page to exist, or
+// is empty.
 type Page struct {
 	ID       PageID      `json:"id"`
 	Path     string      `json:"path"`
+	Paths    []string    `json:"paths"`
 	Prefix   bool        `json:"prefix"`
 	Tier     Tier        `json:"tier"`
 	Upstream Upstream    `json:"upstream"`
+	Fallback Upstream    `json:"fallback"`
 	Cache    CachePolicy `json:"cache"`
 	Requires string      `json:"requires"`
 }
 
 // Pages lists every page in registry order.
 var Pages = []Page{
-	{ID: PageHome, Path: "/", Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 3600, SWR: 86400}},
-	{ID: PageDomains, Path: "/domains", Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 3600, SWR: 86400}, Requires: "domains"},
-	{ID: PageCatalogGroup, Path: "/{group}", Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 3600, SWR: 86400}},
-	{ID: PageCatalogService, Path: "/{group}/{service}", Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 3600, SWR: 86400}},
+	{ID: PageHome, Path: "/", Paths: []string{"/"}, Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 3600, SWR: 86400}},
+	{ID: PageDomains, Path: "/domains", Paths: []string{"/domains"}, Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 3600, SWR: 86400}, Requires: "domains"},
+	{ID: PageCatalogGroup, Path: "/{group}", Paths: []string{"/{group}"}, Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 3600, SWR: 86400}},
+	{ID: PageCatalogService, Path: "/{group}/{service}", Paths: []string{"/{group}/{service}"}, Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 3600, SWR: 86400}},
 	{ID: PageNotFound, Tier: TierOpen, Upstream: UpstreamEngine, Cache: CachePolicy{TTL: 0, SWR: 0}},
-	{ID: PageCheckout, Path: "/checkout", Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
-	{ID: PageLogin, Path: "/login", Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
-	{ID: PageSignup, Path: "/signup", Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
-	{ID: PageForgotpassword, Path: "/forgotpassword", Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
-	{ID: PageAuth, Path: "/auth", Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
-	{ID: PageConnect, Path: "/connect", Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
-	{ID: PageOrder, Path: "/order", Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
-	{ID: PageDashboard, Path: "/dashboard", Prefix: true, Tier: TierPrivate, Upstream: UpstreamFrontend},
-	{ID: PageAdmin, Path: "/admin", Prefix: true, Tier: TierStaff, Upstream: UpstreamFrontend},
+	{ID: PageCheckoutPlan, Path: "/checkout/{service}/{plan}", Paths: []string{"/checkout/{service}/{plan}", "/checkout/{service}"}, Tier: TierCheckout, Upstream: UpstreamEngine, Fallback: UpstreamFrontend, Cache: CachePolicy{TTL: 300, SWR: 3600}},
+	{ID: PageCheckoutDomains, Path: "/checkout/domains", Paths: []string{"/checkout/domains"}, Tier: TierCheckout, Upstream: UpstreamEngine, Fallback: UpstreamFrontend, Cache: CachePolicy{TTL: 300, SWR: 3600}},
+	{ID: PageCheckoutSuccess, Path: "/checkout/success", Paths: []string{"/checkout/success"}, Tier: TierCheckout, Upstream: UpstreamEngine, Fallback: UpstreamFrontend, Cache: CachePolicy{TTL: 300, SWR: 3600}},
+	{ID: PageCheckoutCancel, Path: "/checkout/cancel", Paths: []string{"/checkout/cancel"}, Tier: TierCheckout, Upstream: UpstreamEngine, Fallback: UpstreamFrontend, Cache: CachePolicy{TTL: 300, SWR: 3600}},
+	{ID: PageCheckout, Path: "/checkout", Paths: []string{"/checkout"}, Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
+	{ID: PageLogin, Path: "/login", Paths: []string{"/login"}, Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
+	{ID: PageSignup, Path: "/signup", Paths: []string{"/signup"}, Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
+	{ID: PageForgotpassword, Path: "/forgotpassword", Paths: []string{"/forgotpassword"}, Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
+	{ID: PageAuth, Path: "/auth", Paths: []string{"/auth"}, Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
+	{ID: PageConnect, Path: "/connect", Paths: []string{"/connect"}, Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
+	{ID: PageOrder, Path: "/order", Paths: []string{"/order"}, Prefix: true, Tier: TierGuarded, Upstream: UpstreamFrontend},
+	{ID: PageDashboard, Path: "/dashboard", Paths: []string{"/dashboard"}, Prefix: true, Tier: TierPrivate, Upstream: UpstreamFrontend},
+	{ID: PageAdmin, Path: "/admin", Paths: []string{"/admin"}, Prefix: true, Tier: TierStaff, Upstream: UpstreamFrontend},
 }
 
 // SlotID identifies a slot: a named place on a page the platform renders, where

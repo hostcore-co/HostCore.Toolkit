@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve, sep } from 'node:path'
+import { PAGES } from '../contract/dist/ts/registry'
 import { TOOLKIT_CONTRACT_DIR } from '../contract/src/generate'
 import { buildTemplate } from './build'
 import { buildFormat2 } from './build-v2'
@@ -18,7 +19,8 @@ import { scanBuiltStylesheets } from './validate'
  * platform does before it accepts a build.
  *
  * A format-2 build renders every page it implements against every fixture
- * for that page, as a whole document (when it has a layout) and as a body,
+ * for that page, as a whole document (when it has a layout, in its minimal
+ * variant for a checkout page) and as a body,
  * and its layout once per variant, and every slot it fills against every
  * fixture. A format-1 build renders every contract
  * "1" fixture. Each render is reported with the sha256 of its HTML, so two
@@ -183,6 +185,14 @@ export function emptyRenderError(page: string, fixture: string, variant: string)
   return `HC_EMPTY_RENDER: page "${page}" rendered nothing for fixture "${fixture}" (variant ${variant}): a page must render at least one element or some text`
 }
 
+/**
+ * The layout variant a page is drawn in: `minimal` for a checkout page, as
+ * the platform's own checkout is, and `default` for the storefront.
+ */
+export function layoutVariantFor(page: string): 'default' | 'minimal' {
+  return PAGES.find((p) => p.id === page)?.tier === 'checkout' ? 'minimal' : 'default'
+}
+
 /** Renders a loaded format-2 bundle against the fixtures. */
 export function checkBundle(bundle: LoadedBundle, fixtures: Fixture[]): CheckResult[] {
   const results: CheckResult[] = []
@@ -190,8 +200,9 @@ export function checkBundle(bundle: LoadedBundle, fixtures: Fixture[]): CheckRes
     htmlOf(bundle.render(JSON.stringify({ kind, page, variant, payload, env: envFor(payload, kind) })))
   /** A page render that fails when the page's own markup is empty. */
   const renderPage = (kind: 'document' | 'body', page: string, fixture: string, payload: Record<string, any>) => {
-    const html = render(kind, page, 'default', payload)
-    if (isEmptyMarkup(pageMarkup(kind, html))) throw new Error(emptyRenderError(page, fixture, 'default'))
+    const variant = layoutVariantFor(page)
+    const html = render(kind, page, variant, payload)
+    if (isEmptyMarkup(pageMarkup(kind, html))) throw new Error(emptyRenderError(page, fixture, variant))
     return html
   }
 

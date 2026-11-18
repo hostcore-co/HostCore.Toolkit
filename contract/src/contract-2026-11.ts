@@ -440,6 +440,168 @@ d.define(
   t.union('status', { ok: 'DomainSearchSuccess', error: 'DomainSearchError' }),
 )
 
+// ─── Checkout pages ────────────────────────────────────────────────────────
+
+d.define(
+  'Money',
+  'is an amount of money that is not a price per billing cycle, such as a setup fee or a total.',
+  t.object({
+    amount: doc('Major units, ready to render.', t.number()),
+    amount_minor: doc('The same amount in minor units (cents), for arithmetic.', t.integer({ bits: 64 })),
+    currency: doc('An ISO 4217 code.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutCycle',
+  'is one billing cycle a plan can be bought on, with its price and its setup fee. Order-form options are priced per cycle on top of the rate: the same amount whatever the cycle.',
+  t.object({
+    interval: doc('The billing cycle.', t.ref('PriceInterval')),
+    price: doc('The rate charged every cycle, in the store currency.', t.ref('Price')),
+    setup_fee: doc('Charged once, with the first invoice; zero when the plan has none.', t.ref('Money')),
+  }),
+)
+
+d.define(
+  'CheckoutPlan',
+  'is a plan as checkout needs it: every billing cycle it can be bought on, its order form, and whether it may be paid by bank transfer.',
+  t.object({
+    id: doc('A stable id, unique within the store.', t.string()),
+    service_id: doc('The id of the service the plan belongs to.', t.string()),
+    name: doc('The display name.', t.string()),
+    slug: doc("The plan's path segment at checkout.", t.string()),
+    description: doc('A short description. May be empty.', t.string()),
+    image: doc('An image URL, or empty.', t.string()),
+    payment_type: doc('Whether the plan is free, starts with a free trial, or is paid every cycle.', t.ref('PaymentType')),
+    trial_days: doc('Days of free trial. Zero unless payment_type is free_trial.', t.integer()),
+    provisioning: doc('How an order is fulfilled: "module" (automatically) or "manual" (by the store\'s staff).', t.string()),
+    cycles: doc(
+      'The billing cycles the plan can be bought on, monthly first, then quarterly, semi-annual and yearly; only the ones the store has enabled. Empty for a free or free-trial plan with no pricing.',
+      t.array(t.ref('CheckoutCycle')),
+    ),
+    order_form: doc('Never null; empty when the plan asks nothing.', t.array(t.ref('OrderFormComponent'))),
+    allow_bank_transfer: doc('True when an order of this plan may be paid by bank transfer, if the store accepts it.', t.boolean()),
+  }),
+)
+
+d.define(
+  'CheckoutGateway',
+  'is a payment provider the store takes payments with. The customer pays on the provider\'s own page.',
+  t.object({
+    gateway: doc('The provider: "stripe" or "paypal". An open set.', t.string()),
+    supported_currencies: doc('The ISO 4217 codes it can charge in.', t.array(t.string())),
+    default_currency: doc('The code it charges in when the customer has not chosen one.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutBankTransfer',
+  'says the store accepts payment by bank transfer. The account details and the payment reference come with the order, after it is placed.',
+  t.object({
+    instructions: doc('What the store tells customers about paying by transfer. May be empty.', t.string()),
+    due_days: doc('Days the customer has to send the money.', t.integer()),
+  }),
+)
+
+d.define(
+  'CheckoutPayment',
+  'is how the store takes payment.',
+  t.object({
+    gateways: doc('The payment providers, in no particular order.', t.array(t.ref('CheckoutGateway'))),
+    bank_transfer: doc('Set when the store accepts bank transfer, or null.', t.nullable(t.ref('CheckoutBankTransfer'))),
+    currency: doc('The store currency: the one every catalogue price is in.', t.string()),
+  }),
+)
+
+d.define(
+  'CheckoutOfferKind',
+  'is what an add-on offer adds to the order: a plan of another service, or a domain.',
+  t.enum(['service', 'domain']),
+)
+
+d.define(
+  'CheckoutOfferService',
+  'is the service a service offer adds a plan of.',
+  t.object({
+    id: doc('A stable id, unique within the store.', t.string()),
+    group_id: doc('The id of the group the service is in.', t.string()),
+    name: doc('The display name.', t.string()),
+    slug: doc('The service\'s path segment.', t.string()),
+    image: doc('An image URL, or empty.', t.string()),
+    marketing: doc('Copy the store wrote for the service.', t.ref('Marketing')),
+  }),
+)
+
+d.define(
+  'CheckoutOfferTld',
+  'is one extension a domain offer sells, with its prices for every term.',
+  t.object({
+    tld: doc('The extension, without a leading dot: "com".', t.goName('TLD', t.string())),
+    featured: doc('True for extensions the store highlights.', t.boolean()),
+    register: doc('The terms it can be registered for, by years ascending; empty when none.', t.array(t.ref('DomainTermPrice'))),
+    transfer: doc('The terms it can be transferred in for, by years ascending; empty when none.', t.array(t.ref('DomainTermPrice'))),
+    renew: doc('The terms it renews for, by years ascending; empty when none.', t.array(t.ref('DomainTermPrice'))),
+  }),
+)
+
+d.define(
+  'CheckoutOffer',
+  'is an add-on the store offers with the item being bought. A customer may add one item per offer: one of its plans, or one domain. Only the plans listed may go with the item, and a domain offer takes any domain a search finds.',
+  t.object({
+    id: doc('A stable id, unique within the store.', t.string()),
+    kind: doc('What it adds.', t.ref('CheckoutOfferKind')),
+    title: doc('The heading the store wrote.', t.string()),
+    description: doc('The text the store wrote. May be empty.', t.string()),
+    service: doc('For a service offer, the service; null for a domain offer.', t.nullable(t.ref('CheckoutOfferService'))),
+    plans: doc('For a service offer, the plans that may be added, in display order; empty for a domain offer.', t.array(t.ref('CheckoutPlan'))),
+    tlds: doc('For a domain offer, the extensions on sale; empty for a service offer.', t.goName('TLDs', t.array(t.ref('CheckoutOfferTld')))),
+  }),
+)
+
+d.define(
+  'ExchangeRates',
+  'is how many units of each currency one US dollar buys, by ISO 4217 code. A price converts from the store currency to another by the ratio of their rates.',
+  t.record(t.number()),
+)
+
+d.define(
+  'CheckoutPlanData',
+  [
+    'is the data of the plan checkout page, /checkout/{service}/{plan}, or /checkout/{service} for a service with one plan.',
+    'It carries nothing about the customer: whether they are signed in and their billing address come from the browser, through the SDK\'s checkout calls.',
+  ].join(' '),
+  t.object({
+    service: doc('The service being bought.', t.ref('Service')),
+    group: doc('The group the service is in, or null when it is in none.', t.nullable(t.ref('Group'))),
+    plan: doc('The plan being bought.', t.ref('CheckoutPlan')),
+    payment: doc('How the store takes payment.', t.ref('CheckoutPayment')),
+    exchange_rates: doc('Set when the store shows prices in other currencies, or null: then only the store currency is offered.', t.nullable(t.ref('ExchangeRates'))),
+    offers: doc('The add-ons offered with this plan, in display order. Empty when there are none.', t.array(t.ref('CheckoutOffer'))),
+  }),
+)
+
+d.define(
+  'CheckoutDomainsData',
+  'is the data of the domain checkout page, /checkout/domains. The domain being bought comes from the address (domain, action and years in the query) or from the visitor\'s saved pick, not from the page data.',
+  t.object({
+    payment: doc('How the store takes payment. Bank transfer is never offered for domains.', t.ref('CheckoutPayment')),
+    exchange_rates: doc('Set when the store shows prices in other currencies, or null.', t.nullable(t.ref('ExchangeRates'))),
+    offers: doc('The add-ons offered with a domain, in display order. Empty when there are none.', t.array(t.ref('CheckoutOffer'))),
+  }),
+)
+
+d.define(
+  'CheckoutSuccessData',
+  'is the data of the page a customer returns to after paying, /checkout/success. It is always empty: the order reference arrives in the address, and the page confirms the payment through the SDK.',
+  t.object({}),
+)
+
+d.define(
+  'CheckoutCancelData',
+  'is the data of the page a customer returns to after abandoning payment, /checkout/cancel. It is always empty: the order reference arrives in the address.',
+  t.object({}),
+)
+
 d.define('NotFoundData', 'is the data of the not-found page. It is always empty.', t.object({}))
 
 export const contract202611: Contract = {
@@ -452,6 +614,10 @@ export const contract202611: Contract = {
     'catalog.service': 'CatalogServiceData',
     domains: 'DomainsData',
     'not-found': 'NotFoundData',
+    'checkout.plan': 'CheckoutPlanData',
+    'checkout.domains': 'CheckoutDomainsData',
+    'checkout.success': 'CheckoutSuccessData',
+    'checkout.cancel': 'CheckoutCancelData',
   },
   envelope: 'PageEnvelope',
   inputs: ['DomainSearchRequest'],

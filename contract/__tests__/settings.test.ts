@@ -262,7 +262,7 @@ describe('standard setting limits', () => {
 
 describe('standard link defaults', () => {
   const registry = readRegistry(join(import.meta.dir, '..'))
-  const pagePaths = registry.pages.map((p) => p.path).filter((p): p is string => p !== null && !p.includes('{'))
+  const pagePaths = registry.pages.flatMap((p) => p.paths ?? (p.path ? [p.path] : [])).filter((p) => !p.includes('{'))
 
   /** Every href and url among the standard settings' defaults, by where it is. */
   const links = STANDARD_SETTINGS.flatMap((s): [string, string][] => {

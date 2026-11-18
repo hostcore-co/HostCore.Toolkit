@@ -62,6 +62,272 @@
         }
       }
     },
+    "CheckoutBankTransfer": {
+      "kind": "object",
+      "fields": {
+        "due_days": {
+          "type": "integer",
+          "optional": false
+        },
+        "instructions": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutCancelData": {
+      "kind": "object",
+      "fields": {}
+    },
+    "CheckoutCycle": {
+      "kind": "object",
+      "fields": {
+        "interval": {
+          "type": "PriceInterval",
+          "optional": false
+        },
+        "price": {
+          "type": "Price",
+          "optional": false
+        },
+        "setup_fee": {
+          "type": "Money",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutDomainsData": {
+      "kind": "object",
+      "fields": {
+        "exchange_rates": {
+          "type": "ExchangeRates | null",
+          "optional": false
+        },
+        "offers": {
+          "type": "CheckoutOffer[]",
+          "optional": false
+        },
+        "payment": {
+          "type": "CheckoutPayment",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutGateway": {
+      "kind": "object",
+      "fields": {
+        "default_currency": {
+          "type": "string",
+          "optional": false
+        },
+        "gateway": {
+          "type": "string",
+          "optional": false
+        },
+        "supported_currencies": {
+          "type": "string[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutOffer": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "kind": {
+          "type": "CheckoutOfferKind",
+          "optional": false
+        },
+        "plans": {
+          "type": "CheckoutPlan[]",
+          "optional": false
+        },
+        "service": {
+          "type": "CheckoutOfferService | null",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        },
+        "tlds": {
+          "type": "CheckoutOfferTld[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutOfferKind": {
+      "kind": "enum",
+      "values": [
+        "service",
+        "domain"
+      ],
+      "open": false
+    },
+    "CheckoutOfferService": {
+      "kind": "object",
+      "fields": {
+        "group_id": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "marketing": {
+          "type": "Marketing",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutOfferTld": {
+      "kind": "object",
+      "fields": {
+        "featured": {
+          "type": "boolean",
+          "optional": false
+        },
+        "register": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        },
+        "renew": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        },
+        "tld": {
+          "type": "string",
+          "optional": false
+        },
+        "transfer": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutPayment": {
+      "kind": "object",
+      "fields": {
+        "bank_transfer": {
+          "type": "CheckoutBankTransfer | null",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "gateways": {
+          "type": "CheckoutGateway[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutPlan": {
+      "kind": "object",
+      "fields": {
+        "allow_bank_transfer": {
+          "type": "boolean",
+          "optional": false
+        },
+        "cycles": {
+          "type": "CheckoutCycle[]",
+          "optional": false
+        },
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "order_form": {
+          "type": "OrderFormComponent[]",
+          "optional": false
+        },
+        "payment_type": {
+          "type": "PaymentType",
+          "optional": false
+        },
+        "provisioning": {
+          "type": "string",
+          "optional": false
+        },
+        "service_id": {
+          "type": "string",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        },
+        "trial_days": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutPlanData": {
+      "kind": "object",
+      "fields": {
+        "exchange_rates": {
+          "type": "ExchangeRates | null",
+          "optional": false
+        },
+        "group": {
+          "type": "Group | null",
+          "optional": false
+        },
+        "offers": {
+          "type": "CheckoutOffer[]",
+          "optional": false
+        },
+        "payment": {
+          "type": "CheckoutPayment",
+          "optional": false
+        },
+        "plan": {
+          "type": "CheckoutPlan",
+          "optional": false
+        },
+        "service": {
+          "type": "Service",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutSuccessData": {
+      "kind": "object",
+      "fields": {}
+    },
     "ContractVersion": {
       "kind": "\"2026-11\""
     },
@@ -232,6 +498,9 @@
         }
       }
     },
+    "ExchangeRates": {
+      "kind": "Record<string, number>"
+    },
     "Group": {
       "kind": "object",
       "fields": {
@@ -299,6 +568,23 @@
           "optional": false
         },
         "text": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "Money": {
+      "kind": "object",
+      "fields": {
+        "amount": {
+          "type": "number",
+          "optional": false
+        },
+        "amount_minor": {
+          "type": "integer",
+          "optional": false
+        },
+        "currency": {
           "type": "string",
           "optional": false
         }
@@ -854,6 +1140,10 @@
   "page_data": {
     "catalog.group": "CatalogGroupData",
     "catalog.service": "CatalogServiceData",
+    "checkout.cancel": "CheckoutCancelData",
+    "checkout.domains": "CheckoutDomainsData",
+    "checkout.plan": "CheckoutPlanData",
+    "checkout.success": "CheckoutSuccessData",
     "domains": "DomainsData",
     "home": "HomeData",
     "not-found": "NotFoundData"
@@ -861,6 +1151,10 @@
   "registry": {
     "admin": {
       "path": "/admin",
+      "paths": [
+        "/admin"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "staff",
       "upstream": "frontend",
@@ -868,6 +1162,10 @@
     },
     "auth": {
       "path": "/auth",
+      "paths": [
+        "/auth"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
@@ -875,6 +1173,10 @@
     },
     "catalog.group": {
       "path": "/{group}",
+      "paths": [
+        "/{group}"
+      ],
+      "fallback": null,
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
@@ -882,6 +1184,10 @@
     },
     "catalog.service": {
       "path": "/{group}/{service}",
+      "paths": [
+        "/{group}/{service}"
+      ],
+      "fallback": null,
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
@@ -889,13 +1195,66 @@
     },
     "checkout": {
       "path": "/checkout",
+      "paths": [
+        "/checkout"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
       "requires": null
     },
+    "checkout.cancel": {
+      "path": "/checkout/cancel",
+      "paths": [
+        "/checkout/cancel"
+      ],
+      "fallback": "frontend",
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "requires": null
+    },
+    "checkout.domains": {
+      "path": "/checkout/domains",
+      "paths": [
+        "/checkout/domains"
+      ],
+      "fallback": "frontend",
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "requires": null
+    },
+    "checkout.plan": {
+      "path": "/checkout/{service}/{plan}",
+      "paths": [
+        "/checkout/{service}/{plan}",
+        "/checkout/{service}"
+      ],
+      "fallback": "frontend",
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "requires": null
+    },
+    "checkout.success": {
+      "path": "/checkout/success",
+      "paths": [
+        "/checkout/success"
+      ],
+      "fallback": "frontend",
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "requires": null
+    },
     "connect": {
       "path": "/connect",
+      "paths": [
+        "/connect"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
@@ -903,6 +1262,10 @@
     },
     "dashboard": {
       "path": "/dashboard",
+      "paths": [
+        "/dashboard"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "private",
       "upstream": "frontend",
@@ -910,6 +1273,10 @@
     },
     "domains": {
       "path": "/domains",
+      "paths": [
+        "/domains"
+      ],
+      "fallback": null,
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
@@ -917,6 +1284,10 @@
     },
     "forgotpassword": {
       "path": "/forgotpassword",
+      "paths": [
+        "/forgotpassword"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
@@ -924,6 +1295,10 @@
     },
     "home": {
       "path": "/",
+      "paths": [
+        "/"
+      ],
+      "fallback": null,
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
@@ -931,6 +1306,10 @@
     },
     "login": {
       "path": "/login",
+      "paths": [
+        "/login"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
@@ -938,6 +1317,8 @@
     },
     "not-found": {
       "path": null,
+      "paths": [],
+      "fallback": null,
       "prefix": false,
       "tier": "open",
       "upstream": "engine",
@@ -945,6 +1326,10 @@
     },
     "order": {
       "path": "/order",
+      "paths": [
+        "/order"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",
@@ -952,6 +1337,10 @@
     },
     "signup": {
       "path": "/signup",
+      "paths": [
+        "/signup"
+      ],
+      "fallback": null,
       "prefix": true,
       "tier": "guarded",
       "upstream": "frontend",

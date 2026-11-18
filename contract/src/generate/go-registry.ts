@@ -104,7 +104,7 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
 
   lines.push(
     ...goComment(
-      'Page is one entry of the page registry. Path is empty for a page no path reaches. A Prefix page also owns every path below its own, on a "/" boundary. Cache is set for engine pages only. Requires names what a store must offer for the page to exist, or is empty.',
+      'Page is one entry of the page registry. Path is the canonical path, empty for a page no path reaches; Paths is every path the page is reached by, the canonical one first, and holds more than one for a page reached several ways. A Prefix page also owns every path below its own, on a "/" boundary. Fallback, set on checkout pages, is who serves the page when its upstream does not for a store: a checkout page is rendered from the store\'s template when the template implements it and the platform has it enabled for the store, and otherwise by the platform\'s front end. Cache is set for engine pages only. Requires names what a store must offer for the page to exist, or is empty.',
     ),
   )
   lines.push('type Page struct {')
@@ -113,9 +113,11 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
       [
         { cells: ['ID', 'PageID', '`json:"id"`'] },
         { cells: ['Path', 'string', '`json:"path"`'] },
+        { cells: ['Paths', '[]string', '`json:"paths"`'] },
         { cells: ['Prefix', 'bool', '`json:"prefix"`'] },
         { cells: ['Tier', 'Tier', '`json:"tier"`'] },
         { cells: ['Upstream', 'Upstream', '`json:"upstream"`'] },
+        { cells: ['Fallback', 'Upstream', '`json:"fallback"`'] },
         { cells: ['Cache', 'CachePolicy', '`json:"cache"`'] },
         { cells: ['Requires', 'string', '`json:"requires"`'] },
       ],
@@ -129,8 +131,10 @@ export function generateGoRegistry(registry: NormalisedRegistry, packageName: st
   for (const p of registry.pages) {
     const parts = [`ID: ${pageConst(p.id)}`]
     if (p.path !== null) parts.push(`Path: ${goString(p.path)}`)
+    if (p.paths.length > 0) parts.push(`Paths: []string{${p.paths.map(goString).join(', ')}}`)
     if (p.prefix) parts.push('Prefix: true')
     parts.push(`Tier: Tier${goIdentifier(p.tier)}`, `Upstream: Upstream${goIdentifier(p.upstream)}`)
+    if (p.fallback) parts.push(`Fallback: Upstream${goIdentifier(p.fallback)}`)
     if (p.cache) parts.push(`Cache: CachePolicy{TTL: ${p.cache.ttl}, SWR: ${p.cache.swr}}`)
     if (p.requires) parts.push(`Requires: ${goString(p.requires)}`)
     lines.push(`\t{${parts.join(', ')}},`)
