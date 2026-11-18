@@ -200,6 +200,9 @@ export function checkoutCancelOutcome(status: number, body: unknown, signIn: str
   return ok(status) ? { status: 'cancelled' } : checkoutError('cancel', body)
 }
 
+/** A domain draft whose action is known to be register or transfer, as parseDomainDraft returns it. */
+export type DomainPick = DomainDraft & { action: 'register' | 'transfer' }
+
 /** The longest term a domain draft may hold. */
 export const DRAFT_MAX_YEARS = 10
 
@@ -210,7 +213,7 @@ const DOMAIN_NAME = /^(?=.{1,253}$)(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p
  * the keys domain, action and years, a domain name (lowercased), register or
  * transfer, and 1 to 10 whole years.
  */
-export function parseDomainDraft(raw: unknown): DomainDraft | null {
+export function parseDomainDraft(raw: unknown): DomainPick | null {
   if (!isRecord(raw)) return null
   const keys = Object.keys(raw)
   if (keys.length !== 3 || !keys.every((k) => k === 'domain' || k === 'action' || k === 'years')) return null

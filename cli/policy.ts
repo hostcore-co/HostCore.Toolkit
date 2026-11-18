@@ -184,7 +184,7 @@ const PAGE_LINKS: Readonly<Record<string, string>> = {
   signup: 'useNav().links.signup',
   dashboard: 'useNav().links.account',
   'checkout.domains': "actionHref(useAction('domain_checkout'), { domain, action, years })",
-  'checkout.success': 'nothing: the platform sends the customer there after payment',
+  'checkout.success': "nothing: the platform sends the customer there after payment, and useCheckoutPlan and useCheckoutDomains go there for an order that needs no payment step",
   'checkout.cancel': 'nothing: the platform sends the customer there when they abandon payment',
 }
 
