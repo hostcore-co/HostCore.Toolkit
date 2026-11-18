@@ -178,14 +178,9 @@
       "image": "",
       "type": "game-server",
       "marketing": {
-        "title": "Rust servers",
-        "description": "Survive, build and raid.",
-        "features": [
-          {
-            "icon": "cpu",
-            "text": "High clock CPUs"
-          }
-        ]
+        "title": "Minecraft",
+        "description": "Blocks.",
+        "features": []
       },
       "single_plan": true
     },

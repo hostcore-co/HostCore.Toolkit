@@ -169,6 +169,19 @@ describe('fixtures', () => {
   })
 })
 
+describe('checkout fixtures', () => {
+  // The platform gives a service its marketing description as its description, so the two are always equal.
+  for (const name of fixtureNames('2026-11').filter((n) => n.startsWith('checkout.'))) {
+    it(`2026-11/${name} describes each service as its marketing does`, () => {
+      const e = load<Record<string, any>>('2026-11', name.replace(/\.json$/, ''))
+      const services = [e.data?.service, ...(e.data?.offers ?? []).map((o: Record<string, any>) => o.service)].filter(Boolean)
+      for (const s of services) {
+        if ('description' in s) expect([s.id, s.description]).toEqual([s.id, s.marketing.description])
+      }
+    })
+  }
+})
+
 describe('downgrade', () => {
   for (const name of fixtureNames('2026-11').filter((n) => n.startsWith('checkout.'))) {
     it(`has no contract "1" payload for ${name}, a page served only to 2026-11 templates`, () => {
