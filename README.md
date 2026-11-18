@@ -145,8 +145,9 @@ layout with `variant="minimal"`; the `private` one, the account area
   a default in another form fails `hct validate`.
 
 [`examples/`](examples) has a template that is only `template.json`
-(`minimal`), one with a layout, three pages, settings, public files and
-islands (`basic`), and a format-1 one (`legacy`).
+(`minimal`), one with a layout, every storefront page it customises and
+all four checkout pages, settings, public files, islands and a slot
+(`basic`, which `hct init` copies), and a format-1 one (`legacy`).
 
 ### Pages and the layout
 

@@ -1,3 +1,7 @@
+import { readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 /**
  * Every hct command, its flags and the environment it reads. `hct --help`,
  * `hct <command> --help` and the CLI reference `hct docs` writes are all
@@ -25,13 +29,36 @@ export interface CommandDoc {
 const TOOLCHAIN_REVISION_TEXT =
   "For the platform's builders, not authors: the revision of the toolchain line the build environment provides, a non-negative whole number recorded in the toolchain field of manifest.json (format 2) or runtime.json (default: this toolkit's revision). A build's id covers it; a runtime's id depends only on its files."
 
+/** The source files of the template hct init writes: those of examples/basic, by kind. */
+export function scaffoldFiles(): { layout: boolean; pages: string[]; islands: string[]; slots: string[] } {
+  const src = join(fileURLToPath(new URL('..', import.meta.url)), 'examples', 'basic', 'src')
+  const names = (dir: string) => {
+    try {
+      return readdirSync(join(src, dir))
+        .filter((f) => /\.(tsx|jsx|ts|js)$/.test(f))
+        .map((f) => f.replace(/\.(tsx|jsx|ts|js)$/, ''))
+        .sort()
+    } catch {
+      return []
+    }
+  }
+  return { layout: names('').includes('layout'), pages: names('pages'), islands: names('islands'), slots: names('slots') }
+}
+
+/** What hct init writes, in words: read from the scaffold itself. */
+export function scaffoldContents(): string {
+  const f = scaffoldFiles()
+  const list = (kind: string, items: string[]) => (items.length === 0 ? [] : [`${items.length === 1 ? kind : `${kind}s`} ${items.join(', ')}`])
+  return [...(f.layout ? ['a layout'] : []), ...list('page', f.pages), ...list('island', f.islands), ...list('slot', f.slots)].join('; ')
+}
+
 export const COMMANDS: readonly CommandDoc[] = [
   {
     name: 'init',
     usage: 'hct init [dir] [--minimal] [--id <id>] [--name <name>]',
     summary: 'start a new format-2 template',
     description: [
-      'Writes a working format-2 template into <dir> (default: the current directory), which must be empty or not exist yet: a layout, three pages, two islands, a slot, settings, design tokens and public files. It passes hct validate, hct check and hct build as written.',
+      `Writes a working format-2 template into <dir> (default: the current directory), which must be empty or not exist yet: ${scaffoldContents()}; and settings, design tokens and public files. It passes hct validate, hct check and hct build as written.`,
       'Install its dependencies (bun install) before building it.',
     ],
     flags: [

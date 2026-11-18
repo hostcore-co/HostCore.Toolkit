@@ -3,6 +3,7 @@ import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { FORMAT2_PACKAGE_RANGES } from '../toolchain'
 import { idFromName } from '../init'
+import { scaffoldFiles } from '../commands'
 import { hct } from './host'
 
 const REPO = join(import.meta.dir, '..', '..')
@@ -32,6 +33,17 @@ describe('hct init', () => {
     const toolkit = JSON.parse(await readFile(join(REPO, 'package.json'), 'utf8'))
     // The dependency is the release tag of the toolkit that wrote it.
     expect(pkg.dependencies['@hostcore/toolkit']).toBe(`github:hostcore-co/HostCore.Toolkit#v${toolkit.version}`)
+
+    // --help describes exactly the source files written.
+    const sources = async (sub: string) => (await readdir(join(dir, 'src', sub)).catch(() => [] as string[])).filter((f) => /\.tsx?$/.test(f)).map((f) => f.replace(/\.tsx?$/, '')).sort()
+    const scaffold = scaffoldFiles()
+    expect(await sources('pages')).toEqual(scaffold.pages)
+    expect(await sources('islands')).toEqual(scaffold.islands)
+    expect(await sources('slots')).toEqual(scaffold.slots)
+    expect((await sources('')).includes('layout')).toBe(scaffold.layout)
+    expect(scaffold.pages).toContain('checkout.plan')
+    const help = (await hct(['init', '--help'])).stdout.replace(/\s+/g, ' ')
+    for (const name of [...scaffold.pages, ...scaffold.islands, ...scaffold.slots]) expect([name, help.includes(name)]).toEqual([name, true])
 
     expect((await hct(['validate', dir])).code).toBe(0)
     const check = await hct(['check', dir, '--json'])
