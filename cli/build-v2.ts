@@ -203,7 +203,9 @@ function format2Plugin(
   sources: TemplateSources,
   defaults: Record<string, unknown>,
 ): Plugin {
-  const islandByPath = new Map(Object.entries(sources.islands).map(([name, path]) => [path, name]))
+  // The bundler's module ids use "/" on every platform; file paths do not.
+  const slashed = (path: string) => path.split(sep).join('/')
+  const islandByPath = new Map(Object.entries(sources.islands).map(([name, path]) => [slashed(path), name]))
   return {
     name: `hostcore:format2-${side}`,
     enforce: 'pre',
@@ -213,7 +215,7 @@ function format2Plugin(
       if (importer?.startsWith(ISLAND_PREFIX)) return null
       if (islandByPath.size === 0) return null
       const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
-      const name = resolved ? islandByPath.get(resolved.id.split('?')[0]!) : undefined
+      const name = resolved ? islandByPath.get(slashed(resolved.id.split('?')[0]!)) : undefined
       return name ? `${ISLAND_PREFIX}${name}` : resolved
     },
     load(id) {
