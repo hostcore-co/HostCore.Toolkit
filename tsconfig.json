@@ -17,6 +17,6 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "cli/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "cli/**/*.ts", "contract/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

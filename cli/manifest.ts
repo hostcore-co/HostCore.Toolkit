@@ -47,7 +47,7 @@ export function canonicalJson(value: unknown): string {
   return `{${entries.join(',')}}`
 }
 
-export function signingPayload(manifest: BundleManifest): string {
+export function signingPayload(manifest: { signature?: string }): string {
   const { signature: _omitted, ...rest } = manifest
   return canonicalJson(rest)
 }
@@ -59,10 +59,10 @@ export function signingPayload(manifest: BundleManifest): string {
  * The signature is what proves a build came from a trusted pipeline
  * rather than from anyone who could write to where builds are stored.
  */
-export function signManifest(
-  manifest: BundleManifest,
+export function signManifest<M extends { signature?: string }>(
+  manifest: M,
   privateKeyBase64: string,
-): BundleManifest {
+): M {
   const raw = Buffer.from(privateKeyBase64, 'base64')
   if (raw.length !== 32) {
     throw new Error(
@@ -78,4 +78,72 @@ export function signManifest(
 
   const signature = sign(null, Buffer.from(signingPayload(manifest)), key)
   return { ...manifest, signature: signature.toString('base64') }
+}
+
+/** The size and digest of one built file. */
+export interface FileEntry {
+  /** `sha256-<base64>` of the file's bytes. */
+  integrity: string
+  bytes: number
+}
+
+/** One third-party package whose code is in a build, and where it ended up. */
+export interface InventoryEntry {
+  name: string
+  /** The exact version, from the package's own package.json. */
+  version: string
+  /** Sorted: any of "client", "runtime", "server". */
+  in: string[]
+}
+
+/**
+ * The manifest of a format-2 build (bundle protocol 2).
+ *
+ * `build_id` names the build: the sha256 of the canonical JSON of this
+ * manifest without `build_id`, `built_at` and `signature`, and with
+ * `media_base` set to "" (see buildId). The same files, metadata and
+ * toolchain always give the same id.
+ */
+export interface ManifestV2 {
+  manifest_version: 2
+  build_id: string
+  template_id: string
+  version: string
+  built_at: string
+  protocol: 2
+  contract: string
+  toolchain: { line: number; revision: number }
+  runtime: { id: string }
+  /** Paths relative to the build directory. `css` is "" for a build without CSS. */
+  entry: { server: string; client_js: string; css: string }
+  /** Every file of the build except manifest.json, by path relative to the build directory. */
+  files: Record<string, FileEntry>
+  pages: string[]
+  layouts: string[]
+  islands: string[]
+  /** The slots the build fills, by slot id, in registry order. */
+  slots: string[]
+  tokens: Record<string, string>
+  settings: unknown[]
+  inventory: InventoryEntry[]
+  /** Where the client files are served from; "" for a local build. */
+  media_base: string
+  signature?: string
+}
+
+export function fileEntry(bytes: Uint8Array): FileEntry {
+  return { integrity: digest(bytes), bytes: bytes.byteLength }
+}
+
+/**
+ * The id of a build: 64 lowercase hex characters, the sha256 of the
+ * canonical JSON of the manifest with `build_id`, `built_at` and `signature`
+ * removed and `media_base` set to "". The media base is left out because it
+ * names where a copy of the build is served from, not what the build is.
+ */
+export function buildId(manifest: Omit<ManifestV2, 'build_id'> & { build_id?: string }): string {
+  const { build_id: _id, built_at: _at, signature: _sig, ...rest } = manifest
+  return createHash('sha256')
+    .update(canonicalJson({ ...rest, media_base: '' }))
+    .digest('hex')
 }

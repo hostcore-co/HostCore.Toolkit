@@ -1,6 +1,6 @@
 {
   "name": "@hostcore/toolkit",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Write, validate and build HostCore storefront templates.",
   "license": "UNLICENSED",
   "type": "module",
@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./entry.server": "./src/entries/entry.server.tsx",
-    "./entry.client": "./src/entries/entry.client.tsx"
+    "./entry.client": "./src/entries/entry.client.tsx",
+    "./contract": "./contract/src/index.ts"
   },
   "bin": {
     "hct": "./cli/index.ts"
@@ -16,10 +17,16 @@
   "files": [
     "src",
     "cli",
+    "contract",
+    "examples/basic",
+    "examples/minimal",
     "README.md"
   ],
+  "workspaces": [
+    "examples/*"
+  ],
   "scripts": {
-    "check": "bunx tsc --noEmit",
+    "check": "bunx tsc --noEmit && bunx tsc -p examples/basic",
     "test": "bun test"
   },
   "peerDependencies": {
@@ -27,11 +34,19 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "@types/node": "^20.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "typescript": "^5.4.0",
-    "vite": "^5.4.10"
+    "@happy-dom/global-registrator": "^21.0.4",
+    "@types/bun": "1.3.11",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "react": "~19.3.1",
+    "react-dom": "~19.3.1",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.8"
+  },
+  "overrides": {
+    "nanoid": "^3.3.18",
+    "source-map-js": "^1.2.2"
   }
 }

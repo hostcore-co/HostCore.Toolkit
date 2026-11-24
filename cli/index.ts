@@ -1,74 +1,78 @@
 #!/usr/bin/env bun
 import { generateKeyPairSync } from 'node:crypto'
 import { resolve } from 'node:path'
+import { ContractError } from '../contract/src/generate'
 import { buildTemplate, BuildError } from './build'
-import { loadTemplate, TemplateError } from './template'
+import { buildFormat2 } from './build-v2'
+import { checkCommand } from './check'
+import { BOOLEAN_FLAGS, commandHelp, CommandError, findCommand, overviewHelp, type Flags } from './commands'
+import { contractCommand } from './contract'
+import { devCommand } from './dev'
+import { docsCommand } from './docs'
+import { initCommand } from './init'
+import { pushCommand } from './push'
+import { buildRuntime, RuntimeError, writeRuntime } from './runtime'
+import { isFormat2, loadTemplate, TemplateError } from './template'
+import { TOOLCHAIN, TOOLKIT_VERSION } from './toolchain'
+import { upgradeCommand } from './upgrade'
 import { formatFindings, validateTemplate } from './validate'
 
 /**
- * hct — the HostCore template toolchain.
- *
- * Turns a template into the bundle the platform renders. The build checks
- * what your template depends on and what it reaches for before it compiles
- * anything, so a template that would be refused at render time fails here
- * instead, with a file and a line.
- *
- *   hct validate            check a template against the build policy
- *   hct build               validate, build, and emit a signed manifest
- *   hct dev                 run the template's local dev server
- *   hct keygen              generate a signing keypair
+ * hct — the HostCore template toolchain: everything from a template's first
+ * file to its upload. The commands, their flags and their help text are in
+ * commands.ts; each command's work is in its own module.
  */
-
-const USAGE = `hct — HostCore template toolchain
-
-Usage:
-  hct validate [dir]
-  hct build [dir] [--local-paths] [--out <dir>] [--sign <base64-key>]
-  hct dev [dir]
-  hct keygen
-
-Options:
-  --local-paths        Address assets at a platform-local path instead of a
-                       CDN, so no $CDN_BASE_URL is needed. Use it to build and
-                       preview locally.
-  --out <dir>          Output directory (default: <dir>/dist)
-  --sign <base64-key>  Raw base64 ed25519 private key.
-                       Defaults to $TEMPLATE_SIGNING_PRIVATE_KEY.
-  --skip-validation    Build without the policy check (local only)
-
-Environment:
-  CDN_BASE_URL         Where a published template's client assets are served
-                       from. Required unless --local-paths.
-`
-
-/**
- * Flags that never take a value. Without this a positional argument after a
- * boolean flag would be swallowed as its value.
- */
-const BOOLEAN_FLAGS = new Set(['local-paths', 'skip-validation'])
 
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv
 
-  if (!command || command === '--help' || command === '-h') {
-    process.stdout.write(USAGE)
+  if (!command || command === '--help' || command === '-h' || command === 'help') {
+    process.stdout.write(overviewHelp())
     return command ? 0 : 1
   }
 
+  if (command === '--version') {
+    process.stdout.write(`${TOOLKIT_VERSION}\n`)
+    return 0
+  }
+
   const { positional, flags } = parseArgs(rest)
+  const doc = findCommand(command === 'runtime' ? 'runtime build' : command)
+  if (!doc) {
+    process.stderr.write(`unknown command: ${command}\n\n${overviewHelp()}`)
+    return 1
+  }
+  if (flags.help === true) {
+    process.stdout.write(commandHelp(doc))
+    return 0
+  }
   const root = resolve(positional[0] ?? process.cwd())
 
   switch (command) {
+    case 'contract':
+      return contractCommand(positional, flags)
+    case 'runtime':
+      return runtimeCommand(positional, flags)
+    case 'docs':
+      return docsCommand(flags)
     case 'validate':
       return validateCommand(root)
     case 'build':
       return buildCommand(root, flags)
+    case 'check':
+      return checkCommand(root, flags)
     case 'dev':
-      return devCommand(root)
+      return devCommand(root, flags)
+    case 'init':
+      return initCommand(root, flags)
+    case 'upgrade':
+      return upgradeCommand(root, flags)
+    case 'push':
+      return pushCommand(root, flags)
     case 'keygen':
       return keygenCommand()
     default:
-      process.stderr.write(`unknown command: ${command}\n\n${USAGE}`)
+      process.stderr.write(`unknown command: ${command}\n\n${overviewHelp()}`)
       return 1
   }
 }
@@ -89,9 +93,44 @@ async function validateCommand(root: string): Promise<number> {
 
 async function buildCommand(
   root: string,
-  flags: Record<string, string | boolean>,
+  flags: Flags,
 ): Promise<number> {
   const localPaths = flags['local-paths'] === true
+  const signingKey =
+    (flags.sign as string | undefined) ??
+    process.env.TEMPLATE_SIGNING_PRIVATE_KEY
+  const template = await loadTemplate(root)
+
+  if (isFormat2(template)) {
+    const mediaBase = typeof flags['media-base'] === 'string' ? flags['media-base'] : undefined
+    const { manifest, outDir } = await buildFormat2(template, {
+      outDir: flags.out as string | undefined,
+      localPaths,
+      mediaBase,
+      signingKey,
+      skipValidation: flags['skip-validation'] === true,
+      runtimeDir: typeof flags.runtime === 'string' ? flags.runtime : undefined,
+      toolchainRevision: toolchainRevisionFlag(flags),
+    })
+    process.stdout.write(
+      [
+        `built ${manifest.template_id}@${manifest.version} (format 2)`,
+        `  output:    ${outDir}`,
+        `  build id:  ${manifest.build_id}`,
+        `  runtime:   ${manifest.runtime.id}`,
+        `  pages:     ${manifest.pages.join(', ') || '(none; the platform supplies every page)'}`,
+        `  layout:    ${manifest.layouts.length > 0 ? 'yes' : '(none; the platform supplies it)'}`,
+        `  islands:   ${manifest.islands.join(', ') || '(none)'}`,
+        `  server:    ${manifest.entry.server} (${manifest.files[manifest.entry.server]?.bytes} bytes)`,
+        `  client:    ${manifest.entry.client_js}`,
+        `  css:       ${manifest.entry.css || '(none)'}`,
+        `  signature: ${manifest.signature ? 'signed' : 'unsigned'}`,
+        '',
+      ].join('\n'),
+    )
+    return 0
+  }
+
   const cdnBaseUrl = process.env.CDN_BASE_URL
 
   if (!localPaths && !cdnBaseUrl) {
@@ -101,11 +140,6 @@ async function buildCommand(
     return 1
   }
 
-  const signingKey =
-    (flags.sign as string | undefined) ??
-    process.env.TEMPLATE_SIGNING_PRIVATE_KEY
-
-  const template = await loadTemplate(root)
   const { manifest, outDir } = await buildTemplate(template, {
     ...(cdnBaseUrl ? { cdnBaseUrl } : {}),
     localPaths,
@@ -131,16 +165,47 @@ async function buildCommand(
 }
 
 /**
- * Runs your template's own Vite config, which serves the dev harness in
- * dev/ against the fixtures in mocks/. Nothing else has to be running —
- * the harness supplies the page data the platform would.
+ * hct runtime build — writes the shared React runtime format-2 server and
+ * client bundles are loaded with. The same installed packages always give
+ * the same files and the same runtime_id.
  */
-async function devCommand(root: string): Promise<number> {
-  const proc = Bun.spawn(['bunx', 'vite'], {
-    cwd: root,
-    stdio: ['inherit', 'inherit', 'inherit'],
-  })
-  return await proc.exited
+async function runtimeCommand(
+  positional: string[],
+  flags: Flags,
+): Promise<number> {
+  if (positional[0] !== 'build') {
+    process.stderr.write(`unknown runtime command: ${positional[0] ?? '(none)'}\n\n${commandHelp(findCommand('runtime build')!)}`)
+    return 1
+  }
+  if (typeof flags.out !== 'string') {
+    process.stderr.write('runtime build needs --out <dir>\n')
+    return 1
+  }
+  const signingKey =
+    (flags.sign as string | undefined) ?? process.env.TEMPLATE_SIGNING_PRIVATE_KEY
+  const root = resolve(typeof flags.root === 'string' ? flags.root : process.cwd())
+  const out = resolve(flags.out)
+  const runtime = await buildRuntime(root, signingKey, toolchainRevisionFlag(flags))
+  await writeRuntime(runtime, out)
+  process.stdout.write(
+    [
+      `built runtime ${runtime.json.runtime_id}`,
+      `  output:    ${out}`,
+      ...Object.entries(runtime.json.files).map(([path, f]) => `  ${path}: ${f.bytes} bytes`),
+      '',
+    ].join('\n'),
+  )
+  return 0
+}
+
+/** --toolchain-revision <n>: a non-negative whole number, or TOOLCHAIN.revision when absent. */
+function toolchainRevisionFlag(flags: Flags): number {
+  const raw = flags['toolchain-revision']
+  if (raw === undefined) return TOOLCHAIN.revision
+  if (typeof raw !== 'string' || !/^(0|[1-9][0-9]*)$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+    throw new CommandError(`--toolchain-revision must be a non-negative whole number, got ${JSON.stringify(raw === true ? '' : raw)}`)
+  }
+  return Number(raw)
 }
 
 function keygenCommand(): number {
@@ -196,7 +261,7 @@ function parseArgs(argv: string[]): {
 main(process.argv.slice(2))
   .then((code) => process.exit(code))
   .catch((e: unknown) => {
-    if (e instanceof TemplateError || e instanceof BuildError) {
+    if (e instanceof TemplateError || e instanceof BuildError || e instanceof ContractError || e instanceof RuntimeError || e instanceof CommandError) {
       process.stderr.write(`${e.message}\n`)
       process.exit(1)
     }

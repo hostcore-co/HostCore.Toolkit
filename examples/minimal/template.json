@@ -1,0 +1,14 @@
+{
+  "id": "minimal",
+  "version": "1.0.0",
+  "name": "Minimal",
+  "format": 2,
+  "contract": "2026-11",
+  "toolchain": 2,
+  "tokens": {
+    "color.accent": "#5b8cff",
+    "color.accent-strong": "#3d6fe6",
+    "radius.md": "0.75rem",
+    "font.body": "\"Inter\", system-ui, sans-serif"
+  }
+}

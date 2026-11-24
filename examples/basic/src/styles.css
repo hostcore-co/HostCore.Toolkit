@@ -1,0 +1,23 @@
+/* Scan only this template's own source for class names. */
+@import "tailwindcss" source(".");
+
+/* The rendering engine sets the --hc-* design tokens on :root. */
+@theme inline {
+  --color-background: var(--hc-background);
+  --color-surface: var(--hc-surface);
+  --color-border: var(--hc-border);
+  --color-text: var(--hc-text);
+  --color-muted: var(--hc-text-muted);
+  --color-accent: var(--hc-accent);
+  --radius-card: var(--hc-radius-md);
+  --font-heading: var(--hc-font-heading);
+}
+
+hc-outlet,
+hc-island {
+  display: contents;
+}
+
+.hero {
+  background-image: url('/images/grid.svg');
+}

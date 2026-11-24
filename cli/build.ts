@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 import type { InlineConfig, PluginOption } from 'vite'
 import { digest, signManifest, type BundleManifest } from './manifest'
 import type { LoadedTemplate } from './template'
-import { formatFindings, validateTemplate } from './validate'
+import { formatBuiltStylesheetFindings, formatFindings, scanBuiltStylesheets, validateTemplate } from './validate'
 
 /** Where a --local-paths build addresses its own assets. */
 export const ENGINE_ASSET_PREFIX = '/_hc/assets/'
@@ -53,6 +53,9 @@ export class BuildError extends Error {
  *   client/*.js + client/*.css — sent to the browser, and named in the
  *     manifest.
  *
+ * The built stylesheet may only load files from the store's own origin
+ * (see stylesheet.ts); a build whose stylesheet reaches another site fails.
+ *
  * Validation runs first and a failure stops the build. The policy exists so
  * that unvetted code never reaches a bundle, so building anyway "just to
  * see" would defeat it.
@@ -88,7 +91,7 @@ export async function buildTemplate(
  * template builds against the toolchain version it declares instead of
  * whatever the CLI happens to be installed with.
  */
-async function loadVite(root: string): Promise<typeof import('vite')> {
+export async function loadVite(root: string): Promise<typeof import('vite')> {
   const require = createRequire(join(root, 'package.json'))
   // Prefer the ESM entry: require.resolve picks the CJS build, which
   // Vite has deprecated and which prints a warning on every build.
@@ -217,7 +220,7 @@ async function plugins(root: string): Promise<PluginOption[]> {
  * Optional plugins a template doesn't declare are skipped rather than
  * failing the build — not every template uses Tailwind.
  */
-async function loadPlugin(
+export async function loadPlugin(
   root: string,
   name: string,
   optional = false,
@@ -257,6 +260,8 @@ async function writeManifest(
 
   if (!clientJs) throw new BuildError('client build produced no entry bundle')
   if (!css) throw new BuildError('client build produced no stylesheet')
+  const stylesheet = await scanBuiltStylesheets(outDir)
+  if (stylesheet.length > 0) throw new BuildError(formatBuiltStylesheetFindings(stylesheet))
 
   const clientBytes = await readFile(join(clientDir, clientJs))
   const cssBytes = await readFile(join(clientDir, css))

@@ -1,0 +1,154 @@
+{
+  "page_type": "service",
+  "meta": {
+    "title": "Object Storage — Acme Hosting",
+    "description": ""
+  },
+  "store": {
+    "store_name": "Acme Hosting",
+    "website_domain": "acme.test",
+    "logo_url": "https://cdn.example.com/acme/logo.svg",
+    "favicon_url": "https://cdn.example.com/acme/favicon.ico",
+    "terms_of_service_url": "https://acme.test/legal/terms",
+    "privacy_policy_url": "https://acme.test/legal/privacy",
+    "root_redirect_url": "",
+    "login_image_url": "https://cdn.example.com/acme/login.jpg",
+    "signup_image_url": "",
+    "business_info": {
+      "address_line1": "1 Example Street",
+      "address_line2": "Suite 2",
+      "city": "Springfield",
+      "state": "OR",
+      "country": "US",
+      "postal_code": "97403",
+      "business_number": "EX-1234567",
+      "tax_number": "EX-TAX-0001",
+      "phone_number": "+1 555 0100",
+      "billing_email": "billing@acme.test"
+    },
+    "theme": {
+      "background": "#141517",
+      "surface": "#111214",
+      "surface_raised": "#191A1C",
+      "border": "#27282A",
+      "text": "#FFFFFF",
+      "text_muted": "#A2A3A7",
+      "accent": "#34D0FF",
+      "accent_strong": "#1F9DFF"
+    }
+  },
+  "service_groups": [
+    {
+      "id": "grp_games",
+      "name": "Game Servers",
+      "slug": "games",
+      "description": "Low-latency servers for the games you play.",
+      "image": "https://cdn.example.com/acme/games.jpg",
+      "marketing": {
+        "title": "Game servers",
+        "description": "Your own server, online in minutes.",
+        "features": [
+          {
+            "icon": "bolt",
+            "text": "Instant setup"
+          },
+          {
+            "icon": "shield",
+            "text": "DDoS protection"
+          }
+        ]
+      }
+    },
+    {
+      "id": "grp_web",
+      "name": "Web Hosting & Email",
+      "slug": "web",
+      "description": "Sites, mail and databases.",
+      "image": "",
+      "marketing": {
+        "title": "",
+        "description": "",
+        "features": []
+      }
+    }
+  ],
+  "content": {
+    "hero": {
+      "title": "Servers that just work",
+      "subtitle": "Game servers and hosting from Acme.",
+      "highlights": [
+        "Online in minutes",
+        "Backups included"
+      ],
+      "primary_cta": {
+        "label": "See plans",
+        "href": "/games"
+      },
+      "secondary_cta": {
+        "label": "Search domains",
+        "href": "/domains"
+      }
+    },
+    "categories": {
+      "title": "What we host",
+      "subtitle": "Pick a category."
+    },
+    "features": {
+      "title": "Why Acme",
+      "subtitle": "",
+      "cards": [
+        {
+          "title": "Fast",
+          "description": "NVMe everywhere."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Questions",
+      "subtitle": "Answers to common ones.",
+      "items": [
+        {
+          "question": "Can I upgrade?",
+          "answer": "Yes, at any time."
+        }
+      ]
+    }
+  },
+  "domains_enabled": true,
+  "service": {
+    "id": "svc_s3",
+    "group_id": "grp_web",
+    "name": "Object Storage",
+    "slug": "storage",
+    "description": "Managed WordPress.",
+    "image": "",
+    "type": "",
+    "marketing": {
+      "title": "",
+      "description": "",
+      "features": []
+    },
+    "single_plan": false
+  },
+  "plans": [
+    {
+      "id": "pln_s3",
+      "service_id": "svc_s3",
+      "name": "Bucket",
+      "slug": "bucket",
+      "description": "Bucket plan.",
+      "image": "",
+      "pricing": {
+        "price": {
+          "amount": 5,
+          "currency": "USD",
+          "interval": "month"
+        }
+      },
+      "trial_days": 0,
+      "payment_type": "recurring",
+      "provisioning": "module",
+      "order_form": []
+    }
+  ]
+}

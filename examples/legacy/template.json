@@ -1,0 +1,6 @@
+{
+  "id": "legacy",
+  "version": "1.0.0",
+  "name": "Legacy",
+  "allowedPackages": ["@hostcore/toolkit", "react", "react-dom"]
+}

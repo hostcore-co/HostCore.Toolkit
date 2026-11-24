@@ -1,0 +1,123 @@
+{
+  "contract": "2026-11",
+  "page": {
+    "id": "home",
+    "params": {}
+  },
+  "redirect": null,
+  "meta": {
+    "title": "Acme Hosting",
+    "description": "",
+    "og_image": "",
+    "no_index": false
+  },
+  "store": {
+    "name": "Acme Hosting",
+    "domain": "acme.test",
+    "logo_url": "https://cdn.example.com/acme/logo.svg",
+    "favicon_url": "https://cdn.example.com/acme/favicon.ico",
+    "locale": "en",
+    "currency": "USD",
+    "business": {
+      "address_line1": "1 Example Street",
+      "address_line2": "Suite 2",
+      "city": "Springfield",
+      "state": "OR",
+      "country": "US",
+      "postal_code": "97403",
+      "business_number": "EX-1234567",
+      "tax_number": "EX-TAX-0001",
+      "phone_number": "+1 555 0100",
+      "billing_email": "billing@acme.test"
+    },
+    "theme": {
+      "background": "#141517",
+      "surface": "#111214",
+      "surface_raised": "#191A1C",
+      "border": "#27282A",
+      "text": "#FFFFFF",
+      "text_muted": "#A2A3A7",
+      "accent": "#34D0FF",
+      "accent_strong": "#1F9DFF"
+    },
+    "root_redirect_url": "",
+    "login_image_url": "https://cdn.example.com/acme/login.jpg",
+    "signup_image_url": ""
+  },
+  "nav": {
+    "groups": [
+      {
+        "id": "grp_games",
+        "name": "Game Servers",
+        "slug": "games",
+        "url": "/games",
+        "description": "Low-latency servers for the games you play.",
+        "image": "https://cdn.example.com/acme/games.jpg",
+        "marketing": {
+          "title": "Game servers",
+          "description": "Your own server, online in minutes.",
+          "features": [
+            {
+              "icon": "bolt",
+              "text": "Instant setup"
+            },
+            {
+              "icon": "shield",
+              "text": "DDoS protection"
+            }
+          ]
+        }
+      }
+    ],
+    "links": {
+      "home": "/",
+      "login": "/login",
+      "signup": "/signup",
+      "account": "/dashboard",
+      "domains": "/domains",
+      "terms": "https://acme.test/legal/terms",
+      "privacy": "https://acme.test/legal/privacy"
+    }
+  },
+  "settings": {
+    "hero.title": "Only the headline is set",
+    "hero.highlights": "not a list",
+    "faq.items": []
+  },
+  "actions": {
+    "domain_search": {
+      "method": "POST",
+      "url": "/api/v1/public/domains/search"
+    },
+    "domain_checkout": {
+      "method": "GET",
+      "url": "/checkout/domains"
+    }
+  },
+  "data": {
+    "groups": [
+      {
+        "id": "grp_games",
+        "name": "Game Servers",
+        "slug": "games",
+        "url": "/games",
+        "description": "Low-latency servers for the games you play.",
+        "image": "https://cdn.example.com/acme/games.jpg",
+        "marketing": {
+          "title": "Game servers",
+          "description": "Your own server, online in minutes.",
+          "features": [
+            {
+              "icon": "bolt",
+              "text": "Instant setup"
+            },
+            {
+              "icon": "shield",
+              "text": "DDoS protection"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

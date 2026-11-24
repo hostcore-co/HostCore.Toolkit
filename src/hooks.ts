@@ -29,10 +29,6 @@ export function useHC<T extends PageData = PageData>(): {
   }
 }
 
-export function useStore(): StorePublicInfo {
-  return useHC().store
-}
-
 export function useServiceGroups(): ServiceGroup[] {
   return useHC().service_groups
 }

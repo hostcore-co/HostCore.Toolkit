@@ -1,0 +1,372 @@
+{
+  "contract": "2026-11",
+  "page": {
+    "id": "catalog.service",
+    "params": {
+      "group": "games",
+      "service": "rust"
+    }
+  },
+  "redirect": null,
+  "meta": {
+    "title": "Rust — Acme Hosting",
+    "description": "Survive, build and raid.",
+    "og_image": "",
+    "no_index": false
+  },
+  "store": {
+    "name": "Acme Hosting",
+    "domain": "acme.test",
+    "logo_url": "https://cdn.example.com/acme/logo.svg",
+    "favicon_url": "https://cdn.example.com/acme/favicon.ico",
+    "locale": "en",
+    "currency": "USD",
+    "business": {
+      "address_line1": "1 Example Street",
+      "address_line2": "Suite 2",
+      "city": "Springfield",
+      "state": "OR",
+      "country": "US",
+      "postal_code": "97403",
+      "business_number": "EX-1234567",
+      "tax_number": "EX-TAX-0001",
+      "phone_number": "+1 555 0100",
+      "billing_email": "billing@acme.test"
+    },
+    "theme": {
+      "background": "#141517",
+      "surface": "#111214",
+      "surface_raised": "#191A1C",
+      "border": "#27282A",
+      "text": "#FFFFFF",
+      "text_muted": "#A2A3A7",
+      "accent": "#34D0FF",
+      "accent_strong": "#1F9DFF"
+    },
+    "root_redirect_url": "",
+    "login_image_url": "https://cdn.example.com/acme/login.jpg",
+    "signup_image_url": ""
+  },
+  "nav": {
+    "groups": [
+      {
+        "id": "grp_games",
+        "name": "Game Servers",
+        "slug": "games",
+        "url": "/games",
+        "description": "Low-latency servers for the games you play.",
+        "image": "https://cdn.example.com/acme/games.jpg",
+        "marketing": {
+          "title": "Game servers",
+          "description": "Your own server, online in minutes.",
+          "features": [
+            {
+              "icon": "bolt",
+              "text": "Instant setup"
+            },
+            {
+              "icon": "shield",
+              "text": "DDoS protection"
+            }
+          ]
+        }
+      },
+      {
+        "id": "grp_web",
+        "name": "Web Hosting & Email",
+        "slug": "web",
+        "url": "/web",
+        "description": "Sites, mail and databases.",
+        "image": "",
+        "marketing": {
+          "title": "",
+          "description": "",
+          "features": []
+        }
+      }
+    ],
+    "links": {
+      "home": "/",
+      "login": "/login",
+      "signup": "/signup",
+      "account": "/dashboard",
+      "domains": "/domains",
+      "terms": "https://acme.test/legal/terms",
+      "privacy": "https://acme.test/legal/privacy"
+    }
+  },
+  "settings": {
+    "hero.title": "Servers that just work",
+    "hero.subtitle": "Game servers and hosting from Acme.",
+    "hero.highlights": [
+      "Online in minutes",
+      "Backups included"
+    ],
+    "hero.primary_cta": {
+      "label": "See plans",
+      "href": "/games"
+    },
+    "hero.secondary_cta": {
+      "label": "Search domains",
+      "href": "/domains"
+    },
+    "categories.title": "What we host",
+    "categories.subtitle": "Pick a category.",
+    "features.title": "Why Acme",
+    "features.subtitle": "",
+    "features.cards": [
+      {
+        "title": "Fast",
+        "description": "NVMe everywhere."
+      }
+    ],
+    "faq.title": "Questions",
+    "faq.subtitle": "Answers to common ones.",
+    "faq.items": [
+      {
+        "question": "Can I upgrade?",
+        "answer": "Yes, at any time."
+      }
+    ],
+    "acme.banner_color": "#ff8800"
+  },
+  "actions": {
+    "domain_search": {
+      "method": "POST",
+      "url": "/api/v1/public/domains/search"
+    },
+    "domain_checkout": {
+      "method": "GET",
+      "url": "/checkout/domains"
+    }
+  },
+  "data": {
+    "group": {
+      "id": "grp_games",
+      "name": "Game Servers",
+      "slug": "games",
+      "url": "/games",
+      "description": "Low-latency servers for the games you play.",
+      "image": "https://cdn.example.com/acme/games.jpg",
+      "marketing": {
+        "title": "Game servers",
+        "description": "Your own server, online in minutes.",
+        "features": [
+          {
+            "icon": "bolt",
+            "text": "Instant setup"
+          },
+          {
+            "icon": "shield",
+            "text": "DDoS protection"
+          }
+        ]
+      }
+    },
+    "service": {
+      "id": "svc_rust",
+      "group_id": "grp_games",
+      "name": "Rust",
+      "slug": "rust",
+      "url": "/games/rust",
+      "description": "Survive, build and raid.",
+      "image": "https://cdn.example.com/acme/rust.jpg",
+      "type": "game-server",
+      "marketing": {
+        "title": "Rust servers",
+        "description": "Survive, build and raid.",
+        "features": [
+          {
+            "icon": "cpu",
+            "text": "High clock CPUs"
+          }
+        ]
+      },
+      "single_plan": false
+    },
+    "plans": [
+      {
+        "id": "pln_rust_starter",
+        "service_id": "svc_rust",
+        "name": "Starter",
+        "slug": "starter",
+        "description": "Starter plan.",
+        "image": "https://cdn.example.com/acme/starter.png",
+        "checkout_url": "/checkout/rust/starter",
+        "price": {
+          "amount": 12.99,
+          "amount_minor": 1299,
+          "currency": "USD",
+          "interval": "month"
+        },
+        "original_price": {
+          "amount": 15.99,
+          "amount_minor": 1599,
+          "currency": "USD",
+          "interval": "month"
+        },
+        "trial_days": 0,
+        "payment_type": "recurring",
+        "provisioning": "module",
+        "order_form": [
+          {
+            "order": 0,
+            "type": "string",
+            "label": "Server name",
+            "description": "Shown in the server browser.",
+            "key": "server_name",
+            "required": true,
+            "placeholder": "My Rust server",
+            "regex": "^.{1,64}$"
+          },
+          {
+            "order": 1,
+            "type": "checkbox",
+            "label": "Daily backups",
+            "description": "",
+            "key": "backups",
+            "required": false,
+            "default_value": true,
+            "price": 200
+          },
+          {
+            "order": 2,
+            "type": "radio",
+            "label": "Map size",
+            "description": "",
+            "key": "MAP_SIZE",
+            "required": true,
+            "children": [
+              {
+                "label": "Small",
+                "value": "3000",
+                "price": 0
+              },
+              {
+                "label": "Large",
+                "value": "4500",
+                "price": 300
+              }
+            ]
+          },
+          {
+            "order": 3,
+            "type": "location-multi-dropdown",
+            "label": "Location",
+            "description": "Pick the closest.",
+            "key": "location",
+            "required": true,
+            "dropdown": [
+              {
+                "order": 0,
+                "label": "United States",
+                "default": true,
+                "default_value": "us-west",
+                "children": [
+                  {
+                    "label": "Oregon",
+                    "value": "us-west",
+                    "price": 0
+                  },
+                  {
+                    "label": "Virginia",
+                    "value": "us-east",
+                    "price": 0
+                  }
+                ]
+              },
+              {
+                "order": 1,
+                "label": "Germany",
+                "default": false,
+                "default_value": "",
+                "children": []
+              }
+            ]
+          },
+          {
+            "order": 4,
+            "type": "slider",
+            "label": "Slots",
+            "description": "",
+            "key": "slots",
+            "required": true,
+            "children": [
+              {
+                "label": "50",
+                "value": "50",
+                "price": 0
+              },
+              {
+                "label": "100",
+                "value": "100",
+                "price": 500
+              }
+            ],
+            "preset_id": "pre_slots"
+          }
+        ]
+      },
+      {
+        "id": "pln_rust_pro",
+        "service_id": "svc_rust",
+        "name": "Pro",
+        "slug": "pro",
+        "description": "Pro plan.",
+        "image": "",
+        "checkout_url": "/checkout/rust/pro",
+        "price": {
+          "amount": 59.99,
+          "amount_minor": 5999,
+          "currency": "USD",
+          "interval": "quarter"
+        },
+        "original_price": null,
+        "trial_days": 0,
+        "payment_type": "recurring",
+        "provisioning": "module",
+        "order_form": []
+      },
+      {
+        "id": "pln_rust_elite",
+        "service_id": "svc_rust",
+        "name": "Elite",
+        "slug": "elite",
+        "description": "Elite plan.",
+        "image": "",
+        "checkout_url": "/checkout/rust/elite",
+        "price": {
+          "amount": 199.99,
+          "amount_minor": 19999,
+          "currency": "USD",
+          "interval": "year"
+        },
+        "original_price": null,
+        "trial_days": 0,
+        "payment_type": "recurring",
+        "provisioning": "manual",
+        "order_form": []
+      },
+      {
+        "id": "pln_rust_half",
+        "service_id": "svc_rust",
+        "name": "Half Year",
+        "slug": "half-year",
+        "description": "Half Year plan.",
+        "image": "",
+        "checkout_url": "/checkout/rust/half-year",
+        "price": {
+          "amount": 90,
+          "amount_minor": 9000,
+          "currency": "USD",
+          "interval": "semi_annual"
+        },
+        "original_price": null,
+        "trial_days": 0,
+        "payment_type": "recurring",
+        "provisioning": "module",
+        "order_form": []
+      }
+    ]
+  }
+}

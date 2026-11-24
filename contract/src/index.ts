@@ -1,0 +1,46 @@
+/**
+ * The page data contract, for tools: the runtime validator, the reference
+ * downgrade, path matching, and the setting and token rules.
+ *
+ * Templates import their types from `@hostcore/toolkit` instead.
+ */
+
+export { validate, validateType, CONTRACTS, type ValidationError, type ValidateOptions } from './validate'
+export { downgrade, DowngradeError } from './downgrade'
+export { matchRoute, type PathMatch, type RoutePage } from './match'
+export {
+  matchRegistryPath,
+  normaliseRegistry,
+  readRegistry,
+  validateRegistry,
+  type NormalisedRegistry,
+  type Registry,
+  type RegistryPage,
+  type RegistrySlot,
+} from './registry'
+export {
+  LINK_HREF_RULE,
+  LINK_URL_RULE,
+  linkValueError,
+  STANDARD_SETTINGS,
+  settingValueError,
+  standardSetting,
+  validateSettingSchema,
+  type LinkKind,
+  type SettingSchemaEntry,
+  type SettingType,
+  type SettingValue,
+} from './settings'
+export {
+  effectiveTokens,
+  PLATFORM_THEME,
+  THEME_KEYS,
+  THEME_TOKENS,
+  TOKENS,
+  TOKEN_PATTERNS,
+  validateTokens,
+  type ThemeKey,
+  type TokenDefinition,
+  type TokenKind,
+} from './tokens'
+export type { Contract, Schema } from './dsl'

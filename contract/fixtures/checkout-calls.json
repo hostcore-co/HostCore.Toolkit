@@ -1,0 +1,705 @@
+{
+  "sign_in_url": "/login?redirectTo=%2Fcheckout%2Frust%2Fstarter",
+  "cases": [
+    {
+      "name": "a signed-in customer with a billing address",
+      "call": "customer",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "type": "user",
+            "id": "usr_1",
+            "attributes": {
+              "id": "usr_1",
+              "first_name": "Ada",
+              "last_name": "Lovelace",
+              "email": "ada@example.com",
+              "country": "gb",
+              "state": "",
+              "address_line1": "1 Example Street",
+              "address_line2": "",
+              "city": "London",
+              "postal_code": "N1 9GU",
+              "tax_id": "GB123456789"
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "signed_in",
+        "billing": {
+          "country": "GB",
+          "state": "",
+          "address_line1": "1 Example Street",
+          "address_line2": "",
+          "city": "London",
+          "postal_code": "N1 9GU",
+          "tax_id": "GB123456789"
+        }
+      }
+    },
+    {
+      "name": "a customer whose country is not a two-letter code",
+      "call": "customer",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "attributes": {
+              "country": "United Kingdom",
+              "state": "Greater London",
+              "address_line1": "",
+              "address_line2": "",
+              "city": "",
+              "postal_code": "",
+              "tax_id": ""
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "signed_in",
+        "billing": {
+          "country": "",
+          "state": "Greater London",
+          "address_line1": "",
+          "address_line2": "",
+          "city": "",
+          "postal_code": "",
+          "tax_id": ""
+        }
+      }
+    },
+    {
+      "name": "a visitor who is not signed in",
+      "call": "customer",
+      "status": 401,
+      "body": {
+        "error": {
+          "code": "unauthorized",
+          "message": "sign in required"
+        }
+      },
+      "outcome": {
+        "status": "signed_out",
+        "sign_in_url": "/login?redirectTo=%2Fcheckout%2Frust%2Fstarter"
+      }
+    },
+    {
+      "name": "reading the customer fails",
+      "call": "customer",
+      "status": 500,
+      "body": null,
+      "outcome": {
+        "status": "error",
+        "code": "failed",
+        "message": "Could not load your account details."
+      }
+    },
+    {
+      "name": "the billing address is saved",
+      "call": "save_billing_address",
+      "status": 204,
+      "body": null,
+      "outcome": {
+        "status": "ok"
+      }
+    },
+    {
+      "name": "saving the billing address finds the customer signed out",
+      "call": "save_billing_address",
+      "status": 401,
+      "body": null,
+      "outcome": {
+        "status": "signed_out",
+        "sign_in_url": "/login?redirectTo=%2Fcheckout%2Frust%2Fstarter"
+      }
+    },
+    {
+      "name": "the billing address is refused",
+      "call": "save_billing_address",
+      "status": 400,
+      "body": {
+        "error": {
+          "code": "invalid_input",
+          "message": "country must be a two-letter code"
+        }
+      },
+      "outcome": {
+        "status": "error",
+        "code": "invalid_input",
+        "message": "country must be a two-letter code"
+      }
+    },
+    {
+      "name": "a quote for a plan with a setup fee and a domain add-on, tax added",
+      "call": "quote",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "type": "cart_quote",
+            "id": "store_acme",
+            "attributes": {
+              "currency": "USD",
+              "items": [
+                {
+                  "kind": "plan",
+                  "label": "Rust · Starter (monthly)",
+                  "cents": 1499,
+                  "setup_cents": 500
+                },
+                {
+                  "kind": "domain",
+                  "label": "acme.example · register 1 year",
+                  "cents": 1299
+                }
+              ],
+              "subtotal_cents": 3298,
+              "tax_cents": 660,
+              "total_cents": 3958,
+              "tax_inclusive": false,
+              "incomplete": false
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "ok",
+        "currency": "USD",
+        "lines": [
+          {
+            "kind": "plan",
+            "label": "Rust · Starter (monthly)",
+            "price": {
+              "amount": 14.99,
+              "amount_minor": 1499,
+              "currency": "USD"
+            },
+            "setup_fee": {
+              "amount": 5,
+              "amount_minor": 500,
+              "currency": "USD"
+            },
+            "error": "",
+            "incomplete": false
+          },
+          {
+            "kind": "domain",
+            "label": "acme.example · register 1 year",
+            "price": {
+              "amount": 12.99,
+              "amount_minor": 1299,
+              "currency": "USD"
+            },
+            "setup_fee": {
+              "amount": 0,
+              "amount_minor": 0,
+              "currency": "USD"
+            },
+            "error": "",
+            "incomplete": false
+          }
+        ],
+        "subtotal": {
+          "amount": 32.98,
+          "amount_minor": 3298,
+          "currency": "USD"
+        },
+        "tax": {
+          "amount": 6.6,
+          "amount_minor": 660,
+          "currency": "USD"
+        },
+        "total": {
+          "amount": 39.58,
+          "amount_minor": 3958,
+          "currency": "USD"
+        },
+        "tax_inclusive": false,
+        "incomplete": false
+      }
+    },
+    {
+      "name": "a quote with an item that cannot be ordered and one still incomplete",
+      "call": "quote",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "attributes": {
+              "currency": "USD",
+              "items": [
+                {
+                  "kind": "plan",
+                  "label": "Rust · Starter (monthly)",
+                  "cents": 1299,
+                  "incomplete": true
+                },
+                {
+                  "kind": "domain",
+                  "label": "acme.invalid",
+                  "cents": 0,
+                  "error": ".invalid domains are not available here"
+                }
+              ],
+              "subtotal_cents": 1299,
+              "tax_cents": 0,
+              "total_cents": 1299,
+              "tax_inclusive": true,
+              "incomplete": true
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "ok",
+        "currency": "USD",
+        "lines": [
+          {
+            "kind": "plan",
+            "label": "Rust · Starter (monthly)",
+            "price": {
+              "amount": 12.99,
+              "amount_minor": 1299,
+              "currency": "USD"
+            },
+            "setup_fee": {
+              "amount": 0,
+              "amount_minor": 0,
+              "currency": "USD"
+            },
+            "error": "",
+            "incomplete": true
+          },
+          {
+            "kind": "domain",
+            "label": "acme.invalid",
+            "price": {
+              "amount": 0,
+              "amount_minor": 0,
+              "currency": "USD"
+            },
+            "setup_fee": {
+              "amount": 0,
+              "amount_minor": 0,
+              "currency": "USD"
+            },
+            "error": ".invalid domains are not available here",
+            "incomplete": false
+          }
+        ],
+        "subtotal": {
+          "amount": 12.99,
+          "amount_minor": 1299,
+          "currency": "USD"
+        },
+        "tax": {
+          "amount": 0,
+          "amount_minor": 0,
+          "currency": "USD"
+        },
+        "total": {
+          "amount": 12.99,
+          "amount_minor": 1299,
+          "currency": "USD"
+        },
+        "tax_inclusive": true,
+        "incomplete": true
+      }
+    },
+    {
+      "name": "pricing is refused for too many items",
+      "call": "quote",
+      "status": 400,
+      "body": {
+        "error": {
+          "code": "invalid_input",
+          "message": "a checkout is limited to 20 items"
+        }
+      },
+      "outcome": {
+        "status": "error",
+        "code": "invalid_input",
+        "message": "a checkout is limited to 20 items"
+      }
+    },
+    {
+      "name": "pricing is rate limited",
+      "call": "quote",
+      "status": 429,
+      "body": null,
+      "outcome": {
+        "status": "error",
+        "code": "failed",
+        "message": "Could not price your order."
+      }
+    },
+    {
+      "name": "an order paid on the provider page",
+      "call": "start",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "type": "checkout",
+            "id": "ord:ord_1",
+            "attributes": {
+              "order_id": "ord_1",
+              "approval_url": "https://pay.example.com/session/cs_1",
+              "paid": false
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "redirect",
+        "url": "https://pay.example.com/session/cs_1",
+        "order_id": "ord_1",
+        "subscription_id": ""
+      }
+    },
+    {
+      "name": "an order to be paid by bank transfer",
+      "call": "start",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "type": "checkout",
+            "id": "ord:ord_2",
+            "attributes": {
+              "order_id": "ord_2",
+              "subscription_id": "sub_2",
+              "paid": false,
+              "bank_transfer": {
+                "invoice_id": "inv_2",
+                "invoice_number": "INV-0002",
+                "reference": "HC-0002",
+                "amount": {
+                  "amount_cents": 5999,
+                  "currency": "USD",
+                  "usd_cents": 5999,
+                  "exchange_rate": 1
+                },
+                "due_at": "2026-11-25T00:00:00Z",
+                "account_name": "Acme Hosting Ltd",
+                "bank_name": "Example Bank",
+                "iban": "GB00EXMP00000000000000",
+                "swift": "EXMPGB2L",
+                "instructions": "Quote the reference so we can match your payment."
+              }
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "bank_transfer",
+        "order_id": "ord_2",
+        "subscription_id": "sub_2",
+        "details": {
+          "invoice_id": "inv_2",
+          "invoice_number": "INV-0002",
+          "reference": "HC-0002",
+          "amount": {
+            "amount": 59.99,
+            "amount_minor": 5999,
+            "currency": "USD"
+          },
+          "due_at": "2026-11-25T00:00:00Z",
+          "account_name": "Acme Hosting Ltd",
+          "bank_name": "Example Bank",
+          "account_number": "",
+          "sort_code": "",
+          "iban": "GB00EXMP00000000000000",
+          "swift": "EXMPGB2L",
+          "instructions": "Quote the reference so we can match your payment."
+        }
+      }
+    },
+    {
+      "name": "a free plan, active at once",
+      "call": "start",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "type": "checkout",
+            "id": "sub_3",
+            "attributes": {
+              "subscription_id": "sub_3",
+              "paid": true
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "paid",
+        "order_id": "",
+        "subscription_id": "sub_3"
+      }
+    },
+    {
+      "name": "an order covered by account credit",
+      "call": "start",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "type": "checkout",
+            "id": "ord:ord_4",
+            "attributes": {
+              "order_id": "ord_4",
+              "paid": true
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "paid",
+        "order_id": "ord_4",
+        "subscription_id": ""
+      }
+    },
+    {
+      "name": "placing an order finds the customer signed out",
+      "call": "start",
+      "status": 401,
+      "body": null,
+      "outcome": {
+        "status": "signed_out",
+        "sign_in_url": "/login?redirectTo=%2Fcheckout%2Frust%2Fstarter"
+      }
+    },
+    {
+      "name": "a promotion code that does not apply",
+      "call": "start",
+      "status": 422,
+      "body": {
+        "error": {
+          "code": "promo_not_applicable",
+          "message": "this promo code does not apply to your order"
+        }
+      },
+      "outcome": {
+        "status": "error",
+        "code": "promo_not_applicable",
+        "message": "this promo code does not apply to your order"
+      }
+    },
+    {
+      "name": "a domain that has been taken",
+      "call": "start",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "domain_unavailable",
+          "message": "acme.example is not available"
+        }
+      },
+      "outcome": {
+        "status": "error",
+        "code": "domain_unavailable",
+        "message": "acme.example is not available"
+      }
+    },
+    {
+      "name": "placing an order fails",
+      "call": "start",
+      "status": 500,
+      "body": {
+        "error": {
+          "code": "internal",
+          "message": ""
+        }
+      },
+      "outcome": {
+        "status": "error",
+        "code": "internal",
+        "message": "Could not place your order"
+      }
+    },
+    {
+      "name": "a payment confirmed",
+      "call": "confirm",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "type": "checkout",
+            "id": "ord:ord_1",
+            "attributes": {
+              "status": "paid"
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "confirmed",
+        "payment": "paid"
+      }
+    },
+    {
+      "name": "a payment still settling",
+      "call": "confirm",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "type": "checkout",
+            "id": "ord:ord_1",
+            "attributes": {
+              "status": "processing"
+            }
+          }
+        ]
+      },
+      "outcome": {
+        "status": "confirmed",
+        "payment": "processing"
+      }
+    },
+    {
+      "name": "a payment whose checkout has expired",
+      "call": "confirm",
+      "status": 400,
+      "body": {
+        "error": {
+          "code": "invalid_input",
+          "message": "this checkout has expired"
+        }
+      },
+      "outcome": {
+        "status": "error",
+        "code": "invalid_input",
+        "message": "this checkout has expired"
+      }
+    },
+    {
+      "name": "confirming finds the customer signed out",
+      "call": "confirm",
+      "status": 401,
+      "body": null,
+      "outcome": {
+        "status": "signed_out",
+        "sign_in_url": "/login?redirectTo=%2Fcheckout%2Frust%2Fstarter"
+      }
+    },
+    {
+      "name": "an abandoned payment cancelled",
+      "call": "cancel",
+      "status": 204,
+      "body": null,
+      "outcome": {
+        "status": "cancelled"
+      }
+    },
+    {
+      "name": "cancelling finds the customer signed out",
+      "call": "cancel",
+      "status": 401,
+      "body": null,
+      "outcome": {
+        "status": "signed_out",
+        "sign_in_url": "/login?redirectTo=%2Fcheckout%2Frust%2Fstarter"
+      }
+    },
+    {
+      "name": "cancelling fails",
+      "call": "cancel",
+      "status": 400,
+      "body": {
+        "error": {
+          "code": "invalid_input",
+          "message": "subscription_id is required"
+        }
+      },
+      "outcome": {
+        "status": "error",
+        "code": "invalid_input",
+        "message": "subscription_id is required"
+      }
+    },
+    {
+      "name": "a saved domain draft",
+      "call": "read_draft",
+      "status": 200,
+      "body": {
+        "domain": "Acme.Example",
+        "action": "transfer",
+        "years": 2
+      },
+      "outcome": {
+        "status": "found",
+        "draft": {
+          "domain": "acme.example",
+          "action": "transfer",
+          "years": 2
+        }
+      }
+    },
+    {
+      "name": "no saved domain draft",
+      "call": "read_draft",
+      "status": 204,
+      "body": null,
+      "outcome": {
+        "status": "none"
+      }
+    },
+    {
+      "name": "a saved draft that is not a valid pick",
+      "call": "read_draft",
+      "status": 200,
+      "body": {
+        "domain": "acme.example",
+        "action": "renew",
+        "years": 1
+      },
+      "outcome": {
+        "status": "none"
+      }
+    },
+    {
+      "name": "reading the draft fails",
+      "call": "read_draft",
+      "status": 500,
+      "body": null,
+      "outcome": {
+        "status": "error",
+        "code": "failed",
+        "message": "Could not read your domain choice."
+      }
+    },
+    {
+      "name": "the domain draft is saved",
+      "call": "save_draft",
+      "status": 204,
+      "body": null,
+      "outcome": {
+        "status": "ok"
+      }
+    },
+    {
+      "name": "saving the draft is refused",
+      "call": "save_draft",
+      "status": 403,
+      "body": null,
+      "outcome": {
+        "status": "error",
+        "code": "failed",
+        "message": "Could not save your domain choice."
+      }
+    },
+    {
+      "name": "the domain draft is cleared",
+      "call": "clear_draft",
+      "status": 204,
+      "body": null,
+      "outcome": {
+        "status": "ok"
+      }
+    }
+  ]
+}

@@ -1,14 +1,22 @@
-import { readFile } from 'node:fs/promises'
-import { relative } from 'node:path'
+import { readdir, readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { dirname, join, relative, sep } from 'node:path'
 import { Glob } from 'bun'
 import {
   BANNED_IMPORT_PREFIXES,
   BANNED_PATTERNS,
   PLATFORM_ALLOWED_DEV_PACKAGES,
   PLATFORM_ALLOWED_PACKAGES,
+  SDK_PACKAGES,
+  platformUrlAdvice,
+  platformUrlsIn,
   SOURCE_GLOB,
+  STYLESHEET_GLOB,
 } from './policy'
-import type { LoadedTemplate } from './template'
+import { discoverSources, SOURCE_EXTENSIONS } from './sources'
+import { PAGES } from '../contract/dist/ts/registry'
+import { externalStylesheetUrls } from './stylesheet'
+import { isFormat2, type LoadedTemplate } from './template'
 
 export interface Finding {
   file: string
@@ -38,7 +46,8 @@ const SKIP_DIRECTORIES = ['node_modules/', 'dist/', '.vite/', 'build/']
  *
  * Import specifiers come from Bun's transpiler rather than a regex, so
  * they are the real resolved imports including type-only and re-export
- * forms. The remaining checks are textual and deliberately blunt.
+ * forms. Stylesheets are tokenized as CSS (see stylesheet.ts). The
+ * remaining checks are textual and deliberately blunt.
  */
 export async function validateTemplate(
   template: LoadedTemplate,
@@ -47,25 +56,100 @@ export async function validateTemplate(
     ...checkDependencies(template),
     ...checkAllowedPackages(template),
   ]
+  const format2 = isFormat2(template)
+  let checkoutFiles = new Set<string>()
+  if (format2) {
+    const { sources, problems } = await discoverSources(template.root)
+    findings.push(...problems.map((p) => ({ ...p, line: 0 })))
+    checkoutFiles = await checkoutClosure(template.root, sources.pages)
+  }
+  const declaredSettings = new Set((template.manifest.settings ?? []).map((s) => s.id))
 
+  const narrowed = template.declaresAllowedPackages ? template.manifest.allowedPackages : null
   const transpiler = new Bun.Transpiler({ loader: 'tsx' })
   const glob = new Glob(SOURCE_GLOB)
   let filesScanned = 0
 
-  for await (const relPath of glob.scan({ cwd: template.root, dot: false })) {
-    if (SKIP_DIRECTORIES.some((dir) => relPath.includes(dir))) continue
-    // The dev harness never ships. It stands in for the platform locally,
-    // so it legitimately does things a template may not.
-    if (relPath.startsWith('dev/') || relPath.startsWith('mocks/')) continue
+  for await (const scanned of glob.scan({ cwd: template.root, dot: false })) {
+    const relPath = portable(scanned)
+    if (!ships(relPath)) continue
     if (relPath === 'vite.config.ts') continue
 
     filesScanned++
     const source = await readFile(`${template.root}/${relPath}`, 'utf8')
-    findings.push(...scanImports(transpiler, source, relPath))
+    findings.push(...scanImports(transpiler, source, relPath, narrowed))
     findings.push(...scanSource(source, relPath))
+    if (format2 && /^src\/slots\/[^/]+$/.test(relPath)) findings.push(...scanSlot(source, relPath))
+    if (format2 && !checkoutFiles.has(relPath)) findings.push(...scanCheckoutUse(source, relPath))
+    if (format2) {
+      findings.push(...scanPlatformUrls(source, relPath))
+      findings.push(...scanSettingIds(source, relPath, declaredSettings))
+    }
+  }
+
+  for await (const scanned of new Glob(STYLESHEET_GLOB).scan({ cwd: template.root, dot: false })) {
+    const relPath = portable(scanned)
+    if (!ships(relPath)) continue
+    filesScanned++
+    findings.push(...scanStylesheet(await readFile(`${template.root}/${relPath}`, 'utf8'), relPath))
   }
 
   return { findings, filesScanned }
+}
+
+/** A scanned path with "/" between its parts, whatever the platform's separator. */
+function portable(relPath: string): string {
+  return relPath.split(sep).join('/')
+}
+
+/**
+ * Whether a file is part of what a template ships. The dev harness stands
+ * in for the platform locally, so it legitimately does things a template
+ * may not.
+ */
+function ships(relPath: string): boolean {
+  if (SKIP_DIRECTORIES.some((dir) => relPath.includes(dir))) return false
+  return !(relPath.startsWith('dev/') || relPath.startsWith('mocks/'))
+}
+
+/**
+ * A stylesheet may only load files from the store's own origin; see
+ * stylesheet.ts. The same rule is applied to the built stylesheet, which
+ * catches a URL a preprocessor or a package brings in.
+ */
+export function scanStylesheet(css: string, file: string): Finding[] {
+  return externalStylesheetUrls(css).map((f) => ({
+    file,
+    line: f.line,
+    rule: STYLESHEET_RULE,
+    message: f.message,
+  }))
+}
+
+/** The rule id of a stylesheet URL that loads from another site. */
+export const STYLESHEET_RULE = 'stylesheet-external-url'
+
+/**
+ * Applies the stylesheet rule to every .css file of a build, by path
+ * relative to the build directory.
+ */
+export async function scanBuiltStylesheets(buildDir: string): Promise<Finding[]> {
+  const findings: Finding[] = []
+  const entries = await readdir(buildDir, { withFileTypes: true, recursive: true })
+  const paths = entries
+    .filter((e) => e.isFile() && e.name.endsWith('.css'))
+    .map((e) => relative(buildDir, join(e.parentPath, e.name)).split(sep).join('/'))
+    .sort()
+  for (const path of paths) findings.push(...scanStylesheet(await readFile(join(buildDir, path), 'utf8'), path))
+  return findings
+}
+
+/** Why a build whose stylesheet loads from another site fails. */
+export function formatBuiltStylesheetFindings(findings: Finding[]): string {
+  return [
+    'the built stylesheet loads from another site, which the platform does not accept. When your own CSS has no such URL, a package or a preprocessor added it:',
+    ...findings.map((f) => `  ${f.file}${f.line > 0 ? `:${f.line}` : ''}  [${f.rule}] ${f.message}`),
+  ].join('\n')
 }
 
 /**
@@ -117,10 +201,16 @@ function checkAllowedPackages(template: LoadedTemplate): Finding[] {
     }))
 }
 
+/**
+ * Every import must be of a package on the platform allowlist and, when the
+ * template declares allowedPackages (`narrowed`), of one it lists there or
+ * of the SDK and React.
+ */
 function scanImports(
   transpiler: Bun.Transpiler,
   source: string,
   file: string,
+  narrowed: readonly string[] | null,
 ): Finding[] {
   let imports: Array<{ path: string }>
   try {
@@ -160,6 +250,13 @@ function scanImports(
         rule: 'import-not-allowed',
         message: `"${specifier}" resolves to "${bare}", which is not on the platform allowlist`,
       })
+    } else if (narrowed !== null && !SDK_PACKAGES.includes(bare) && !narrowed.includes(bare)) {
+      findings.push({
+        file,
+        line: lineOf(source, specifier),
+        rule: 'import-not-in-allowed-packages',
+        message: `"${specifier}" resolves to "${bare}", which template.json's allowedPackages does not list; add it there to use it`,
+      })
     }
   }
   return findings
@@ -183,6 +280,136 @@ function scanSource(source: string, file: string): Finding[] {
     }
   })
 
+  return findings
+}
+
+/**
+ * A format-2 template never writes a platform URL: every one is in the page
+ * payload. A string that starts with one is almost always a hand-built link
+ * that breaks the day the platform moves it.
+ */
+function scanPlatformUrls(source: string, file: string): Finding[] {
+  const findings: Finding[] = []
+  source.split('\n').forEach((text, index) => {
+    if (isCommentOnly(text)) return
+    for (const rule of platformUrlsIn(text)) {
+      findings.push({
+        file,
+        line: index + 1,
+        rule: 'hand-built-platform-url',
+        message: `"${rule.path}…" is a platform URL; ${platformUrlAdvice(rule)}`,
+      })
+    }
+  })
+  return findings
+}
+
+/** The SDK's checkout hooks and calls, which act for the signed-in customer. */
+const CHECKOUT_NAMES =
+  /\b(useCheckoutPlan|useCheckoutDomains|useCheckoutSuccess|useCheckoutCancel|checkoutCustomer|saveBillingAddress|quoteCheckout|startCheckout|confirmCheckout|cancelCheckout|readDomainDraft|saveDomainDraft|clearDomainDraft)\b/g
+
+/**
+ * The checkout pages' files and every file of the template they import,
+ * directly or not, by path relative to the template.
+ */
+async function checkoutClosure(root: string, pages: Record<string, string>): Promise<Set<string>> {
+  const transpiler = new Bun.Transpiler({ loader: 'tsx' })
+  const checkoutPages = PAGES.filter((p) => p.tier === 'checkout').map((p) => p.id)
+  const queue = checkoutPages.flatMap((id) => (pages[id] ? [pages[id]!] : []))
+  const seen = new Set<string>()
+  while (queue.length > 0) {
+    const file = queue.shift()!
+    if (seen.has(file)) continue
+    seen.add(file)
+    let imports: Array<{ path: string }> = []
+    try {
+      imports = transpiler.scanImports(await readFile(file, 'utf8'))
+    } catch {
+      continue
+    }
+    for (const { path } of imports) {
+      const base = path.startsWith('.') ? join(dirname(file), path) : path === '@template' || path.startsWith('@template/') || path === '@' || path.startsWith('@/') ? join(root, 'src', path.replace(/^@template\/?|^@\/?/, '')) : null
+      if (base === null) continue
+      for (const candidate of [base, ...SOURCE_EXTENSIONS.map((e) => `${base}${e}`), ...SOURCE_EXTENSIONS.map((e) => join(base, `index${e}`))]) {
+        if (existsSync(candidate) && !candidate.endsWith('.css')) {
+          queue.push(candidate)
+          break
+        }
+      }
+    }
+  }
+  return new Set([...seen].map((f) => relative(root, f).split(sep).join('/')))
+}
+
+/** A checkout hook or call outside the checkout pages and what they import. */
+function scanCheckoutUse(source: string, file: string): Finding[] {
+  const findings: Finding[] = []
+  source.split('\n').forEach((text, index) => {
+    if (isCommentOnly(text)) return
+    for (const match of text.matchAll(CHECKOUT_NAMES)) {
+      findings.push({
+        file,
+        line: index + 1,
+        rule: 'checkout-outside-checkout',
+        message: `${match[1]} is for the checkout pages: use it in src/pages/checkout.*.tsx or in a file they import`,
+      })
+    }
+  })
+  return findings
+}
+
+/**
+ * What a slot may not contain. A slot is rendered on the server only and
+ * shown with no script, so anything that needs script in the browser does
+ * nothing there; and it is given the store, the settings and the design
+ * tokens, never the page's data or its actions.
+ */
+const SLOT_RULES: readonly { pattern: RegExp; rule: string; message: string }[] = [
+  { pattern: /\bisland\s*\(|['"`][^'"`]*\/islands\/[^'"`]*['"`]|['"`]@template\/islands\b/, rule: 'slot-needs-script', message: 'a slot cannot contain islands: it is shown with no script' },
+  {
+    pattern: /\buse(State|Effect|LayoutEffect|InsertionEffect|Reducer|Ref|SyncExternalStore|Transition|DeferredValue|Optimistic|ActionState)\b/,
+    rule: 'slot-needs-script',
+    message: 'a slot is rendered once on the server and never runs in the browser, so state and effects do nothing there',
+  },
+  { pattern: /\son[A-Z][A-Za-z]*\s*=\s*\{/, rule: 'slot-needs-script', message: 'a slot is shown with no script, so an event handler does nothing there' },
+  { pattern: /<script\b|\bexport\s+(const|let|var)\s+hydrate\b/, rule: 'slot-needs-script', message: 'a slot is shown with no script' },
+  {
+    pattern: /\buse(Page|Action)\s*[<(]/,
+    rule: 'slot-reads-page',
+    message: "a slot gets the store, the settings and the design tokens, not the page's data or its actions",
+  },
+]
+
+/** The slot rules, line by line. */
+function scanSlot(source: string, file: string): Finding[] {
+  const findings: Finding[] = []
+  source.split('\n').forEach((text, index) => {
+    if (isCommentOnly(text)) return
+    for (const r of SLOT_RULES) {
+      if (r.pattern.test(text)) findings.push({ file, line: index + 1, rule: r.rule, message: r.message })
+    }
+  })
+  return findings
+}
+
+const USE_SETTING = /\buseSetting\s*(?:<[^>()]*>)?\s*\(\s*(['"`])([^'"`]+)\1/g
+
+/** useSetting() with an id template.json does not declare would only ever return undefined. */
+function scanSettingIds(source: string, file: string, declared: Set<string>): Finding[] {
+  const findings: Finding[] = []
+  source.split('\n').forEach((text, index) => {
+    if (isCommentOnly(text)) return
+    for (const match of text.matchAll(USE_SETTING)) {
+      const id = match[2]!
+      if (declared.has(id)) continue
+      findings.push({
+        file,
+        line: index + 1,
+        rule: 'undeclared-setting',
+        message: `useSetting("${id}"): "${id}" is not declared in template.json settings, so no store can set it`,
+      })
+    }
+  })
   return findings
 }
 

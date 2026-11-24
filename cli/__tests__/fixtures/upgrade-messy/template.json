@@ -1,0 +1,6 @@
+{
+  "id": "harbour",
+  "version": "3.4.0",
+  "name": "Harbour",
+  "allowedPackages": ["@hostcore/toolkit", "react", "react-dom", "clsx"]
+}

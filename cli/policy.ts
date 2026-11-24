@@ -1,3 +1,5 @@
+import { PAGES } from '../contract/dist/ts/registry'
+
 /**
  * What a template is allowed to contain.
  *
@@ -6,8 +8,10 @@
  * can read and fix. The alternative is finding out at render time, which is
  * a broken storefront.
  *
- * Your template's own `allowedPackages` may narrow these lists but never
- * widen them — a template cannot grant itself a dependency.
+ * A template's own `allowedPackages` in template.json narrows the packages
+ * its source may import but never widens them: every package it lists must
+ * be on PLATFORM_ALLOWED_PACKAGES, and when it declares the key, an import
+ * of anything else outside SDK_PACKAGES fails validation.
  */
 
 /**
@@ -29,6 +33,13 @@ export const PLATFORM_ALLOWED_PACKAGES: readonly string[] = [
   'react-icons',
   'tailwind-merge',
 ]
+
+/**
+ * Packages every template may import whether or not its `allowedPackages`
+ * lists them: the SDK, and the React the platform provides to every build
+ * (JSX alone imports React).
+ */
+export const SDK_PACKAGES: readonly string[] = ['@hostcore/toolkit', 'react', 'react-dom']
 
 /**
  * Packages allowed as devDependencies — the build toolchain. These run
@@ -133,3 +144,88 @@ export const BANNED_PATTERNS: readonly BannedPattern[] = [
 
 /** Files the validator reads. */
 export const SOURCE_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs}'
+
+/** Stylesheets the validator reads. */
+export const STYLESHEET_GLOB = '**/*.css'
+
+/**
+ * Packages that only do anything in a browser. In a format-2 server build
+ * each is replaced by an inert stand-in that is safe to call during a server
+ * render (see stubs.ts), so none of their code is in the server bundle. The
+ * browser build gets the real package.
+ */
+export const CLIENT_ONLY_PACKAGES: readonly string[] = ['embla-carousel-react', 'gsap']
+
+/**
+ * The modules a format-2 server bundle receives from the shared runtime
+ * instead of carrying its own copy. A server bundle may require these and
+ * nothing else.
+ */
+export const RUNTIME_SERVER_MODULES: readonly string[] = ['react', 'react/jsx-runtime', 'react-dom/server']
+
+/**
+ * The modules a format-2 browser bundle imports by bare name. The page maps
+ * each one to the shared runtime's copy with an import map.
+ */
+export const RUNTIME_CLIENT_MODULES: readonly string[] = ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client']
+
+export interface PlatformUrlRule {
+  /** The path a hand-built URL starts with, such as `/checkout`. */
+  readonly path: string
+  /** Where the URL comes from instead, or null when the page data has no link to the page. */
+  readonly use: string | null
+}
+
+/** Where a template takes the link to each platform page it may link to. */
+const PAGE_LINKS: Readonly<Record<string, string>> = {
+  domains: "useNav().links.domains, which is empty when the store sells no domains",
+  checkout: "a plan's checkout_url, or service.url for a card (it already points at checkout for a single-plan service)",
+  login: 'useNav().links.login',
+  signup: 'useNav().links.signup',
+  dashboard: 'useNav().links.account',
+  'checkout.domains': "actionHref(useAction('domain_checkout'), { domain, action, years })",
+  'checkout.success': "nothing: the platform sends the customer there after payment, and useCheckoutPlan and useCheckoutDomains go there for an order that needs no payment step",
+  'checkout.cancel': 'nothing: the platform sends the customer there when they abandon payment',
+}
+
+/**
+ * Platform URLs a format-2 template must not write by hand: the path of
+ * every page in the page registry that has a fixed path, so a page added to
+ * the registry is covered too, and `/api`,
+ * whose endpoints come from useAction(name). A link a template needs is in
+ * the page payload, so a template that takes it from there keeps working if
+ * the platform moves the page; a page the payload has no link to is not one
+ * a template links to. A string matches the longest path it starts with.
+ *
+ * The home page, `/`, is not among them. Its path is the root of the
+ * store's site and does not move, and a string that is only "/" is far more
+ * often a path separator than a link; `useNav().links.home` is still the
+ * way to link to it.
+ */
+export const PLATFORM_URL_RULES: readonly PlatformUrlRule[] = [
+  ...PAGES.flatMap((p) =>
+    p.paths.filter((path) => path !== '/' && !path.includes('{')).map((path) => ({ path, use: PAGE_LINKS[p.id] ?? null })),
+  ),
+  { path: '/api', use: 'useAction(name), whose url is the endpoint to call' },
+]
+
+const PLATFORM_URL = new RegExp(
+  `(['"\`])(${[...PLATFORM_URL_RULES].sort((a, b) => b.path.length - a.path.length).map((r) => r.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?=[/?#'"\`$]|$)`,
+  'g',
+)
+
+/**
+ * The hand-built platform URLs in one line of source: each string that
+ * starts with the path of a rule, followed by the end of the string or by
+ * `/`, `?`, `#` or `${`.
+ */
+export function platformUrlsIn(line: string): PlatformUrlRule[] {
+  return [...line.matchAll(PLATFORM_URL)].map((m) => PLATFORM_URL_RULES.find((r) => r.path === m[2])!)
+}
+
+/** What to do instead of writing a rule's URL by hand. */
+export function platformUrlAdvice(rule: PlatformUrlRule): string {
+  return rule.use === null
+    ? 'the page data has no link to this platform page, so a template does not link to it'
+    : `take it from the page data instead: ${rule.use}`
+}

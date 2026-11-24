@@ -1,0 +1,2205 @@
+{
+  "contract": "2026-11",
+  "types": {
+    "Action": {
+      "kind": "object",
+      "fields": {
+        "method": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "QUERY"
+          ],
+          "open": true
+        },
+        "url": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "Actions": {
+      "kind": "object",
+      "fields": {
+        "checkout_cancel": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_confirm": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_customer": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_draft": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_quote": {
+          "type": "Action",
+          "optional": true
+        },
+        "checkout_start": {
+          "type": "Action",
+          "optional": true
+        },
+        "domain_checkout": {
+          "type": "Action",
+          "optional": true
+        },
+        "domain_search": {
+          "type": "Action",
+          "optional": true
+        },
+        "session_refresh": {
+          "type": "Action",
+          "optional": true
+        }
+      }
+    },
+    "BillingAddress": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "address_line1": {
+          "type": "string",
+          "optional": false
+        },
+        "address_line2": {
+          "type": "string",
+          "optional": false
+        },
+        "city": {
+          "type": "string",
+          "optional": false
+        },
+        "country": {
+          "type": "string",
+          "optional": false
+        },
+        "postal_code": {
+          "type": "string",
+          "optional": false
+        },
+        "state": {
+          "type": "string",
+          "optional": false
+        },
+        "tax_id": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CatalogGroupData": {
+      "kind": "object",
+      "fields": {
+        "group": {
+          "type": "Group",
+          "optional": false
+        },
+        "services": {
+          "type": "ServiceCard[]",
+          "optional": false
+        }
+      }
+    },
+    "CatalogServiceData": {
+      "kind": "object",
+      "fields": {
+        "group": {
+          "type": "Group",
+          "optional": false
+        },
+        "plans": {
+          "type": "Plan[]",
+          "optional": false
+        },
+        "service": {
+          "type": "Service",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutBankTransfer": {
+      "kind": "object",
+      "fields": {
+        "due_days": {
+          "type": "integer",
+          "optional": false
+        },
+        "instructions": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutBankTransferDetails": {
+      "kind": "object",
+      "fields": {
+        "account_name": {
+          "type": "string",
+          "optional": false
+        },
+        "account_number": {
+          "type": "string",
+          "optional": false
+        },
+        "amount": {
+          "type": "Money",
+          "optional": false
+        },
+        "bank_name": {
+          "type": "string",
+          "optional": false
+        },
+        "due_at": {
+          "type": "string",
+          "optional": false
+        },
+        "iban": {
+          "type": "string",
+          "optional": false
+        },
+        "instructions": {
+          "type": "string",
+          "optional": false
+        },
+        "invoice_id": {
+          "type": "string",
+          "optional": false
+        },
+        "invoice_number": {
+          "type": "string",
+          "optional": false
+        },
+        "reference": {
+          "type": "string",
+          "optional": false
+        },
+        "sort_code": {
+          "type": "string",
+          "optional": false
+        },
+        "swift": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutBankTransferPlaced": {
+      "kind": "object",
+      "fields": {
+        "details": {
+          "type": "CheckoutBankTransferDetails",
+          "optional": false
+        },
+        "order_id": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"bank_transfer\"",
+          "optional": false
+        },
+        "subscription_id": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutBillingInterval": {
+      "kind": "enum",
+      "values": [
+        "monthly",
+        "quarterly",
+        "semiannually",
+        "annually"
+      ],
+      "open": false
+    },
+    "CheckoutCancelData": {
+      "kind": "object",
+      "fields": {}
+    },
+    "CheckoutCancelOutcome": {
+      "kind": "union(status: cancelled=CheckoutCancelled, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutCancelled": {
+      "kind": "object",
+      "fields": {
+        "status": {
+          "type": "\"cancelled\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutConfirmOutcome": {
+      "kind": "union(status: confirmed=CheckoutConfirmed, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutConfirmed": {
+      "kind": "object",
+      "fields": {
+        "payment": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "paid",
+            "processing"
+          ],
+          "open": false
+        },
+        "status": {
+          "type": "\"confirmed\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutCustomer": {
+      "kind": "object",
+      "fields": {
+        "billing": {
+          "type": "BillingAddress",
+          "optional": false
+        },
+        "status": {
+          "type": "\"signed_in\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutCustomerOutcome": {
+      "kind": "union(status: signed_in=CheckoutCustomer, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutCycle": {
+      "kind": "object",
+      "fields": {
+        "interval": {
+          "type": "PriceInterval",
+          "optional": false
+        },
+        "price": {
+          "type": "Price",
+          "optional": false
+        },
+        "setup_fee": {
+          "type": "Money",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutDomainsData": {
+      "kind": "object",
+      "fields": {
+        "exchange_rates": {
+          "type": "ExchangeRates | null",
+          "optional": false
+        },
+        "offers": {
+          "type": "CheckoutOffer[]",
+          "optional": false
+        },
+        "payment": {
+          "type": "CheckoutPayment",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutDone": {
+      "kind": "object",
+      "fields": {
+        "status": {
+          "type": "\"ok\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutError": {
+      "kind": "object",
+      "fields": {
+        "code": {
+          "type": "string",
+          "optional": false
+        },
+        "message": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"error\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutGateway": {
+      "kind": "object",
+      "fields": {
+        "default_currency": {
+          "type": "string",
+          "optional": false
+        },
+        "gateway": {
+          "type": "string",
+          "optional": false
+        },
+        "supported_currencies": {
+          "type": "string[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutItem": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "action": {
+          "type": "string",
+          "optional": true
+        },
+        "billing_interval": {
+          "type": "CheckoutBillingInterval",
+          "optional": true
+        },
+        "domain": {
+          "type": "string",
+          "optional": true
+        },
+        "domain_config": {
+          "type": "DomainConfig",
+          "optional": true
+        },
+        "kind": {
+          "type": "CheckoutItemKind",
+          "optional": false
+        },
+        "order_config": {
+          "type": "Record<string, json>",
+          "optional": true
+        },
+        "plan_id": {
+          "type": "string",
+          "optional": true
+        },
+        "service_id": {
+          "type": "string",
+          "optional": true
+        },
+        "years": {
+          "type": "integer",
+          "optional": true
+        }
+      }
+    },
+    "CheckoutItemKind": {
+      "kind": "enum",
+      "values": [
+        "plan",
+        "domain"
+      ],
+      "open": false
+    },
+    "CheckoutOffer": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "kind": {
+          "type": "CheckoutOfferKind",
+          "optional": false
+        },
+        "plans": {
+          "type": "CheckoutPlan[]",
+          "optional": false
+        },
+        "service": {
+          "type": "CheckoutOfferService | null",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        },
+        "tlds": {
+          "type": "CheckoutOfferTld[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutOfferKind": {
+      "kind": "enum",
+      "values": [
+        "service",
+        "domain"
+      ],
+      "open": false
+    },
+    "CheckoutOfferService": {
+      "kind": "object",
+      "fields": {
+        "group_id": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "marketing": {
+          "type": "Marketing",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutOfferTld": {
+      "kind": "object",
+      "fields": {
+        "featured": {
+          "type": "boolean",
+          "optional": false
+        },
+        "register": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        },
+        "renew": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        },
+        "tld": {
+          "type": "string",
+          "optional": false
+        },
+        "transfer": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutPaid": {
+      "kind": "object",
+      "fields": {
+        "order_id": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"paid\"",
+          "optional": false
+        },
+        "subscription_id": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutPayment": {
+      "kind": "object",
+      "fields": {
+        "bank_transfer": {
+          "type": "CheckoutBankTransfer | null",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "gateways": {
+          "type": "CheckoutGateway[]",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutPlan": {
+      "kind": "object",
+      "fields": {
+        "allow_bank_transfer": {
+          "type": "boolean",
+          "optional": false
+        },
+        "cycles": {
+          "type": "CheckoutCycle[]",
+          "optional": false
+        },
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "order_form": {
+          "type": "OrderFormComponent[]",
+          "optional": false
+        },
+        "payment_type": {
+          "type": "PaymentType",
+          "optional": false
+        },
+        "provisioning": {
+          "type": "string",
+          "optional": false
+        },
+        "service_id": {
+          "type": "string",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        },
+        "trial_days": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutPlanData": {
+      "kind": "object",
+      "fields": {
+        "exchange_rates": {
+          "type": "ExchangeRates | null",
+          "optional": false
+        },
+        "group": {
+          "type": "Group | null",
+          "optional": false
+        },
+        "offers": {
+          "type": "CheckoutOffer[]",
+          "optional": false
+        },
+        "payment": {
+          "type": "CheckoutPayment",
+          "optional": false
+        },
+        "plan": {
+          "type": "CheckoutPlan",
+          "optional": false
+        },
+        "service": {
+          "type": "Service",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutQuote": {
+      "kind": "object",
+      "fields": {
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "incomplete": {
+          "type": "boolean",
+          "optional": false
+        },
+        "lines": {
+          "type": "CheckoutQuoteLine[]",
+          "optional": false
+        },
+        "status": {
+          "type": "\"ok\"",
+          "optional": false
+        },
+        "subtotal": {
+          "type": "Money",
+          "optional": false
+        },
+        "tax": {
+          "type": "Money",
+          "optional": false
+        },
+        "tax_inclusive": {
+          "type": "boolean",
+          "optional": false
+        },
+        "total": {
+          "type": "Money",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutQuoteLine": {
+      "kind": "object",
+      "fields": {
+        "error": {
+          "type": "string",
+          "optional": false
+        },
+        "incomplete": {
+          "type": "boolean",
+          "optional": false
+        },
+        "kind": {
+          "type": "CheckoutItemKind",
+          "optional": false
+        },
+        "label": {
+          "type": "string",
+          "optional": false
+        },
+        "price": {
+          "type": "Money",
+          "optional": false
+        },
+        "setup_fee": {
+          "type": "Money",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutQuoteOutcome": {
+      "kind": "union(status: ok=CheckoutQuote, error=CheckoutError)"
+    },
+    "CheckoutQuoteRequest": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "country": {
+          "type": "string",
+          "optional": false
+        },
+        "items": {
+          "type": "CheckoutItem[]",
+          "optional": false
+        },
+        "state": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutRedirect": {
+      "kind": "object",
+      "fields": {
+        "order_id": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"redirect\"",
+          "optional": false
+        },
+        "subscription_id": {
+          "type": "string",
+          "optional": false
+        },
+        "url": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutSaveOutcome": {
+      "kind": "union(status: ok=CheckoutDone, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutSignedOut": {
+      "kind": "object",
+      "fields": {
+        "sign_in_url": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"signed_out\"",
+          "optional": false
+        }
+      }
+    },
+    "CheckoutStartOutcome": {
+      "kind": "union(status: redirect=CheckoutRedirect, bank_transfer=CheckoutBankTransferPlaced, paid=CheckoutPaid, signed_out=CheckoutSignedOut, error=CheckoutError)"
+    },
+    "CheckoutStartRequest": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "currency": {
+          "type": "string",
+          "optional": true
+        },
+        "gateway": {
+          "type": "string",
+          "optional": true
+        },
+        "items": {
+          "type": "CheckoutItem[]",
+          "optional": false
+        },
+        "method": {
+          "type": "string",
+          "optional": true
+        },
+        "promo_code": {
+          "type": "string",
+          "optional": true
+        }
+      }
+    },
+    "CheckoutSuccessData": {
+      "kind": "object",
+      "fields": {}
+    },
+    "ContractVersion": {
+      "kind": "\"2026-11\""
+    },
+    "DomainConfig": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "contact": {
+          "type": "DomainContact",
+          "optional": false
+        },
+        "epp_code": {
+          "type": "string",
+          "optional": true
+        },
+        "privacy": {
+          "type": "boolean",
+          "optional": false
+        }
+      }
+    },
+    "DomainContact": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "address1": {
+          "type": "string",
+          "optional": false
+        },
+        "address2": {
+          "type": "string",
+          "optional": false
+        },
+        "city": {
+          "type": "string",
+          "optional": false
+        },
+        "country_code": {
+          "type": "string",
+          "optional": false
+        },
+        "email": {
+          "type": "string",
+          "optional": false
+        },
+        "first_name": {
+          "type": "string",
+          "optional": false
+        },
+        "last_name": {
+          "type": "string",
+          "optional": false
+        },
+        "organization": {
+          "type": "string",
+          "optional": false
+        },
+        "phone": {
+          "type": "string",
+          "optional": false
+        },
+        "postal_code": {
+          "type": "string",
+          "optional": false
+        },
+        "state": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "DomainDraft": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "action": {
+          "type": "string",
+          "optional": false
+        },
+        "domain": {
+          "type": "string",
+          "optional": false
+        },
+        "years": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "DomainDraftFound": {
+      "kind": "object",
+      "fields": {
+        "draft": {
+          "type": "DomainDraft",
+          "optional": false
+        },
+        "status": {
+          "type": "\"found\"",
+          "optional": false
+        }
+      }
+    },
+    "DomainDraftNone": {
+      "kind": "object",
+      "fields": {
+        "status": {
+          "type": "\"none\"",
+          "optional": false
+        }
+      }
+    },
+    "DomainDraftOutcome": {
+      "kind": "union(status: found=DomainDraftFound, none=DomainDraftNone, error=CheckoutError)"
+    },
+    "DomainSearchAction": {
+      "kind": "enum",
+      "values": [
+        "register",
+        "transfer",
+        "none"
+      ],
+      "open": false
+    },
+    "DomainSearchError": {
+      "kind": "object",
+      "fields": {
+        "code": {
+          "type": "enum",
+          "optional": false,
+          "values": [
+            "invalid_query",
+            "rate_limited",
+            "unavailable",
+            "failed"
+          ],
+          "open": true
+        },
+        "message": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "\"error\"",
+          "optional": false
+        }
+      }
+    },
+    "DomainSearchOutcome": {
+      "kind": "union(status: ok=DomainSearchSuccess, error=DomainSearchError)"
+    },
+    "DomainSearchRequest": {
+      "kind": "object",
+      "input": true,
+      "fields": {
+        "query": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "DomainSearchResult": {
+      "kind": "object",
+      "fields": {
+        "action": {
+          "type": "DomainSearchAction",
+          "optional": false
+        },
+        "available": {
+          "type": "boolean",
+          "optional": false
+        },
+        "domain": {
+          "type": "string",
+          "optional": false
+        },
+        "premium": {
+          "type": "boolean",
+          "optional": false
+        },
+        "reason": {
+          "type": "string",
+          "optional": false
+        },
+        "register": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        },
+        "renew": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        },
+        "sld": {
+          "type": "string",
+          "optional": false
+        },
+        "tld": {
+          "type": "string",
+          "optional": false
+        },
+        "transfer": {
+          "type": "DomainTermPrice[]",
+          "optional": false
+        }
+      }
+    },
+    "DomainSearchSuccess": {
+      "kind": "object",
+      "fields": {
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "results": {
+          "type": "DomainSearchResult[]",
+          "optional": false
+        },
+        "status": {
+          "type": "\"ok\"",
+          "optional": false
+        }
+      }
+    },
+    "DomainTermPrice": {
+      "kind": "object",
+      "fields": {
+        "amount": {
+          "type": "number",
+          "optional": false
+        },
+        "amount_minor": {
+          "type": "integer",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "years": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "DomainTld": {
+      "kind": "object",
+      "fields": {
+        "featured": {
+          "type": "boolean",
+          "optional": false
+        },
+        "register": {
+          "type": "number",
+          "optional": false
+        },
+        "renew": {
+          "type": "number",
+          "optional": false
+        },
+        "tld": {
+          "type": "string",
+          "optional": false
+        },
+        "transfer": {
+          "type": "number",
+          "optional": false
+        }
+      }
+    },
+    "DomainsData": {
+      "kind": "object",
+      "fields": {
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "tlds": {
+          "type": "DomainTld[]",
+          "optional": false
+        }
+      }
+    },
+    "ExchangeRates": {
+      "kind": "Record<string, number>"
+    },
+    "Group": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "marketing": {
+          "type": "Marketing",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        },
+        "url": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "HomeData": {
+      "kind": "object",
+      "fields": {
+        "groups": {
+          "type": "Group[]",
+          "optional": false
+        }
+      }
+    },
+    "Marketing": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "features": {
+          "type": "MarketingFeature[]",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "MarketingFeature": {
+      "kind": "object",
+      "fields": {
+        "icon": {
+          "type": "string",
+          "optional": false
+        },
+        "text": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "Money": {
+      "kind": "object",
+      "fields": {
+        "amount": {
+          "type": "number",
+          "optional": false
+        },
+        "amount_minor": {
+          "type": "integer",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "Nav": {
+      "kind": "object",
+      "fields": {
+        "groups": {
+          "type": "Group[]",
+          "optional": false
+        },
+        "links": {
+          "type": "NavLinks",
+          "optional": false
+        }
+      }
+    },
+    "NavLinks": {
+      "kind": "object",
+      "fields": {
+        "account": {
+          "type": "string",
+          "optional": false
+        },
+        "domains": {
+          "type": "string",
+          "optional": false
+        },
+        "home": {
+          "type": "string",
+          "optional": false
+        },
+        "login": {
+          "type": "string",
+          "optional": false
+        },
+        "privacy": {
+          "type": "string",
+          "optional": false
+        },
+        "signup": {
+          "type": "string",
+          "optional": false
+        },
+        "terms": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "NotFoundData": {
+      "kind": "object",
+      "fields": {}
+    },
+    "OrderFormComponent": {
+      "kind": "object",
+      "fields": {
+        "children": {
+          "type": "OrderFormOption[]",
+          "optional": true
+        },
+        "default_value": {
+          "type": "boolean",
+          "optional": true
+        },
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "dropdown": {
+          "type": "OrderFormRegion[]",
+          "optional": true
+        },
+        "key": {
+          "type": "string",
+          "optional": false
+        },
+        "label": {
+          "type": "string",
+          "optional": false
+        },
+        "order": {
+          "type": "integer",
+          "optional": false
+        },
+        "placeholder": {
+          "type": "string",
+          "optional": true
+        },
+        "preset_id": {
+          "type": "string",
+          "optional": true
+        },
+        "price": {
+          "type": "integer",
+          "optional": true
+        },
+        "regex": {
+          "type": "string",
+          "optional": true
+        },
+        "required": {
+          "type": "boolean",
+          "optional": false
+        },
+        "type": {
+          "type": "OrderFormComponentType",
+          "optional": false
+        }
+      }
+    },
+    "OrderFormComponentType": {
+      "kind": "enum",
+      "values": [
+        "string",
+        "checkbox",
+        "radio",
+        "slider",
+        "dropdown",
+        "location-multi-dropdown"
+      ],
+      "open": false
+    },
+    "OrderFormOption": {
+      "kind": "object",
+      "fields": {
+        "label": {
+          "type": "string",
+          "optional": false
+        },
+        "price": {
+          "type": "integer",
+          "optional": false
+        },
+        "value": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "OrderFormRegion": {
+      "kind": "object",
+      "fields": {
+        "children": {
+          "type": "OrderFormOption[]",
+          "optional": false
+        },
+        "default": {
+          "type": "boolean",
+          "optional": false
+        },
+        "default_value": {
+          "type": "string",
+          "optional": false
+        },
+        "label": {
+          "type": "string",
+          "optional": false
+        },
+        "order": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "PageEnvelope": {
+      "kind": "object",
+      "fields": {
+        "actions": {
+          "type": "Actions",
+          "optional": false
+        },
+        "contract": {
+          "type": "ContractVersion",
+          "optional": false
+        },
+        "data": {
+          "type": "page-data",
+          "optional": true
+        },
+        "meta": {
+          "type": "PageMeta",
+          "optional": false
+        },
+        "nav": {
+          "type": "Nav",
+          "optional": false
+        },
+        "page": {
+          "type": "PageRef",
+          "optional": false
+        },
+        "redirect": {
+          "type": "Redirect | null",
+          "optional": false
+        },
+        "settings": {
+          "type": "Record<string, json>",
+          "optional": false
+        },
+        "store": {
+          "type": "Store",
+          "optional": false
+        }
+      }
+    },
+    "PageMeta": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "no_index": {
+          "type": "boolean",
+          "optional": false
+        },
+        "og_image": {
+          "type": "string",
+          "optional": false
+        },
+        "title": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "PageRef": {
+      "kind": "object",
+      "fields": {
+        "id": {
+          "type": "page-id",
+          "optional": false
+        },
+        "params": {
+          "type": "Record<string, string>",
+          "optional": false
+        }
+      }
+    },
+    "PaymentType": {
+      "kind": "enum",
+      "values": [
+        "free",
+        "free_trial",
+        "recurring"
+      ],
+      "open": false
+    },
+    "Plan": {
+      "kind": "object",
+      "fields": {
+        "checkout_url": {
+          "type": "string",
+          "optional": false
+        },
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "order_form": {
+          "type": "OrderFormComponent[]",
+          "optional": false
+        },
+        "original_price": {
+          "type": "Price | null",
+          "optional": false
+        },
+        "payment_type": {
+          "type": "PaymentType",
+          "optional": false
+        },
+        "price": {
+          "type": "Price",
+          "optional": false
+        },
+        "provisioning": {
+          "type": "string",
+          "optional": false
+        },
+        "service_id": {
+          "type": "string",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        },
+        "trial_days": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "Price": {
+      "kind": "object",
+      "fields": {
+        "amount": {
+          "type": "number",
+          "optional": false
+        },
+        "amount_minor": {
+          "type": "integer",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "interval": {
+          "type": "PriceInterval",
+          "optional": false
+        }
+      }
+    },
+    "PriceInterval": {
+      "kind": "enum",
+      "values": [
+        "month",
+        "quarter",
+        "semi_annual",
+        "year"
+      ],
+      "open": false
+    },
+    "Redirect": {
+      "kind": "object",
+      "fields": {
+        "location": {
+          "type": "string",
+          "optional": false
+        },
+        "status": {
+          "type": "integer",
+          "optional": false
+        }
+      }
+    },
+    "Service": {
+      "kind": "object",
+      "fields": {
+        "description": {
+          "type": "string",
+          "optional": false
+        },
+        "group_id": {
+          "type": "string",
+          "optional": false
+        },
+        "id": {
+          "type": "string",
+          "optional": false
+        },
+        "image": {
+          "type": "string",
+          "optional": false
+        },
+        "marketing": {
+          "type": "Marketing",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "single_plan": {
+          "type": "boolean",
+          "optional": false
+        },
+        "slug": {
+          "type": "string",
+          "optional": false
+        },
+        "type": {
+          "type": "ServiceType",
+          "optional": false
+        },
+        "url": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "ServiceCard": {
+      "kind": "object",
+      "fields": {
+        "from": {
+          "type": "Plan",
+          "optional": false
+        },
+        "service": {
+          "type": "Service",
+          "optional": false
+        }
+      }
+    },
+    "ServiceType": {
+      "kind": "enum",
+      "values": [
+        "game-server",
+        "web-hosting",
+        "dedicated-server",
+        "vps",
+        "other"
+      ],
+      "open": true
+    },
+    "Store": {
+      "kind": "object",
+      "fields": {
+        "business": {
+          "type": "StoreBusiness",
+          "optional": false
+        },
+        "currency": {
+          "type": "string",
+          "optional": false
+        },
+        "domain": {
+          "type": "string",
+          "optional": false
+        },
+        "favicon_url": {
+          "type": "string",
+          "optional": false
+        },
+        "locale": {
+          "type": "string",
+          "optional": false
+        },
+        "login_image_url": {
+          "type": "string",
+          "optional": false
+        },
+        "logo_url": {
+          "type": "string",
+          "optional": false
+        },
+        "name": {
+          "type": "string",
+          "optional": false
+        },
+        "root_redirect_url": {
+          "type": "string",
+          "optional": false
+        },
+        "signup_image_url": {
+          "type": "string",
+          "optional": false
+        },
+        "theme": {
+          "type": "StoreTheme",
+          "optional": false
+        }
+      }
+    },
+    "StoreBusiness": {
+      "kind": "object",
+      "fields": {
+        "address_line1": {
+          "type": "string",
+          "optional": false
+        },
+        "address_line2": {
+          "type": "string",
+          "optional": false
+        },
+        "billing_email": {
+          "type": "string",
+          "optional": false
+        },
+        "business_number": {
+          "type": "string",
+          "optional": false
+        },
+        "city": {
+          "type": "string",
+          "optional": false
+        },
+        "country": {
+          "type": "string",
+          "optional": false
+        },
+        "phone_number": {
+          "type": "string",
+          "optional": false
+        },
+        "postal_code": {
+          "type": "string",
+          "optional": false
+        },
+        "state": {
+          "type": "string",
+          "optional": false
+        },
+        "tax_number": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    },
+    "StoreTheme": {
+      "kind": "object",
+      "fields": {
+        "accent": {
+          "type": "string",
+          "optional": false
+        },
+        "accent_strong": {
+          "type": "string",
+          "optional": false
+        },
+        "background": {
+          "type": "string",
+          "optional": false
+        },
+        "border": {
+          "type": "string",
+          "optional": false
+        },
+        "surface": {
+          "type": "string",
+          "optional": false
+        },
+        "surface_raised": {
+          "type": "string",
+          "optional": false
+        },
+        "text": {
+          "type": "string",
+          "optional": false
+        },
+        "text_muted": {
+          "type": "string",
+          "optional": false
+        }
+      }
+    }
+  },
+  "page_data": {
+    "catalog.group": "CatalogGroupData",
+    "catalog.service": "CatalogServiceData",
+    "checkout.cancel": "CheckoutCancelData",
+    "checkout.domains": "CheckoutDomainsData",
+    "checkout.plan": "CheckoutPlanData",
+    "checkout.success": "CheckoutSuccessData",
+    "domains": "DomainsData",
+    "home": "HomeData",
+    "not-found": "NotFoundData"
+  },
+  "registry": {
+    "admin": {
+      "path": "/admin",
+      "paths": [
+        "/admin"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "staff",
+      "upstream": "frontend",
+      "requires": null
+    },
+    "auth": {
+      "path": "/auth",
+      "paths": [
+        "/auth"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "requires": null
+    },
+    "catalog.group": {
+      "path": "/{group}",
+      "paths": [
+        "/{group}"
+      ],
+      "fallback": null,
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "requires": null
+    },
+    "catalog.service": {
+      "path": "/{group}/{service}",
+      "paths": [
+        "/{group}/{service}"
+      ],
+      "fallback": null,
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "requires": null
+    },
+    "checkout": {
+      "path": "/checkout",
+      "paths": [
+        "/checkout"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "requires": null
+    },
+    "checkout.cancel": {
+      "path": "/checkout/cancel",
+      "paths": [
+        "/checkout/cancel"
+      ],
+      "fallback": "frontend",
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "requires": null
+    },
+    "checkout.domains": {
+      "path": "/checkout/domains",
+      "paths": [
+        "/checkout/domains"
+      ],
+      "fallback": "frontend",
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "requires": null
+    },
+    "checkout.plan": {
+      "path": "/checkout/{service}/{plan}",
+      "paths": [
+        "/checkout/{service}/{plan}",
+        "/checkout/{service}"
+      ],
+      "fallback": "frontend",
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "requires": null
+    },
+    "checkout.success": {
+      "path": "/checkout/success",
+      "paths": [
+        "/checkout/success"
+      ],
+      "fallback": "frontend",
+      "prefix": false,
+      "tier": "checkout",
+      "upstream": "engine",
+      "requires": null
+    },
+    "connect": {
+      "path": "/connect",
+      "paths": [
+        "/connect"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "requires": null
+    },
+    "dashboard": {
+      "path": "/dashboard",
+      "paths": [
+        "/dashboard"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "private",
+      "upstream": "frontend",
+      "requires": null
+    },
+    "domains": {
+      "path": "/domains",
+      "paths": [
+        "/domains"
+      ],
+      "fallback": null,
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "requires": "domains"
+    },
+    "forgotpassword": {
+      "path": "/forgotpassword",
+      "paths": [
+        "/forgotpassword"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "requires": null
+    },
+    "home": {
+      "path": "/",
+      "paths": [
+        "/"
+      ],
+      "fallback": null,
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "requires": null
+    },
+    "login": {
+      "path": "/login",
+      "paths": [
+        "/login"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "requires": null
+    },
+    "not-found": {
+      "path": null,
+      "paths": [],
+      "fallback": null,
+      "prefix": false,
+      "tier": "open",
+      "upstream": "engine",
+      "requires": null
+    },
+    "order": {
+      "path": "/order",
+      "paths": [
+        "/order"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "requires": null
+    },
+    "signup": {
+      "path": "/signup",
+      "paths": [
+        "/signup"
+      ],
+      "fallback": null,
+      "prefix": true,
+      "tier": "guarded",
+      "upstream": "frontend",
+      "requires": null
+    }
+  },
+  "slots": {
+    "checkout.summary": "checkout"
+  },
+  "tokens": {
+    "color.accent": {
+      "property": "--hc-accent",
+      "kind": "color",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "color.accent-strong": {
+      "property": "--hc-accent-strong",
+      "kind": "color",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "color.background": {
+      "property": "--hc-background",
+      "kind": "color",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "color.border": {
+      "property": "--hc-border",
+      "kind": "color",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "color.surface": {
+      "property": "--hc-surface",
+      "kind": "color",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "color.surface-raised": {
+      "property": "--hc-surface-raised",
+      "kind": "color",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "color.text": {
+      "property": "--hc-text",
+      "kind": "color",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "color.text-muted": {
+      "property": "--hc-text-muted",
+      "kind": "color",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "font.body": {
+      "property": "--hc-font-body",
+      "kind": "font",
+      "pattern": "^[A-Za-z0-9 ,'\"-]{1,200}$"
+    },
+    "font.heading": {
+      "property": "--hc-font-heading",
+      "kind": "font",
+      "pattern": "^[A-Za-z0-9 ,'\"-]{1,200}$"
+    },
+    "radius.lg": {
+      "property": "--hc-radius-lg",
+      "kind": "radius",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(px|rem)$"
+    },
+    "radius.md": {
+      "property": "--hc-radius-md",
+      "kind": "radius",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(px|rem)$"
+    },
+    "radius.sm": {
+      "property": "--hc-radius-sm",
+      "kind": "radius",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(px|rem)$"
+    },
+    "space.unit": {
+      "property": "--hc-space-unit",
+      "kind": "space",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(px|rem)$"
+    }
+  },
+  "standard_settings": {
+    "categories.subtitle": {
+      "type": "text",
+      "max": 600
+    },
+    "categories.title": {
+      "type": "text",
+      "max": 160
+    },
+    "faq.items": {
+      "type": "object-list",
+      "fields": {
+        "answer": "textarea",
+        "question": "text"
+      },
+      "max": 24
+    },
+    "faq.subtitle": {
+      "type": "text",
+      "max": 600
+    },
+    "faq.title": {
+      "type": "text",
+      "max": 160
+    },
+    "features.cards": {
+      "type": "object-list",
+      "fields": {
+        "description": "text",
+        "title": "text"
+      },
+      "max": 12
+    },
+    "features.subtitle": {
+      "type": "text",
+      "max": 600
+    },
+    "features.title": {
+      "type": "text",
+      "max": 160
+    },
+    "hero.highlights": {
+      "type": "list",
+      "of": "text",
+      "max": 6,
+      "item_max": 160
+    },
+    "hero.primary_cta": {
+      "type": "link",
+      "max": 160,
+      "href_max": 600
+    },
+    "hero.secondary_cta": {
+      "type": "link",
+      "max": 160,
+      "href_max": 600
+    },
+    "hero.subtitle": {
+      "type": "text",
+      "max": 600
+    },
+    "hero.title": {
+      "type": "text",
+      "max": 160
+    }
+  },
+  "link_rule": {
+    "image \" //evil.example.com\"": false,
+    "image \" /games\"": false,
+    "image \"\"": true,
+    "image \"#\"": false,
+    "image \"#/route\"": false,
+    "image \"#faq-1\"": false,
+    "image \"#top\"": false,
+    "image \"#top\\n\"": false,
+    "image \"../games\"": false,
+    "image \"./games\"": false,
+    "image \"/\"": true,
+    "image \"//evil.example.com\"": false,
+    "image \"//evil.example.com/path\"": false,
+    "image \"/\\\\/evil.example.com\"": false,
+    "image \"/\\\\evil.example.com\"": false,
+    "image \"/\\n/evil.example.com\"": false,
+    "image \"/\\r/evil.example.com\"": false,
+    "image \"/\\t/evil.example.com\"": false,
+    "image \"/\\u0000/evil.example.com\"": false,
+    "image \"/\\u0001\"": false,
+    "image \"/\\u001f\"": false,
+    "image \"/a//b\"": true,
+    "image \"/a\\\\b\"": true,
+    "image \"/games \"": true,
+    "image \"/games\"": true,
+    "image \"/games/rust?plan=pro#top\"": true,
+    "image \"/images/hero.png#frame\"": true,
+    "image \"/\"": false,
+    "image \"?plan=pro\"": false,
+    "image \"HTTPS://acme.test\"": false,
+    "image \"JavaScript:alert(1)\"": false,
+    "image \"\\\\/evil.example.com\"": false,
+    "image \"\\\\\\\\evil.example.com\"": false,
+    "image \"\\t//evil.example.com\"": false,
+    "image \"acme.test\"": false,
+    "image \"data:text/html,<p>hi</p>\"": false,
+    "image \"ftp://acme.test\"": false,
+    "image \"games\"": false,
+    "image \"http://acme.test\"": false,
+    "image \"https://\"": true,
+    "image \"https://acme.test/\\nline\"": false,
+    "image \"https://acme.test/\\ttab\"": false,
+    "image \"https://acme.test/a b\"": true,
+    "image \"https://docs.acme.test/guide\"": true,
+    "image \"https:/acme.test\"": false,
+    "image \"https:\\\\\\\\acme.test\"": false,
+    "image \"https:acme.test\"": false,
+    "image \"java\\tscript:alert(1)\"": false,
+    "image \"javascript:alert(1)\"": false,
+    "image \"mailto:help@acme.test\"": false,
+    "image \"tel:+15550100\"": false,
+    "image \"vbscript:msgbox(1)\"": false,
+    "link \" //evil.example.com\"": false,
+    "link \" /games\"": false,
+    "link \"\"": true,
+    "link \"#\"": true,
+    "link \"#/route\"": true,
+    "link \"#faq-1\"": true,
+    "link \"#top\"": true,
+    "link \"#top\\n\"": false,
+    "link \"../games\"": false,
+    "link \"./games\"": false,
+    "link \"/\"": true,
+    "link \"//evil.example.com\"": false,
+    "link \"//evil.example.com/path\"": false,
+    "link \"/\\\\/evil.example.com\"": false,
+    "link \"/\\\\evil.example.com\"": false,
+    "link \"/\\n/evil.example.com\"": false,
+    "link \"/\\r/evil.example.com\"": false,
+    "link \"/\\t/evil.example.com\"": false,
+    "link \"/\\u0000/evil.example.com\"": false,
+    "link \"/\\u0001\"": false,
+    "link \"/\\u001f\"": false,
+    "link \"/a//b\"": true,
+    "link \"/a\\\\b\"": true,
+    "link \"/games \"": true,
+    "link \"/games\"": true,
+    "link \"/games/rust?plan=pro#top\"": true,
+    "link \"/images/hero.png#frame\"": true,
+    "link \"/\"": false,
+    "link \"?plan=pro\"": false,
+    "link \"HTTPS://acme.test\"": false,
+    "link \"JavaScript:alert(1)\"": false,
+    "link \"\\\\/evil.example.com\"": false,
+    "link \"\\\\\\\\evil.example.com\"": false,
+    "link \"\\t//evil.example.com\"": false,
+    "link \"acme.test\"": false,
+    "link \"data:text/html,<p>hi</p>\"": false,
+    "link \"ftp://acme.test\"": false,
+    "link \"games\"": false,
+    "link \"http://acme.test\"": false,
+    "link \"https://\"": true,
+    "link \"https://acme.test/\\nline\"": false,
+    "link \"https://acme.test/\\ttab\"": false,
+    "link \"https://acme.test/a b\"": true,
+    "link \"https://docs.acme.test/guide\"": true,
+    "link \"https:/acme.test\"": false,
+    "link \"https:\\\\\\\\acme.test\"": false,
+    "link \"https:acme.test\"": false,
+    "link \"java\\tscript:alert(1)\"": false,
+    "link \"javascript:alert(1)\"": false,
+    "link \"mailto:help@acme.test\"": false,
+    "link \"tel:+15550100\"": false,
+    "link \"vbscript:msgbox(1)\"": false,
+    "url \" //evil.example.com\"": false,
+    "url \" /games\"": false,
+    "url \"\"": true,
+    "url \"#\"": false,
+    "url \"#/route\"": false,
+    "url \"#faq-1\"": false,
+    "url \"#top\"": false,
+    "url \"#top\\n\"": false,
+    "url \"../games\"": false,
+    "url \"./games\"": false,
+    "url \"/\"": true,
+    "url \"//evil.example.com\"": false,
+    "url \"//evil.example.com/path\"": false,
+    "url \"/\\\\/evil.example.com\"": false,
+    "url \"/\\\\evil.example.com\"": false,
+    "url \"/\\n/evil.example.com\"": false,
+    "url \"/\\r/evil.example.com\"": false,
+    "url \"/\\t/evil.example.com\"": false,
+    "url \"/\\u0000/evil.example.com\"": false,
+    "url \"/\\u0001\"": false,
+    "url \"/\\u001f\"": false,
+    "url \"/a//b\"": true,
+    "url \"/a\\\\b\"": true,
+    "url \"/games \"": true,
+    "url \"/games\"": true,
+    "url \"/games/rust?plan=pro#top\"": true,
+    "url \"/images/hero.png#frame\"": true,
+    "url \"/\"": false,
+    "url \"?plan=pro\"": false,
+    "url \"HTTPS://acme.test\"": false,
+    "url \"JavaScript:alert(1)\"": false,
+    "url \"\\\\/evil.example.com\"": false,
+    "url \"\\\\\\\\evil.example.com\"": false,
+    "url \"\\t//evil.example.com\"": false,
+    "url \"acme.test\"": false,
+    "url \"data:text/html,<p>hi</p>\"": false,
+    "url \"ftp://acme.test\"": false,
+    "url \"games\"": false,
+    "url \"http://acme.test\"": false,
+    "url \"https://\"": true,
+    "url \"https://acme.test/\\nline\"": false,
+    "url \"https://acme.test/\\ttab\"": false,
+    "url \"https://acme.test/a b\"": true,
+    "url \"https://docs.acme.test/guide\"": true,
+    "url \"https:/acme.test\"": false,
+    "url \"https:\\\\\\\\acme.test\"": false,
+    "url \"https:acme.test\"": false,
+    "url \"java\\tscript:alert(1)\"": false,
+    "url \"javascript:alert(1)\"": false,
+    "url \"mailto:help@acme.test\"": false,
+    "url \"tel:+15550100\"": false,
+    "url \"vbscript:msgbox(1)\"": false
+  }
+}
