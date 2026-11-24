@@ -70,7 +70,8 @@ export async function validateTemplate(
   const glob = new Glob(SOURCE_GLOB)
   let filesScanned = 0
 
-  for await (const relPath of glob.scan({ cwd: template.root, dot: false })) {
+  for await (const scanned of glob.scan({ cwd: template.root, dot: false })) {
+    const relPath = portable(scanned)
     if (!ships(relPath)) continue
     if (relPath === 'vite.config.ts') continue
 
@@ -86,13 +87,19 @@ export async function validateTemplate(
     }
   }
 
-  for await (const relPath of new Glob(STYLESHEET_GLOB).scan({ cwd: template.root, dot: false })) {
+  for await (const scanned of new Glob(STYLESHEET_GLOB).scan({ cwd: template.root, dot: false })) {
+    const relPath = portable(scanned)
     if (!ships(relPath)) continue
     filesScanned++
     findings.push(...scanStylesheet(await readFile(`${template.root}/${relPath}`, 'utf8'), relPath))
   }
 
   return { findings, filesScanned }
+}
+
+/** A scanned path with "/" between its parts, whatever the platform's separator. */
+function portable(relPath: string): string {
+  return relPath.split(sep).join('/')
 }
 
 /**
