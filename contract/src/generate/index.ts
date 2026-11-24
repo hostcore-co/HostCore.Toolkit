@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { checkContract, type Contract } from '../dsl'
 import { contract1 } from '../contract-1'
 import { contract202611 } from '../contract-2026-11'
@@ -25,7 +26,7 @@ import { generateTypeScript } from './typescript'
 export const DEFAULT_GO_PACKAGE = 'contract'
 
 /** The contract directory of this toolkit checkout. */
-export const TOOLKIT_CONTRACT_DIR = join(dirname(new URL(import.meta.url).pathname), '..', '..')
+export const TOOLKIT_CONTRACT_DIR = fileURLToPath(new URL('../..', import.meta.url))
 
 export class ContractError extends Error {}
 
