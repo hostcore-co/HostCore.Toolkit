@@ -64,6 +64,9 @@ const SDK_SERVER = join(TOOLKIT_ROOT, 'src', 'v2', 'server.ts')
 const SDK_CLIENT = join(TOOLKIT_ROOT, 'src', 'v2', 'client.ts')
 const SDK_ISLAND = join(TOOLKIT_ROOT, 'src', 'v2', 'island.ts')
 
+/** A file path as the bundler writes module ids and specifiers: "/" between its parts on every platform. */
+const slashed = (path: string) => path.split(sep).join('/')
+
 const SERVER_ENTRY = '\0hc:entry.server'
 const CLIENT_ENTRY = '\0hc:entry.client'
 const ISLAND_PREFIX = '\0hc:island:'
@@ -120,7 +123,7 @@ async function runtimeFor(root: string, runtimeDir: string | undefined): Promise
 }
 
 function sharedConfig(template: Format2Template): InlineConfig {
-  const src = join(template.root, 'src')
+  const src = slashed(join(template.root, 'src'))
   return {
     root: template.root,
     configFile: false,
@@ -131,7 +134,7 @@ function sharedConfig(template: Format2Template): InlineConfig {
       alias: [
         // The SDK a template imports is the one this build wraps it with, so
         // the page context the entries provide is the one the hooks read.
-        { find: /^@hostcore\/toolkit$/, replacement: SDK_INDEX },
+        { find: /^@hostcore\/toolkit$/, replacement: slashed(SDK_INDEX) },
         { find: /^@template(?=\/|$)/, replacement: src },
         { find: /^@(?=\/)/, replacement: src },
       ],
@@ -150,11 +153,16 @@ function json(value: unknown): string {
   return JSON.stringify(value)
 }
 
+/** A file path as a module specifier in generated code. */
+function specifier(path: string): string {
+  return json(slashed(path))
+}
+
 function serverEntry(sources: TemplateSources, defaults: Record<string, unknown>): string {
-  const lines = [`import { createServer } from ${json(SDK_SERVER)}`]
-  if (sources.layout) lines.push(`import * as layout from ${json(sources.layout)}`)
+  const lines = [`import { createServer } from ${specifier(SDK_SERVER)}`]
+  if (sources.layout) lines.push(`import * as layout from ${specifier(sources.layout)}`)
   const pages = Object.entries(sources.pages)
-  pages.forEach(([, path], i) => lines.push(`import * as page${i} from ${json(path)}`))
+  pages.forEach(([, path], i) => lines.push(`import * as page${i} from ${specifier(path)}`))
   lines.push(
     'const server = createServer({',
     `  layout: ${sources.layout ? 'layout' : 'null'},`,
@@ -171,14 +179,14 @@ function serverEntry(sources: TemplateSources, defaults: Record<string, unknown>
 
 function clientEntry(sources: TemplateSources, defaults: Record<string, unknown>): string {
   const loaders = (map: Record<string, string>) =>
-    `{ ${Object.entries(map).map(([id, path]) => `${json(id)}: () => import(${json(path)})`).join(', ')} }`
+    `{ ${Object.entries(map).map(([id, path]) => `${json(id)}: () => import(${specifier(path)})`).join(', ')} }`
   const islandPages = Object.entries(sources.hydrate)
     .filter(([, mode]) => mode === 'islands')
     .map(([id]) => id)
   return [
-    `import { createClient } from ${json(SDK_CLIENT)}`,
+    `import { createClient } from ${specifier(SDK_CLIENT)}`,
     'const client = createClient({',
-    `  layout: ${sources.layout ? `() => import(${json(sources.layout)})` : 'null'},`,
+    `  layout: ${sources.layout ? `() => import(${specifier(sources.layout)})` : 'null'},`,
     `  pages: ${loaders(sources.pages)},`,
     `  islands: ${loaders(sources.islands)},`,
     `  islandPages: ${json(islandPages)},`,
@@ -199,8 +207,6 @@ function format2Plugin(
   sources: TemplateSources,
   defaults: Record<string, unknown>,
 ): Plugin {
-  // The bundler's module ids use "/" on every platform; file paths do not.
-  const slashed = (path: string) => path.split(sep).join('/')
   const islandByPath = new Map(Object.entries(sources.islands).map(([name, path]) => [slashed(path), name]))
   return {
     name: `hostcore:format2-${side}`,
@@ -222,9 +228,9 @@ function format2Plugin(
         const name = id.slice(ISLAND_PREFIX.length)
         const path = sources.islands[name]!
         return [
-          `import Component from ${json(path)}`,
-          `import { nameIsland } from ${json(SDK_ISLAND)}`,
-          `export * from ${json(path)}`,
+          `import Component from ${specifier(path)}`,
+          `import { nameIsland } from ${specifier(SDK_ISLAND)}`,
+          `export * from ${specifier(path)}`,
           `export default nameIsland(Component, ${json(name)})`,
         ].join('\n')
       }

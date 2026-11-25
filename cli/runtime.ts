@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import type { InlineConfig, Plugin } from 'vite'
 import { loadVite } from './build'
 import { Inventory, renderedModules } from './inventory'
@@ -169,7 +169,7 @@ export async function buildRuntime(
     'module.exports = {',
     `  "react": require("react"),`,
     `  "react/jsx-runtime": require("react/jsx-runtime"),`,
-    `  "react-dom/server": require(${JSON.stringify(legacyServer)}),`,
+    `  "react-dom/server": require(${JSON.stringify(legacyServer.split(sep).join('/'))}),`,
     '}',
   ].join('\n')
   const server = outputsOf(

@@ -1,6 +1,6 @@
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { join, resolve } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { InlineConfig, PluginOption } from 'vite'
 import { digest, signManifest, type BundleManifest } from './manifest'
@@ -117,9 +117,10 @@ function sharedConfig(template: LoadedTemplate): InlineConfig {
     configFile: false,
     logLevel: 'warn',
     resolve: {
+      // "/" between the parts on every platform: an alias is joined to the rest of the specifier with "/".
       alias: {
-        '@': join(template.root, 'src'),
-        '@template': join(template.root, 'src'),
+        '@': join(template.root, 'src').split(sep).join('/'),
+        '@template': join(template.root, 'src').split(sep).join('/'),
       },
     },
     define: { 'process.env.NODE_ENV': '"production"' },

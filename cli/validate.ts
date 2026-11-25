@@ -76,7 +76,7 @@ export async function validateTemplate(
     if (relPath === 'vite.config.ts') continue
 
     filesScanned++
-    const source = await readFile(`${template.root}/${relPath}`, 'utf8')
+    const source = await readFile(join(template.root, relPath), 'utf8')
     findings.push(...scanImports(transpiler, source, relPath, narrowed))
     findings.push(...scanSource(source, relPath))
     if (format2 && !checkoutFiles.has(relPath)) findings.push(...scanCheckoutUse(source, relPath))
@@ -90,7 +90,7 @@ export async function validateTemplate(
     const relPath = portable(scanned)
     if (!ships(relPath)) continue
     filesScanned++
-    findings.push(...scanStylesheet(await readFile(`${template.root}/${relPath}`, 'utf8'), relPath))
+    findings.push(...scanStylesheet(await readFile(join(template.root, relPath), 'utf8'), relPath))
   }
 
   return { findings, filesScanned }
