@@ -97,7 +97,7 @@ describe('same-origin URLs', () => {
   it('says what was written and what to do instead', () => {
     const [url] = externalStylesheetUrls('a { b: url("https://images.example.com/hero.jpg") }')
     expect(url!.message).toBe(
-      'url("https://images.example.com/hero.jpg") loads from another site. The stylesheet is also used on the platform\'s checkout and sign-in pages, ' +
+      'url("https://images.example.com/hero.jpg") loads from another site. The stylesheet is also used on your checkout pages, ' +
         'where nothing may load from another site: put the file in public/ and reference it with a relative or root-relative URL, such as url("/hero.jpg").',
     )
     const [imported] = externalStylesheetUrls('@import "https://fonts.example.com/css2?family=Inter";')

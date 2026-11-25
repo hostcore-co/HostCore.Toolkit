@@ -1,8 +1,8 @@
 /**
  * The URLs a stylesheet loads, read the way a browser reads them.
  *
- * A template's stylesheet is also applied to the platform's checkout and
- * sign-in pages, where nothing may load from another site. So every
+ * A template's stylesheet is also loaded on its checkout pages, where
+ * nothing may load from another site. So every
  * `@import` and every `url()` in it must stay on the store's own origin:
  * a relative or root-relative URL, a `data:` URI, or a fragment (`#id`).
  *
@@ -345,7 +345,7 @@ export function describeExternalUrl(found: StylesheetUrl): string {
   const example = name ? `, such as ${found.source === 'import' ? `@import "./${name}"` : `url("/${name}")`}` : ''
   const font = found.source === 'import' ? ' For a web font, put its font files in public/ and declare them with @font-face.' : ''
   return (
-    `${written} loads from another site. The stylesheet is also used on the platform's checkout and sign-in pages, ` +
+    `${written} loads from another site. The stylesheet is also used on your checkout pages, ` +
     `where nothing may load from another site: put the file in public/ and reference it with a relative or root-relative URL${example}.${font}`
   )
 }
