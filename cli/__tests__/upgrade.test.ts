@@ -197,11 +197,11 @@ describe('hct upgrade on a messier template', () => {
       'src/shared.tsx:18  data: the page data is split up in format 2',
       'src/layout.tsx:18  data.page_type: page ids are named differently in format 2',
       "template.json  faq.items, hero.primary_cta, hero.subtitle, hero.title: declared with the platform's standard label, limits and default",
-      'src/layout.tsx  the layout also wraps the platform\'s guarded pages (checkout, login, signup, forgotpassword, auth, connect, order)',
       'vite.config.ts  format 2 does not use it',
     ]) {
       expect(left).toContain(line)
     }
+    expect(left).not.toContain('guarded')
   })
 })
 

@@ -102,9 +102,10 @@ describe('hct dev', () => {
       expect(index.text).toContain(`href="/page/${encodeURIComponent(id)}/${encodeURIComponent(name)}"`)
     }
     for (const id of ['home', 'domains', 'catalog.group', 'catalog.service', 'not-found']) expect(index.text).toContain(`<code>${id}</code>`)
-    expect(index.text).toContain('href="/page/checkout/home?variant=minimal"')
+    expect(index.text).toContain('href="/page/checkout/home"')
     expect(index.text).toContain('href="/page/dashboard/home"')
-    expect(index.text).toContain('the account area (<a href="/page/dashboard/home"><code>dashboard</code></a>), use your design tokens but not your layout')
+    expect(index.text).toContain('The platform renders its own pages, and they show nothing of your template')
+    expect(index.text).not.toMatch(/slot/i)
     expect(index.text).toContain('href="/page/_/payload"')
   })
 
@@ -112,7 +113,7 @@ describe('hct dev', () => {
     const page = await get('/page/catalog.group/catalog.group')
     expect(page.status).toBe(200)
     const g = global(page.text)
-    expect(g).toMatchObject({ v: 2, mode: 'document', page: 'catalog.group', variant: 'default' })
+    expect(g).toMatchObject({ v: 2, page: 'catalog.group', variant: 'default' })
     expect(g.defer).toBeUndefined()
     const fixture = JSON.parse(await readFile(join(FIXTURES, 'catalog.group.json'), 'utf8'))
     expect(g.payload).toEqual(fixture)
@@ -140,37 +141,16 @@ describe('hct dev', () => {
     expect(root(page.text)).toBe(expected)
   }, 60_000)
 
-  it('shows where the platform default page goes for a page the template does not implement', async () => {
+  it('shows that the platform default template renders all of a page the template does not implement', async () => {
     const page = await get('/page/domains/domains')
     expect(page.status).toBe(200)
     const html = root(page.text)
     expect(html).toContain("The platform's default page appears here")
-    expect(html).toMatch(/<hc-outlet><div data-hc-dev-standin/)
-    expect(html).toContain('<header')
-    expect(global(page.text)).toMatchObject({ mode: 'composed', page: 'domains' })
-  })
-
-  it("draws the platform's own pages inside the minimal layout", async () => {
-    const page = await get('/page/login/home?variant=minimal')
-    expect(page.status).toBe(200)
-    expect(root(page.text)).toContain("The platform's login page appears here")
-    expect(global(page.text)).toMatchObject({ mode: 'composed', page: 'login', variant: 'minimal' })
-    expect(global(page.text).payload.data).toBeUndefined()
-  })
-
-  it('shows a slot in place on its page, in a shadow root of its own with no script', async () => {
-    const page = await get('/page/checkout/home?variant=minimal')
-    expect(page.status).toBe(200)
-    const html = root(page.text)
-    const slot = /<div data-hc-slot="checkout\.summary"[^>]*><template shadowrootmode="open">(.*?)<\/template><\/div>/.exec(html)
-    expect(slot).not.toBeNull()
-    expect(slot![1]).toContain('--hc-accent:#5b8cff')
-    expect(slot![1]).toContain('rel="stylesheet"')
-    expect(slot![1]).toContain('Questions about this order? Write to <a href="mailto:billing@acme.test">billing@acme.test</a>.')
-    expect(slot![1]).not.toContain('<script')
-    expect(html.indexOf('data-hc-slot')).toBeGreaterThan(html.indexOf('<hc-outlet>'))
-    expect(html.indexOf('data-hc-slot')).toBeLessThan(html.indexOf('</hc-outlet>'))
-    expect(root((await get('/page/login/home?variant=minimal')).text)).not.toContain('data-hc-slot')
+    expect(html).toContain("the platform's default template renders the whole page, with its own header and footer")
+    expect(html).not.toContain('<header')
+    expect(html).not.toContain('<hc-outlet')
+    expect(page.text).not.toContain('rel="stylesheet"')
+    expect(page.text).not.toContain('window.__HC__')
   })
 
   it('simulates the checkout calls, so the flow can be taken offline', async () => {
@@ -223,16 +203,18 @@ describe('hct dev', () => {
     expect(signIn.text).toContain('/_dev/customer?state=signed_in&amp;back=%2Fcheckout%2Frust%2Fstarter')
   })
 
-  it('shows the account area with the design tokens and without the layout', async () => {
-    const page = await get('/page/dashboard/home')
-    expect(page.status).toBe(200)
-    const html = root(page.text)
-    expect(html).toContain("The platform's dashboard page appears here")
-    expect(html).not.toContain('<header')
-    expect(html).not.toContain('<hc-outlet')
-    expect(page.text).toContain('--hc-accent:#5b8cff')
-    expect(page.text).not.toContain('rel="stylesheet"')
-    expect(page.text).not.toContain('window.__HC__')
+  it("shows the platform's own pages with nothing of the template", async () => {
+    for (const id of ['login', 'checkout', 'dashboard']) {
+      const page = await get(`/page/${id}/home`)
+      expect(page.status).toBe(200)
+      const html = root(page.text)
+      expect(html).toContain(`The platform's ${id} page appears here`)
+      expect(html).not.toContain('<header')
+      expect(html).not.toContain('<hc-outlet')
+      expect(page.text).not.toContain('--hc-accent')
+      expect(page.text).not.toContain('rel="stylesheet"')
+      expect(page.text).not.toContain('window.__HC__')
+    }
     expect((await get('/dashboard')).headers.get('location')).toBe('/page/dashboard/home')
   })
 

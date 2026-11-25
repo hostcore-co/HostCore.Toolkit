@@ -39,11 +39,10 @@ describe('hct init', () => {
     const scaffold = scaffoldFiles()
     expect(await sources('pages')).toEqual(scaffold.pages)
     expect(await sources('islands')).toEqual(scaffold.islands)
-    expect(await sources('slots')).toEqual(scaffold.slots)
     expect((await sources('')).includes('layout')).toBe(scaffold.layout)
     expect(scaffold.pages).toContain('checkout.plan')
     const help = (await hct(['init', '--help'])).stdout.replace(/\s+/g, ' ')
-    for (const name of [...scaffold.pages, ...scaffold.islands, ...scaffold.slots]) expect([name, help.includes(name)]).toEqual([name, true])
+    for (const name of [...scaffold.pages, ...scaffold.islands]) expect([name, help.includes(name)]).toEqual([name, true])
 
     expect((await hct(['validate', dir])).code).toBe(0)
     const check = await hct(['check', dir, '--json'])

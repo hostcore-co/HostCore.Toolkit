@@ -30,7 +30,7 @@ const TOOLCHAIN_REVISION_TEXT =
   "For the platform's builders, not authors: the revision of the toolchain line the build environment provides, a non-negative whole number recorded in the toolchain field of manifest.json (format 2) or runtime.json (default: this toolkit's revision). A build's id covers it; a runtime's id depends only on its files."
 
 /** The source files of the template hct init writes: those of examples/basic, by kind. */
-export function scaffoldFiles(): { layout: boolean; pages: string[]; islands: string[]; slots: string[] } {
+export function scaffoldFiles(): { layout: boolean; pages: string[]; islands: string[] } {
   const src = join(fileURLToPath(new URL('..', import.meta.url)), 'examples', 'basic', 'src')
   const names = (dir: string) => {
     try {
@@ -42,14 +42,14 @@ export function scaffoldFiles(): { layout: boolean; pages: string[]; islands: st
       return []
     }
   }
-  return { layout: names('').includes('layout'), pages: names('pages'), islands: names('islands'), slots: names('slots') }
+  return { layout: names('').includes('layout'), pages: names('pages'), islands: names('islands') }
 }
 
 /** What hct init writes, in words: read from the scaffold itself. */
 export function scaffoldContents(): string {
   const f = scaffoldFiles()
   const list = (kind: string, items: string[]) => (items.length === 0 ? [] : [`${items.length === 1 ? kind : `${kind}s`} ${items.join(', ')}`])
-  return [...(f.layout ? ['a layout'] : []), ...list('page', f.pages), ...list('island', f.islands), ...list('slot', f.slots)].join('; ')
+  return [...(f.layout ? ['a layout'] : []), ...list('page', f.pages), ...list('island', f.islands)].join('; ')
 }
 
 export const COMMANDS: readonly CommandDoc[] = [
@@ -62,7 +62,7 @@ export const COMMANDS: readonly CommandDoc[] = [
       'Install its dependencies (bun install) before building it.',
     ],
     flags: [
-      { flag: '--minimal', text: 'Write only template.json, with design tokens, and package.json: the platform renders every page and the layout.' },
+      { flag: '--minimal', text: 'Write only template.json, with design tokens, and package.json: the platform\'s default template renders every page.' },
       { flag: '--id <id>', text: 'The template id (default: from the directory name).' },
       { flag: '--name <name>', text: 'The display name (default: from the id).' },
     ],
@@ -72,7 +72,7 @@ export const COMMANDS: readonly CommandDoc[] = [
     usage: 'hct dev [dir] [--port <n>] [--payload <file>]',
     summary: 'preview a template locally against the contract fixtures',
     description: [
-      'Format 2: builds the template and serves it the way the platform renders it, through its real server entry, hydrated by its real client entry. The start page lists every page id with every fixture for it; each preview has a switch between the default and minimal layout variants. A page the template does not implement shows where the platform default page goes. The template is rebuilt and the browser reloads when a file changes.',
+      'Format 2: builds the template and serves it the way the platform renders it, through its real server entry, hydrated by its real client entry. The start page lists every page id with every fixture for it; each preview of a page the template implements has a switch between the default and minimal layout variants. A page the template does not implement shows that the platform\'s default template renders all of it, header and footer included, and a platform page shows that it is the platform\'s own, with nothing of the template. The template is rebuilt and the browser reloads when a file changes.',
       'The checkout pages talk to a stand-in for the platform, so the whole flow can be taken offline: the toolbar switches the customer between signed in, with a sample profile, and signed out, and chooses how a placed order ends — on a stand-in payment page that returns to the success or cancel page, with bank transfer details, or paid at once. Quotes are priced from the fixtures, and /_dev/requests shows every request the pages sent.',
       "Format 1: runs the template's own Vite dev server, as before.",
     ],
@@ -86,8 +86,8 @@ export const COMMANDS: readonly CommandDoc[] = [
     usage: 'hct validate [dir]',
     summary: 'check a template against the build policy',
     description: [
-      'Checks template.json, the dependencies, the files under src/ and what the source imports and reaches for. Every import must be of a package the platform allows and, when template.json declares allowedPackages, of one listed there (@hostcore/toolkit, react and react-dom need not be). Format 2 also flags hand-built platform URLs, useSetting() ids template.json does not declare, and the checkout hooks and calls anywhere but the checkout pages and the files they import.',
-      'Every stylesheet may only load files from the store\'s own site: each @import and url() must be relative, root-relative (/fonts/a.woff2), a data: URI or a fragment (#id). The stylesheet is also used on the platform\'s checkout and sign-in pages, where nothing may load from another site.',
+      'Checks template.json, the dependencies, the files under src/ and what the source imports and reaches for. Every import must be of a package the platform allows and, when template.json declares allowedPackages, of one listed there (@hostcore/toolkit, react and react-dom need not be). Format 2 also flags hand-built platform URLs, useSetting() ids template.json does not declare, the checkout hooks and calls anywhere but the checkout pages and the files they import, pages without a layout and a layout without pages, and a src/slots/ directory (slots are no longer supported).',
+      'Every stylesheet may only load files from the store\'s own site: each @import and url() must be relative, root-relative (/fonts/a.woff2), a data: URI or a fragment (#id). The stylesheet is also used on your checkout pages, where nothing may load from another site.',
     ],
     flags: [],
   },
@@ -96,11 +96,11 @@ export const COMMANDS: readonly CommandDoc[] = [
     usage: 'hct check [dir] [--dist <dir>] [--runtime <dir>] [--json] [--budget-server <size>] [--budget-client-js <size>] [--budget-css <size>]',
     summary: 'render every page against every contract fixture',
     description: [
-      'Builds the template into a temporary directory, then renders every page it implements against every contract fixture for that page, as a whole document (when it has a layout) and as a body, its layout once per variant, and every slot it fills against every fixture (kind "slot", page the slot id), the way the platform does before it accepts a build. A slot may render nothing; a slot that throws fails. A format-1 template renders every contract "1" fixture. The bundle runs in an empty context with nothing but the runtime\'s modules.',
+      'Builds the template into a temporary directory, then renders every page it implements against every contract fixture for that page, as a whole document: its layout, in the minimal variant for a checkout page and the default one otherwise, with the page inside, the way the platform does before it accepts a build. A page it does not implement is rendered by the platform\'s default template and is not rendered here. A format-1 template renders every contract "1" fixture. The bundle runs in an empty context with nothing but the runtime\'s modules.',
       'Prints one line per failed render with its page, fixture and kind, then the build\'s sizes against budgets: server bundle 1 MB, client JavaScript 250 KB, stylesheet 100 KB. A build over budget is reported but still passes. Exits 0 only when every render succeeded.',
-      'A page that renders nothing fails: when the page\'s own markup (all of a body render, the inside of the outlet in a document render) is empty once HTML comments and whitespace are left out, as when the page component returns null, the render fails with HC_EMPTY_RENDER naming the page, fixture and variant. One element, even an empty one, or any text is enough to pass. The layout is not held to this.',
+      'A page that renders nothing fails: when the page\'s own markup (the inside of the layout\'s outlet) is empty once HTML comments and whitespace are left out, as when the page component returns null, the render fails with HC_EMPTY_RENDER naming the page, fixture and variant. One element, even an empty one, or any text is enough to pass. The layout is not held to this.',
       'Before rendering, the build itself is checked: every file manifest.json lists must be in the build with the listed digest and size, and nothing else may be (format 2), and the stylesheet may not load from another site. A build that fails this is not rendered.',
-      'With --json it prints only { build_id, contract, protocol, ok, results: [{ page, fixture, kind, variant, ok, html_sha256, bytes, error }], sizes: { server, client_js, css } }. Two builds render the same when their results have the same page, fixture, kind and variant and equal html_sha256 for each. A problem with the build itself is a result of kind "build" with ok false, an empty page, fixture and variant, and an error starting HC_BUILD_FILES or HC_STYLESHEET_EXTERNAL; the report then has ok false, no render results and zero sizes.',
+      'With --json it prints only { build_id, contract, protocol, ok, results: [{ page, fixture, kind, variant, ok, html_sha256, bytes, error }], sizes: { server, client_js, css } }. variant is the layout variant of a document render. Two builds render the same when their results have the same page, fixture, kind and variant and equal html_sha256 for each. A problem with the build itself is a result of kind "build" with ok false, an empty page, fixture and variant, and an error starting HC_BUILD_FILES or HC_STYLESHEET_EXTERNAL; the report then has ok false, no render results and zero sizes.',
     ],
     flags: [
       { flag: '--dist <dir>', text: 'Check this build instead of building the template.' },

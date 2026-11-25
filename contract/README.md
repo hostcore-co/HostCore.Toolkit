@@ -315,30 +315,6 @@ group that already has a reserved name keeps its page until a page really
 lives at that path, because matching refuses only segments a page in the
 registry owns.
 
-### Slots
-
-`slots` lists the named places on the platform's own pages where a
-template may put static content: `{ id, page, description }`, the id being
-the page id, a dot and a name (`checkout.summary`), the page a `frontend`
-page of the registry. Adding a slot is adding an entry here; the generated
-forms carry it (`SlotId`, `RegistrySlot`, `SLOTS` in TypeScript; `SlotID`,
-`SlotCheckoutSummary`, `Slot { ID, Page, Description }` and `Slots` in Go;
-`slots` in `dist/registry.json`).
-
-A template fills a slot with `src/slots/<id>.tsx`, the id with its dots. Its
-build lists the slots it fills in `manifest.json` as `slots` (ids, registry
-order) and in the server bundle as `exports.slots`. The bundle renders one
-with `render('{"kind":"slot","slot":"checkout.summary","payload":<envelope>,"env":<env>}')`:
-`page` and `variant` are not used; `payload` is the store's envelope as for
-the layout (store, nav and settings are read; the slot is given no `data`,
-no `actions`, and `page` set to the slot's page). It answers
-`{"html":"…"}`, the slot's markup, which may be `""`. Errors:
-`HC_BAD_INPUT` (no slot id), `HC_SLOT_NOT_IMPLEMENTED` (an id the registry
-does not have, or a slot the template does not fill), `HC_SLOT_SCRIPT`
-(the slot rendered an island or a script), `HC_RENDER_FAILED` (it threw).
-The page shows the markup with no script, in a shadow root of its own with
-the build's stylesheet and the design tokens.
-
 ### Adding a page
 
 1. Add it to `registry.json`. Reserve its first segment if it is static.

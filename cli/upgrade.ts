@@ -5,7 +5,7 @@ import type * as TS from 'typescript'
 import { STANDARD_SETTINGS } from '../contract/src/settings'
 import { CommandError, type Flags } from './commands'
 import { platformUrlAdvice, platformUrlsIn } from './policy'
-import { discoverSources, MINIMAL_LAYOUT_PAGE_IDS, SOURCE_EXTENSIONS } from './sources'
+import { discoverSources, SOURCE_EXTENSIONS } from './sources'
 import { isFormat2, loadTemplate } from './template'
 import { FORMAT2_PACKAGE_RANGES, FORMAT2_REQUIRED, TOOLCHAIN } from './toolchain'
 
@@ -980,7 +980,6 @@ function convertApp(ts: TypeScript, a: FileAnalysis, appFile: string, leftovers:
     const jsx = `${a.edits.render(js, os)}<Outlet />${a.edits.render(oe, je)}`
     componentFile('src/layout.tsx', 'Layout', null, 0, keptDeclarations([shape.layout.jsx, ...others]), [reindent(`${indentAt(js)}return ${jsx}`, '')], ['Outlet'])
     done.push('src/layout.tsx: the markup App renders around the page, with <Outlet /> where the page goes')
-    leftovers.push({ kind: 'other', file: 'src/layout.tsx', line: 0, text: `the layout also wraps the platform's guarded pages (${MINIMAL_LAYOUT_PAGE_IDS.join(', ')}); take the variant prop ({ variant }: LayoutProps) and render less for "minimal"` })
   } else {
     // App renders nothing around its pages, so neither does the layout.
     componentFile('src/layout.tsx', 'Layout', null, 0, keptDeclarations(others), ['return <Outlet />'], ['Outlet'])

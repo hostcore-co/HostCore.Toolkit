@@ -51,21 +51,17 @@ describe('hct check --json', () => {
       expect(Object.keys(r)).toEqual(['page', 'fixture', 'kind', 'variant', 'ok', 'html_sha256', 'bytes', 'error'])
       expect(r.ok).toBe(true)
       expect(r.html_sha256).toMatch(/^[0-9a-f]{64}$/)
-      // A slot may render nothing: examples/basic's does for a store with no billing email.
-      if (r.kind !== 'slot') expect(r.bytes).toBeGreaterThan(0)
+      expect(r.bytes).toBeGreaterThan(0)
       expect(r.error).toBe('')
     }
-    expect(basic.results.some((r) => r.kind === 'slot' && r.bytes === 0)).toBe(true)
-    expect(basic.results.some((r) => r.kind === 'slot' && r.bytes > 0)).toBe(true)
   })
 
-  it('renders every implemented page against every fixture for it, as a document and a body, the layout per variant, and every slot against every fixture', async () => {
-    const expected: string[] = ['home/home/layout/default', 'home/home/layout/minimal']
+  it('renders every implemented page against every fixture for it, as a document in the variant of its page', async () => {
+    const expected: string[] = []
     for (const f of await fixturesFor('2026-11')) {
-      if (!['home', 'catalog.group', 'catalog.service', 'checkout.plan', 'checkout.domains', 'checkout.success', 'checkout.cancel'].includes(f.page)) continue
-      expected.push(`${f.page}/${f.name}/document/`, `${f.page}/${f.name}/body/`)
+      if (['home', 'catalog.group', 'catalog.service'].includes(f.page)) expected.push(`${f.page}/${f.name}/document/default`)
+      if (['checkout.plan', 'checkout.domains', 'checkout.success', 'checkout.cancel'].includes(f.page)) expected.push(`${f.page}/${f.name}/document/minimal`)
     }
-    for (const f of await fixturesFor('2026-11')) expected.push(`checkout.summary/${f.name}/slot/`)
     const keys = basic.results.map((r) => `${r.page}/${r.fixture}/${r.kind}/${r.variant}`)
     expect(keys.sort()).toEqual(expected.sort())
   })
@@ -123,14 +119,13 @@ export default function Home({ page }: PageProps<'home'>) {
     )
   })
 
-  it('fails the page render with HC_EMPTY_RENDER, as a document and as a body', async () => {
+  it('fails the page render with HC_EMPTY_RENDER', async () => {
     const json = await hct(['check', empty, '--runtime', RUNTIME, '--json'])
     expect(json.code).toBe(1)
     const report = parse(json.stdout)
     const failed = report.results.filter((r) => !r.ok)
-    expect(failed.map((r) => `${r.page}/${r.fixture}/${r.kind}`)).toEqual(['home/home.no-domains/document', 'home/home.no-domains/body'])
+    expect(failed.map((r) => `${r.page}/${r.fixture}/${r.kind}`)).toEqual(['home/home.no-domains/document'])
     for (const r of failed) expect(r).toMatchObject({ error: emptyRenderError('home', 'home.no-domains', 'default'), html_sha256: '', bytes: 0 })
-    expect(report.results.filter((r) => r.kind === 'layout').every((r) => r.ok)).toBe(true)
   })
 
   it('counts only comments and whitespace as empty', () => {
@@ -145,6 +140,7 @@ describe('hct check on a page that fails', () => {
   beforeAll(async () => {
     await mkdir(join(broken, 'src', 'pages'), { recursive: true })
     await writeFile(join(broken, 'template.json'), JSON.stringify({ id: 'broken', version: '1.0.0', name: 'Broken', format: 2, contract: '2026-11', toolchain: 2 }))
+    await writeFile(join(broken, 'src', 'layout.tsx'), 'export default function Layout({ children }: { children?: unknown }) { return <main>{children as never}</main> }\n')
     // Assumes every group has a service, which catalog.group.empty does not.
     await writeFile(
       join(broken, 'src', 'pages', 'catalog.group.tsx'),
@@ -162,13 +158,13 @@ export default function Group({ data }: PageProps<'catalog.group'>) {
     const report = parse(json.stdout)
     expect(report.ok).toBe(false)
     const failed = report.results.filter((r) => !r.ok)
-    expect(failed.map((r) => `${r.page}/${r.fixture}/${r.kind}`)).toEqual(['catalog.group/catalog.group.empty/body'])
+    expect(failed.map((r) => `${r.page}/${r.fixture}/${r.kind}`)).toEqual(['catalog.group/catalog.group.empty/document'])
     expect(failed[0]).toMatchObject({ html_sha256: '', bytes: 0 })
     expect(failed[0]!.error).toStartWith('HC_RENDER_FAILED: ')
 
     const human = await hct(['check', broken, '--runtime', RUNTIME])
     expect(human.code).toBe(1)
-    expect(human.stdout).toContain('✗ catalog.group  fixture catalog.group.empty  body: HC_RENDER_FAILED')
+    expect(human.stdout).toContain('✗ catalog.group  fixture catalog.group.empty  document: HC_RENDER_FAILED')
     expect(human.stdout).toContain('1 failed')
   })
 

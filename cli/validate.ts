@@ -79,7 +79,6 @@ export async function validateTemplate(
     const source = await readFile(`${template.root}/${relPath}`, 'utf8')
     findings.push(...scanImports(transpiler, source, relPath, narrowed))
     findings.push(...scanSource(source, relPath))
-    if (format2 && /^src\/slots\/[^/]+$/.test(relPath)) findings.push(...scanSlot(source, relPath))
     if (format2 && !checkoutFiles.has(relPath)) findings.push(...scanCheckoutUse(source, relPath))
     if (format2) {
       findings.push(...scanPlatformUrls(source, relPath))
@@ -353,40 +352,6 @@ function scanCheckoutUse(source: string, file: string): Finding[] {
         rule: 'checkout-outside-checkout',
         message: `${match[1]} is for the checkout pages: use it in src/pages/checkout.*.tsx or in a file they import`,
       })
-    }
-  })
-  return findings
-}
-
-/**
- * What a slot may not contain. A slot is rendered on the server only and
- * shown with no script, so anything that needs script in the browser does
- * nothing there; and it is given the store, the settings and the design
- * tokens, never the page's data or its actions.
- */
-const SLOT_RULES: readonly { pattern: RegExp; rule: string; message: string }[] = [
-  { pattern: /\bisland\s*\(|['"`][^'"`]*\/islands\/[^'"`]*['"`]|['"`]@template\/islands\b/, rule: 'slot-needs-script', message: 'a slot cannot contain islands: it is shown with no script' },
-  {
-    pattern: /\buse(State|Effect|LayoutEffect|InsertionEffect|Reducer|Ref|SyncExternalStore|Transition|DeferredValue|Optimistic|ActionState)\b/,
-    rule: 'slot-needs-script',
-    message: 'a slot is rendered once on the server and never runs in the browser, so state and effects do nothing there',
-  },
-  { pattern: /\son[A-Z][A-Za-z]*\s*=\s*\{/, rule: 'slot-needs-script', message: 'a slot is shown with no script, so an event handler does nothing there' },
-  { pattern: /<script\b|\bexport\s+(const|let|var)\s+hydrate\b/, rule: 'slot-needs-script', message: 'a slot is shown with no script' },
-  {
-    pattern: /\buse(Page|Action)\s*[<(]/,
-    rule: 'slot-reads-page',
-    message: "a slot gets the store, the settings and the design tokens, not the page's data or its actions",
-  },
-]
-
-/** The slot rules, line by line. */
-function scanSlot(source: string, file: string): Finding[] {
-  const findings: Finding[] = []
-  source.split('\n').forEach((text, index) => {
-    if (isCommentOnly(text)) return
-    for (const r of SLOT_RULES) {
-      if (r.pattern.test(text)) findings.push({ file, line: index + 1, rule: r.rule, message: r.message })
     }
   })
   return findings

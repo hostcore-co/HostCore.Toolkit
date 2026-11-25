@@ -13,7 +13,7 @@ const FIXTURES = join(REPO, 'contract', 'fixtures', '2026-11')
 const TMP = join(REPO, '.test-tmp', `build-v2-${process.pid}`)
 const RUNTIME = join(TMP, 'runtime')
 
-const ENV = { build_id: 'b'.repeat(64), asset_base: '/_hc/b/test/client/', locale: 'en', currency: 'USD', mode: 'document' }
+const ENV = { build_id: 'b'.repeat(64), asset_base: '/_hc/b/test/client/', locale: 'en', currency: 'USD' }
 
 async function readJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(path, 'utf8')) as T
@@ -210,30 +210,23 @@ describe('examples/basic', () => {
     expect(basicBundle.layouts).toEqual(['default', 'minimal'])
   })
 
-  it('renders every kind of every implemented page against every fixture', async () => {
+  it('renders every implemented page against every fixture, as a document with the page in the outlet', async () => {
     let rendered = 0
     for (const { name, payload } of await fixtures()) {
       const page = payload.page.id as string
       if (!basicBundle.pages.includes(page)) continue
-      const body = html(basicBundle.render(request('body', payload)))
-      const layout = html(basicBundle.render(request('layout', payload)))
       const document = html(basicBundle.render(request('document', payload)))
-      expect(body.length, name).toBeGreaterThan(0)
-      expect(body, name).not.toContain('<hc-outlet')
-      expect(count(layout, '<hc-outlet></hc-outlet>'), name).toBe(1)
-      expect(count(layout, '<hc-outlet'), name).toBe(1)
       expect(count(document, '<hc-outlet>'), name).toBe(1)
-      expect(document, name).toContain(`<hc-outlet>${body}</hc-outlet>`)
-      expect(document.replace(`<hc-outlet>${body}</hc-outlet>`, '<hc-outlet></hc-outlet>'), name).toBe(layout)
+      expect(document, name).not.toContain('<hc-outlet></hc-outlet>')
       rendered++
     }
     expect(rendered).toBe(24)
   })
 
   it('renders the minimal layout variant', async () => {
-    const payload = await readJson<Record<string, any>>(join(FIXTURES, 'home.json'))
-    const minimal = html(basicBundle.render(request('layout', payload, 'home', 'minimal')))
-    const full = html(basicBundle.render(request('layout', payload, 'home', 'default')))
+    const payload = await readJson<Record<string, any>>(join(FIXTURES, 'checkout.plan.json'))
+    const minimal = html(basicBundle.render(request('document', payload, 'checkout.plan', 'minimal')))
+    const full = html(basicBundle.render(request('document', payload, 'checkout.plan', 'default')))
     expect(minimal).not.toContain('<footer')
     expect(full).toContain('<footer')
   })
@@ -247,11 +240,11 @@ describe('examples/basic', () => {
     for (const group of home.data.groups) expect(homeLinks).toContain(group.url)
 
     const service = await readJson<Record<string, any>>(join(FIXTURES, 'catalog.service.json'))
-    const serviceLinks = hrefs(html(basicBundle.render(request('body', service))))
+    const serviceLinks = hrefs(html(basicBundle.render(request('document', service))))
     for (const plan of service.data.plans) expect(serviceLinks).toContain(plan.checkout_url)
 
     const group = await readJson<Record<string, any>>(join(FIXTURES, 'catalog.group.json'))
-    const groupLinks = hrefs(html(basicBundle.render(request('body', group))))
+    const groupLinks = hrefs(html(basicBundle.render(request('document', group))))
     for (const card of group.data.services) expect(groupLinks).toContain(card.service.url)
 
     // A store without domains has no domains link and no search.
@@ -263,19 +256,19 @@ describe('examples/basic', () => {
 
   it('resolves asset() against env.asset_base', async () => {
     const home = await readJson<Record<string, any>>(join(FIXTURES, 'home.json'))
-    expect(html(basicBundle.render(request('layout', home)))).toContain('src="/_hc/b/test/client/images/logo.svg"')
+    expect(html(basicBundle.render(request('document', home)))).toContain('src="/_hc/b/test/client/images/logo.svg"')
   })
 
   it('uses a setting when the store has set it, and the declared default otherwise', async () => {
     const unset = await readJson<Record<string, any>>(join(FIXTURES, 'home.unset-settings.json'))
-    const markup = html(basicBundle.render(request('body', unset)))
+    const markup = html(basicBundle.render(request('document', unset)))
     expect(markup).toContain('Only the headline is set')
     expect(markup).toContain('Servers online in minutes, billed monthly, cancel any time.')
   })
 
   it('wraps islands with their name and JSON props', async () => {
     const home = await readJson<Record<string, any>>(join(FIXTURES, 'home.json'))
-    const markup = html(basicBundle.render(request('body', home)))
+    const markup = html(basicBundle.render(request('document', home)))
     const match = /<hc-island data-name="faq" data-props="([^"]*)">/.exec(markup)
     expect(match).not.toBeNull()
     const props = JSON.parse(match![1]!.replace(/&quot;/g, '"').replace(/&amp;/g, '&'))
@@ -283,7 +276,7 @@ describe('examples/basic', () => {
   })
 
   it('implements every part of the checkout pages', async () => {
-    const body = async (name: string) => html(basicBundle.render(request('body', await readJson<Record<string, any>>(join(FIXTURES, `${name}.json`)))))
+    const body = async (name: string) => html(basicBundle.render(request('document', await readJson<Record<string, any>>(join(FIXTURES, `${name}.json`)))))
     const plan = await body('checkout.plan')
     for (const part of ['Monthly', 'Quarterly', 'Annually', 'Server name', 'Daily backups', 'Map size', 'Location', 'Slots', 'Add off-site backups', 'Add a domain', 'Billing address', 'Payment', 'Card (Stripe)', 'PayPal', 'Promo code', 'One-time setup fee', 'Pay &amp; complete order', 'Terms of Service']) {
       expect([part, plan.includes(part)]).toEqual([part, true])
@@ -301,25 +294,25 @@ describe('examples/basic', () => {
 
   it('fails clearly for a page or layout variant it does not implement', async () => {
     const domains = await readJson<Record<string, any>>(join(FIXTURES, 'domains.json'))
-    expect(() => basicBundle.render(request('body', domains))).toThrow(
+    expect(() => basicBundle.render(request('document', domains))).toThrow(
       'HC_PAGE_NOT_IMPLEMENTED: this template does not implement page "domains" (it implements: home, catalog.group, catalog.service, checkout.plan, checkout.domains, checkout.success, checkout.cancel)',
     )
     const notFound = await readJson<Record<string, any>>(join(FIXTURES, 'not-found.json'))
     expect(() => basicBundle.render(request('document', notFound))).toThrow('HC_PAGE_NOT_IMPLEMENTED')
-    // The layout alone renders for any page, including ones the template does not implement.
-    expect(count(html(basicBundle.render(request('layout', notFound))), '<hc-outlet></hc-outlet>')).toBe(1)
   })
 
   it('rejects malformed requests', async () => {
     const home = await readJson<Record<string, any>>(join(FIXTURES, 'home.json'))
     expect(() => basicBundle.render('not json')).toThrow('HC_BAD_INPUT')
-    expect(() => basicBundle.render(request('page', home))).toThrow('HC_BAD_INPUT: kind must be one of document, layout, body')
-    expect(() => basicBundle.render(request('body', home, 'catalog.group'))).toThrow(
+    for (const kind of ['page', 'layout', 'body', 'slot']) {
+      expect(() => basicBundle.render(request(kind, home))).toThrow('HC_BAD_INPUT: kind must be one of document, got')
+    }
+    expect(() => basicBundle.render(request('document', home, 'catalog.group'))).toThrow(
       'HC_BAD_INPUT: page is "catalog.group" but the payload is for "home"',
     )
-    expect(() => basicBundle.render(request('layout', home, 'home', 'wide'))).toThrow('HC_BAD_INPUT: variant')
+    expect(() => basicBundle.render(request('document', home, 'home', 'wide'))).toThrow('HC_BAD_INPUT: variant')
     const { data: _data, ...noData } = home
-    expect(() => basicBundle.render(request('body', noData))).toThrow('HC_BAD_INPUT: the payload for page "home" carries no data')
+    expect(() => basicBundle.render(request('document', noData))).toThrow('HC_BAD_INPUT: the payload for page "home" carries no data')
   })
 
   it('builds the same build_id twice, from another directory, and with a media base', async () => {
@@ -393,8 +386,6 @@ describe('examples/minimal', () => {
     expect(bundle.pages).toEqual([])
     expect(bundle.layouts).toEqual([])
     const home = await readJson<Record<string, any>>(join(FIXTURES, 'home.json'))
-    expect(() => bundle.render(request('body', home))).toThrow('HC_PAGE_NOT_IMPLEMENTED: this template does not implement page "home" (it implements: no pages)')
-    expect(() => bundle.render(request('layout', home))).toThrow('HC_LAYOUT_NOT_IMPLEMENTED')
     expect(() => bundle.render(request('document', home))).toThrow('HC_LAYOUT_NOT_IMPLEMENTED')
   }, 30_000)
 })
@@ -420,6 +411,7 @@ describe('render-time errors', () => {
       ].join('\n'),
     )
     await writeFile(join(dir, 'src', 'pages', 'not-found.tsx'), "export default function NotFound() { throw new Error('nothing here') }\n")
+    await writeFile(join(dir, 'src', 'pages', 'domains.tsx'), 'export default function Domains() { return <p>domains</p> }\n')
     await writeFile(join(dir, 'src', 'layout.tsx'), 'export default function Layout({ children }: { children: unknown }) { return <div>{children as never}{children as never}</div> }\n')
   })
 
@@ -427,12 +419,13 @@ describe('render-time errors', () => {
     const manifest = await build(dir, join(TMP, 'broken-out'), '--runtime', RUNTIME)
     const bundle = loadBundle(RUNTIME, join(TMP, 'broken-out', manifest.entry.server))
     const home = await readJson<Record<string, any>>(join(FIXTURES, 'home.json'))
-    expect(() => bundle.render(request('body', home))).toThrow(
+    expect(() => bundle.render(request('document', home))).toThrow(
       'HC_ISLAND_PROPS: island "button": props.onPress is a function. Island props must be JSON values',
     )
     const notFound = await readJson<Record<string, any>>(join(FIXTURES, 'not-found.json'))
-    expect(() => bundle.render(request('body', notFound))).toThrow('HC_RENDER_FAILED: body of page "not-found": nothing here')
-    expect(() => bundle.render(request('layout', home))).toThrow(
+    expect(() => bundle.render(request('document', notFound))).toThrow('HC_RENDER_FAILED: document of page "not-found": nothing here')
+    const domains = await readJson<Record<string, any>>(join(FIXTURES, 'domains.json'))
+    expect(() => bundle.render(request('document', domains))).toThrow(
       'HC_LAYOUT_OUTLET: the layout must render its children (or <Outlet/>) exactly once; it rendered them 2 times',
     )
   }, 30_000)

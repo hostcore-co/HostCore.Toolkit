@@ -19,9 +19,6 @@
     { "id": "dashboard",       "path": "/dashboard", "prefix": true, "tier": "private", "upstream": "frontend" },
     { "id": "admin",           "path": "/admin",     "prefix": true, "tier": "staff",   "upstream": "frontend" }
   ],
-  "slots": [
-    { "id": "checkout.summary", "page": "checkout", "description": "Under the order summary on the checkout pages." }
-  ],
   "reserved_slugs": [ "admin","api","auth","checkout","connect","dashboard","domains","forgotpassword","login","oauth","order","signup",
                       "account","blog","cart","contact","help","kb","legal","pages","search","status","support","_hc" ]
 }

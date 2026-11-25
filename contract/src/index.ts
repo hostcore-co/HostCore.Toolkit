@@ -16,7 +16,6 @@ export {
   type NormalisedRegistry,
   type Registry,
   type RegistryPage,
-  type RegistrySlot,
 } from './registry'
 export {
   LINK_HREF_RULE,

@@ -8,7 +8,6 @@ import { normaliseRegistry, readRegistry } from '../contract/src/registry'
 import { SETTING_SCALAR_TYPES, SETTING_TYPES, STANDARD_SETTINGS, type SettingSchemaEntry, type SettingType } from '../contract/src/settings'
 import { PLATFORM_THEME, TOKEN_PATTERNS, TOKENS, type ThemeKey } from '../contract/src/tokens'
 import { COMMANDS, CommandError, stringFlag, type Flags } from './commands'
-import { platformPageChrome, platformPagesSentence, type PlatformPageChrome } from './sources'
 import { FIELD_MOVES, HOOK_MOVES, NEW_IN_2026_11 } from './legacy-map'
 import { PLATFORM_URL_RULES } from './policy'
 
@@ -37,7 +36,7 @@ export const SDK: readonly SdkEntry[] = [
   { name: 'useNav', kind: 'hook', signature: 'useNav(): Nav', text: "The store's groups and links: home, login, signup, account, domains, terms and privacy. A link the store does not offer is \"\"." },
   { name: 'useSetting', kind: 'hook', signature: "useSetting(id): value", text: 'The store\'s value for a setting your template.json declares, or the default you declared. Typed for the standard settings.' },
   { name: 'useAction', kind: 'hook', signature: "useAction('domain_search'): Action | undefined", text: 'An action the page may use from the browser, as { method, url }: an endpoint to call (domain_search) or a page to send a visitor to (domain_checkout, with actionHref); undefined when the store does not offer it.' },
-  { name: 'useEnv', kind: 'hook', signature: 'useEnv(): Env', text: 'The build id, the asset base, the locale, the currency and the render mode (document or composed).' },
+  { name: 'useEnv', kind: 'hook', signature: 'useEnv(): Env', text: 'The build id, the asset base, the locale and the currency.' },
   { name: 'useMoney', kind: 'hook', signature: 'useMoney(): { money, price, pricePerInterval }', text: "Formatters bound to the store's locale and currency." },
   { name: 'Link', kind: 'component', signature: '<Link href={…}>', text: 'A link. Take every href from the payload: nav.links, group.url, service.url, plan.checkout_url.' },
   { name: 'Outlet', kind: 'component', signature: '<Outlet/>', text: 'Where the layout puts the page; render it (or children) exactly once. It renders an <hc-outlet> element.' },
@@ -71,7 +70,7 @@ export const SDK: readonly SdkEntry[] = [
   { name: 'formatInterval', kind: 'function', signature: "formatInterval('month', 'short'): 'mo'", text: 'Words a billing interval: long (month), short (mo) or adverb (monthly).' },
   { name: 'formatPricePerInterval', kind: 'function', signature: 'formatPricePerInterval(price, locale?): \'$9.50/mo\'', text: 'A price with its interval.' },
   { name: 'PageProps', kind: 'type', signature: "PageProps<'home'>", text: 'What a page file\'s default export receives: { page, data }.' },
-  { name: 'LayoutProps', kind: 'type', signature: 'LayoutProps', text: "What src/layout.tsx's default export receives: { children, variant }. variant is default on the storefront pages and minimal on the platform's guarded pages, such as checkout and sign-in." },
+  { name: 'LayoutProps', kind: 'type', signature: 'LayoutProps', text: "What src/layout.tsx's default export receives: { children, variant }. variant is default on the storefront pages and minimal on your checkout pages." },
   { name: 'Contract', kind: 'type', signature: 'Contract.Plan, Contract.Group, …', text: 'Every type of contract 2026-11, as a namespace.' },
   { name: 'Env', kind: 'type', signature: 'Env', text: 'What useEnv() returns.' },
   { name: 'StandardSettingValues', kind: 'type', signature: 'StandardSettingValues', text: 'The value type of each standard setting, by id.' },
@@ -164,12 +163,6 @@ function fixtureNames(contractDir: string): Record<string, string[]> {
   return byPage
 }
 
-const PLATFORM_CHROME_DOCS: Record<PlatformPageChrome, string> = {
-  'minimal-layout': 'your layout, `variant="minimal"`, and your design tokens',
-  tokens: 'your design tokens, no layout',
-  none: 'nothing',
-}
-
 function pagesPage(contractDir: string): string {
   const registry = normaliseRegistry(readRegistry(contractDir))
   const fixtures = fixtureNames(contractDir)
@@ -178,7 +171,7 @@ function pagesPage(contractDir: string): string {
   const out = [
     '# Pages',
     '',
-    'Every page a store\'s domain serves. A template implements the storefront pages, one file each in `src/pages/<page id>.tsx`; a page it leaves out is rendered by the platform\'s default template. It may also implement the checkout pages (below); one it leaves out is the platform\'s own checkout page. ' + platformPagesSentence(code),
+    'Every page a store\'s domain serves. A template implements the storefront pages, one file each in `src/pages/<page id>.tsx`; a page it leaves out is rendered entirely by the platform\'s default template, with its own header and footer. It may also implement the checkout pages (below); one it leaves out is the platform\'s own checkout page. The platform\'s own pages show nothing of your template.',
     '',
     '## Pages a template implements',
     '',
@@ -212,18 +205,11 @@ function pagesPage(contractDir: string): string {
   out.push(
     '## Platform pages',
     '',
-    table(
-      ['page id', 'path', 'who sees it', 'what it shows of your template'],
-      platform.map((p) => [code(p.id), `${code(p.path ?? '')} and below`, p.tier, PLATFORM_CHROME_DOCS[platformPageChrome(p.tier)]]),
-    ),
-    '',
-    '## Slots',
-    '',
-    'A slot is a named place on a page the platform renders where your template may put static content of its own. Put it in `src/slots/<slot id>.tsx`, named after the slot id with its dots. It is rendered on the server only and shown with no script, in a style scope of its own with your stylesheet and design tokens; it can read the store, the navigation and your settings, never the page\'s data, the visitor or the cart. It may render nothing.',
+    'The platform renders these itself, and they show nothing of your template.',
     '',
     table(
-      ['slot id', 'file', 'page', 'where it appears'],
-      registry.slots.map((slot) => [code(slot.id), code(`src/slots/${slot.id}.tsx`), code(slot.page), slot.description]),
+      ['page id', 'path', 'who sees it'],
+      platform.map((p) => [code(p.id), `${code(p.path ?? '')} and below`, p.tier]),
     ),
     '',
     `## Reserved slugs`,
@@ -459,17 +445,16 @@ function sdkPage(): string {
       ['file', 'default export'],
       [
         ['`template.json`', 'id, version (`MAJOR.MINOR.PATCH`, no pre-release), name, `"format": 2`, `"contract": "2026-11"`, `"toolchain": 2`, tokens, settings, and optionally allowedPackages: the packages beyond the SDK and React the source may import'],
-        ['`src/layout.tsx`', 'the layout: `({ children, variant }: LayoutProps)`; renders `children` (or `<Outlet/>`) exactly once'],
+        ['`src/layout.tsx`', 'the layout around every page the template implements: `({ children, variant }: LayoutProps)`; renders `children` (or `<Outlet/>`) exactly once. A template with pages has a layout, and one with a layout has pages'],
         ['`src/pages/<page id>.tsx`', 'a page: `({ page, data }: PageProps<id>)`; may `export const hydrate = "islands"`'],
         ['`src/islands/<name>.tsx`', 'a component hydrated on its own; wrap it with `island()` where a page uses it'],
-        ['`src/slots/<slot id>.tsx`', 'static content for a slot on a platform page (see Pages): rendered on the server only, with no islands, state, effects or event handlers, and no page data'],
         ['`public/`', 'files served as they are; reference them with `asset(path)`'],
       ],
     ),
     '',
     '## In the browser',
     '',
-    'The client entry hydrates the page when it loads. It also exports `mount(part?, options?)`: `part` is `document`, `layout`, `body` or `islands`, and for `body`, `options.root` names the element holding the page and `options.env` the environment it was rendered with. Problems are reported with `console.error`; it never throws.',
+    'The client entry hydrates the page when it loads. It also exports `mount(part?)`: `part` is `document` (the layout and the page) or `islands` (only the islands). Problems are reported with `console.error`; it never throws.',
     '',
     `Format-1 templates keep ${SDK_FORMAT1.map(code).join(', ')}.`,
     '',

@@ -104,7 +104,6 @@ export type {
   Page,
   PageId,
   PageProps,
-  RenderMode,
 } from './v2/types'
 export type { SettingLink, SettingValue } from '../contract/src/settings'
 

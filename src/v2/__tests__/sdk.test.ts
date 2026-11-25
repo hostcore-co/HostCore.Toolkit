@@ -22,10 +22,10 @@ describe('formatters', () => {
 
 describe('asset()', () => {
   it('joins the asset base and the path with one slash', () => {
-    const previous = setCurrentEnv({ build_id: 'x', asset_base: '/_hc/b/x/client/', locale: 'en', currency: 'USD', mode: 'document' })
+    const previous = setCurrentEnv({ build_id: 'x', asset_base: '/_hc/b/x/client/', locale: 'en', currency: 'USD' })
     expect(asset('images/logo.svg')).toBe('/_hc/b/x/client/images/logo.svg')
     expect(asset('/images/logo.svg')).toBe('/_hc/b/x/client/images/logo.svg')
-    setCurrentEnv({ build_id: 'x', asset_base: 'https://cdn.example.com/b', locale: 'en', currency: 'USD', mode: 'document' })
+    setCurrentEnv({ build_id: 'x', asset_base: 'https://cdn.example.com/b', locale: 'en', currency: 'USD' })
     expect(asset('fonts/a.woff2')).toBe('https://cdn.example.com/b/fonts/a.woff2')
     setCurrentEnv(previous)
     expect(asset('images/logo.svg')).toBe('images/logo.svg')

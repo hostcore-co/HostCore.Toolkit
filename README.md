@@ -23,27 +23,26 @@ hct push --listing <id>    # upload it as a new version and get a preview link
 
 - **`hct init [dir]`** writes a template that validates, checks and builds as
   it is. `--minimal` writes only `template.json` with design tokens (and a
-  `package.json`): the platform renders every page and the layout, in your
-  colours, radii and fonts.
+  `package.json`): the platform's default template renders every page, in
+  your colours, radii and fonts.
 - **`hct dev [dir]`** builds the template and serves it at
   `http://127.0.0.1:4173/`. The start page lists every page id with every
   example payload for it (the fixtures in [`contract/fixtures`](contract)).
-  Each preview is rendered by your template's real server entry and
-  hydrated by its real client entry, with a switch between the `default` and
-  `minimal` layout variants. A page you have not written shows where the
-  platform's default page appears; the platform's own pages show where they
-  appear: checkout, sign-in and the other guarded pages inside your
-  layout's `minimal` variant, the account area in your design tokens with
-  no layout. Links
-  in the preview go to the fixture for that page. Save a file and the
+  Each page you have written is rendered by your template's real server
+  entry and hydrated by its real client entry, with a switch between the
+  `default` and `minimal` layout variants. A page you have not written shows
+  that the platform's default template renders all of it, header and footer
+  included, and the platform's own pages (sign-in, the account area and the
+  rest) show that they are the platform's, with nothing of your template.
+  Links in the preview go to the fixture for that page. Save a file and the
   template rebuilds and the browser reloads. `--payload <file>` previews a
   page payload of your own as well: a 2026-11 page envelope in a JSON file
   you write, most easily by copying one of the fixtures and changing it.
   The preview names any field that does not fit the contract.
 - **`hct check [dir]`** builds the template and renders every page it
-  implements against every fixture for that page, as a whole document and
-  as a body, its layout once per variant, and every slot it fills — what the platform does before
-  it accepts a version. It prints a line for each render that fails, with
+  implements against every fixture for that page, as a whole document (your
+  layout, in its `minimal` variant for a checkout page, with the page
+  inside) — what the platform does before it accepts a version. It prints a line for each render that fails, with
   its page, fixture and kind, and the build's sizes against budgets (server
   bundle 1 MB, client JavaScript 250 KB, stylesheet 100 KB; change them with
   `--budget-server`, `--budget-client-js`, `--budget-css`). A budget is
@@ -90,19 +89,18 @@ src/pages/<page-id>.tsx     one file per page: home, catalog.group,
                             catalog.service, domains, not-found, and the
                             checkout pages (see Checkout)
 src/islands/<name>.tsx      components hydrated on their own (see Islands)
-src/slots/<slot-id>.tsx     static content for a place on the platform's
-                            own pages (see Slots)
 public/                     fonts, images and other files, served as they are
 ```
 
-Every file under `src/` is optional. A page you leave out, or the layout,
-is filled in by the platform's built-in default template, so you can start
-with only `template.json` and replace one page at a time. The platform's
-own pages use your template by their tier in the
-[page registry](contract/registry.json): the `guarded` ones (checkout,
-login, signup, forgotpassword, auth, connect, order) are drawn inside your
-layout with `variant="minimal"`; the `private` one, the account area
-(dashboard), takes your design tokens but not your layout.
+Every file under `src/` is optional, but the layout and the pages come
+together: a template with a page has a layout, and one with a layout has a
+page (`hct validate` says so otherwise). A page you leave out is rendered
+entirely by the platform's built-in default template, with its own header
+and footer, so you can start with only `template.json` and replace one page
+at a time. Your layout appears only around the pages you implement. The
+platform's own pages, those that are not the template's in the
+[page registry](contract/registry.json) (sign-in, sign-up, the account area
+and the rest), show nothing of your template.
 
 ```jsonc
 // template.json
@@ -146,8 +144,8 @@ layout with `variant="minimal"`; the `private` one, the account area
 
 [`examples/`](examples) has a template that is only `template.json`
 (`minimal`), one with a layout, every storefront page it customises and
-all four checkout pages, settings, public files, islands and a slot
-(`basic`, which `hct init` copies), and a format-1 one (`legacy`).
+all four checkout pages, settings, public files and islands (`basic`,
+which `hct init` copies), and a format-1 one (`legacy`).
 
 ### Pages and the layout
 
@@ -209,7 +207,7 @@ Everything is imported from `@hostcore/toolkit`:
 | `useAction(name)` | an action the page may use from the browser, or `undefined`: an endpoint to call (`domain_search`) or a page to send a visitor to (`domain_checkout`) |
 | `searchDomains(action, query)` | search for domains: typed results, or a typed failure (below) |
 | `actionHref(action, params)` | the href to an action with query parameters, such as checkout for a searched domain (below) |
-| `useEnv()` | the build id, asset base, locale, currency and render mode |
+| `useEnv()` | the build id, asset base, locale and currency |
 | `<Link href>` | a link; take every `href` from the payload |
 | `<Outlet/>` | where the layout puts the page |
 | `asset(path)` | the URL of a file in `public/` |
@@ -289,8 +287,7 @@ export function PlanList() {
 
 `usePage('catalog.service')` types `data` as that page's data, and checks
 that the page being rendered is `catalog.service` and carries its data. On
-any other page, or in the layout rendered on its own, it throws an error
-naming both pages, so the render fails where the mistake is rather than on
+any other page it throws an error naming both pages, so the render fails where the mistake is rather than on
 a missing field. `usePage<'catalog.service'>()` gives the same type without
 the check, and `usePage()` with no page id types `data` as any page's data.
 
@@ -339,9 +336,9 @@ A template may also render the order flow. The checkout pages are in the
 | `checkout.cancel` | `/checkout/cancel` | where the customer returns after abandoning payment |
 
 Implement any of them as `src/pages/<page id>.tsx`, like any other page;
-each one you leave out stays the platform's own checkout page, drawn inside
-your layout's `minimal` variant. Your checkout pages are drawn inside your
-layout's `minimal` variant too. Sign-in and sign-up always stay the
+each one you leave out stays the platform's own checkout page, which shows
+nothing of your template. Your checkout pages are drawn inside your
+layout's `minimal` variant. Sign-in and sign-up always stay the
 platform's. A store gets your checkout pages once HostCore has reviewed them
 for the version you upload; until then, and whenever a store chooses the
 platform's checkout, its customers see the platform's own pages.
@@ -454,34 +451,6 @@ a placed order ends (a stand-in payment page that returns to the success
 or cancel page, bank transfer details, or paid at once), and see every
 request your pages sent at `/_dev/requests`.
 
-### Slots
-
-The platform's own pages have named places where your template may put
-static content: a slot. They are listed in the
-[page registry](contract/registry.json) (`slots`); today there is one,
-`checkout.summary`, under the order summary on the checkout pages. Fill one
-with `src/slots/<slot id>.tsx`, named after the id with its dots:
-
-```tsx
-// src/slots/checkout.summary.tsx
-import { useStore } from '@hostcore/toolkit'
-
-export default function CheckoutSummary() {
-  const email = useStore().business.billing_email
-  return email ? <p>Questions about this order? Write to <a href={`mailto:${email}`}>{email}</a>.</p> : null
-}
-```
-
-A slot is rendered on the server only and shown with no script, in a style
-scope of its own with your stylesheet and design tokens. It can read the
-store, the navigation and your settings (`useStore()`, `useNav()`,
-`useSetting()`), never the page's data, its actions, the visitor or the
-cart. `hct validate` refuses a slot id the registry does not have, and in a
-slot: islands, state and effects (`useState`, `useEffect`, …), event
-handlers, scripts, `usePage()` and `useAction()`. A slot may render
-nothing. `hct check` renders every slot against every fixture, and `hct
-dev` shows it in place on the checkout preview.
-
 ### Dependencies
 
 ```jsonc
@@ -533,8 +502,8 @@ same id.
 
 ### Stylesheets load only from your store
 
-Your stylesheet is also applied to the platform's own pages, checkout and
-sign-in among them, where nothing may load from another site. So every
+Your stylesheet is also loaded on your checkout pages, where nothing may
+load from another site. So every
 `@import` and every `url()` (and `image-set()`) in it must be one of:
 
 - relative: `url(images/grid.svg)`, `@import "./fonts.css"`;
@@ -561,11 +530,9 @@ field for it: every manifest's stylesheet stays on the store's own site.
 ### In the browser
 
 The client entry hydrates the page when it loads. It also exports
-`mount(part?, options?)` for a page that sets `window.__HC__.defer = true`:
-`part` is `document`, `layout`, `body` or `islands`, and for `body`,
-`options.root` is the element holding the page (it may be inside a shadow
-root) and `options.env` the environment it was rendered with. It reports
-problems with `console.error` and never throws.
+`mount(part?)` for a page that sets `window.__HC__.defer = true`: `part` is
+`document` (the layout and the page) or `islands` (only the islands). It
+reports problems with `console.error` and never throws.
 
 ### Format 1
 

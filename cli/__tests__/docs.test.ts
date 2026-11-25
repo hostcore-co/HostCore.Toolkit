@@ -9,7 +9,6 @@ import * as sdk from '../../src/index'
 import { COMMANDS } from '../commands'
 import { generateDocs, missingDescriptions, SDK, SDK_FORMAT1 } from '../docs'
 import { FIELD_MOVES } from '../legacy-map'
-import { MINIMAL_LAYOUT_PAGE_IDS, platformPagesSentence, TOKENS_ONLY_PAGE_IDS } from '../sources'
 import { hct } from './host'
 
 const REPO = join(import.meta.dir, '..', '..')
@@ -76,14 +75,16 @@ describe('hct docs', () => {
 })
 
 describe('where the layout appears', () => {
-  it('is stated from the registry tiers, and the README names the same pages', async () => {
+  it('is only on the pages a template implements, as the README and the reference say', async () => {
     const readme = (await readFile(join(REPO, 'README.md'), 'utf8')).replace(/\s+/g, ' ')
-    expect(readme).toContain(`the \`guarded\` ones (${MINIMAL_LAYOUT_PAGE_IDS.join(', ')}) are drawn inside your layout`)
-    expect(readme).toContain(`the \`private\` one, the account area (${TOKENS_ONLY_PAGE_IDS.join(', ')}), takes your design tokens but not your layout`)
+    expect(readme).toContain("A page you leave out is rendered entirely by the platform's built-in default template")
+    expect(readme).toContain("The platform's own pages")
+    expect(readme).not.toMatch(/slot/i)
     const pages = generateDocs()['pages.md']!
-    expect(pages).toContain(platformPagesSentence((id) => `\`${id}\``))
-    expect(pages).toContain('| `dashboard` | `/dashboard` and below | private | your design tokens, no layout |')
-    expect(pages).toContain('| `checkout` | `/checkout` and below | guarded | your layout, `variant="minimal"`, and your design tokens |')
+    expect(pages).toContain("a page it leaves out is rendered entirely by the platform's default template, with its own header and footer")
+    expect(pages).toContain('| `dashboard` | `/dashboard` and below | private |')
+    expect(pages).toContain('| `checkout` | `/checkout` and below | guarded |')
+    for (const name of ['pages.md', 'sdk.md', 'index.md']) expect(generateDocs()[name]).not.toMatch(/\bslots?\b|composed/i)
   })
 })
 

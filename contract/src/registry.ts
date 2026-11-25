@@ -8,11 +8,10 @@ import { matchRoute, type PathMatch } from './match'
  */
 
 /**
- * Who may see a page, and so what of a template it shows: `open` pages are
- * the storefront; `checkout` pages are the order flow, which a template may
- * render; `guarded` pages (sign-in, sign-up and the like) are drawn inside the
- * template's minimal layout; `private` pages (the account area) take its
- * design tokens; `staff` pages show nothing of it.
+ * Who may see a page: `open` pages are the storefront; `checkout` pages are
+ * the order flow, which a template may render; `guarded` pages (sign-in,
+ * sign-up and the like), `private` pages (the account area) and `staff`
+ * pages are the platform's own and show nothing of a template.
  */
 export const TIERS = ['open', 'checkout', 'guarded', 'private', 'staff'] as const
 export const UPSTREAMS = ['engine', 'frontend'] as const
@@ -49,23 +48,8 @@ export interface RegistryPage {
   requires?: Requirement
 }
 
-/**
- * A named place on a page the platform renders where a template may put
- * static content of its own: `src/slots/<id>.tsx`, rendered on the server
- * only.
- */
-export interface RegistrySlot {
-  /** Lowercase words joined by dots, the page's id first: `checkout.summary`. */
-  id: string
-  /** The page the slot is on. */
-  page: string
-  /** Where on the page it appears, in one line. */
-  description: string
-}
-
 export interface Registry {
   pages: RegistryPage[]
-  slots?: RegistrySlot[]
   reserved_slugs: string[]
 }
 
@@ -86,7 +70,6 @@ export interface NormalisedPage {
 
 export interface NormalisedRegistry {
   pages: NormalisedPage[]
-  slots: RegistrySlot[]
   reserved_slugs: string[]
 }
 
@@ -119,7 +102,7 @@ export function validateRegistry(raw: unknown): string[] {
   if (!isRecord(raw)) return ['registry must be an object']
   const errors: string[] = []
   for (const key of Object.keys(raw)) {
-    if (key !== 'pages' && key !== 'slots' && key !== 'reserved_slugs') errors.push(`unknown key ${key}`)
+    if (key !== 'pages' && key !== 'reserved_slugs') errors.push(`unknown key ${key}`)
   }
   if (!Array.isArray(raw.pages)) return [...errors, 'pages must be an array']
   if (!Array.isArray(raw.reserved_slugs)) return [...errors, 'reserved_slugs must be an array']
@@ -217,37 +200,6 @@ export function validateRegistry(raw: unknown): string[] {
     }
   })
 
-  errors.push(...slotErrors(raw.slots, raw.pages))
-  return errors
-}
-
-const SLOT_ID = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9_-]*)+$/
-
-function slotErrors(slots: unknown, pages: unknown[]): string[] {
-  if (slots === undefined) return []
-  if (!Array.isArray(slots)) return ['slots must be an array']
-  const errors: string[] = []
-  const ids = new Set<string>()
-  slots.forEach((slot: unknown, i: number) => {
-    if (!isRecord(slot)) {
-      errors.push(`slots[${i}] must be an object`)
-      return
-    }
-    const at = `slot ${typeof slot.id === 'string' ? slot.id : `slots[${i}]`}`
-    for (const key of Object.keys(slot)) if (key !== 'id' && key !== 'page' && key !== 'description') errors.push(`${at}: unknown key ${key}`)
-    if (typeof slot.id !== 'string' || !SLOT_ID.test(slot.id)) errors.push(`${at}: id must match ${SLOT_ID.source}`)
-    else if (ids.has(slot.id)) errors.push(`${at}: id is used twice`)
-    else ids.add(slot.id)
-    const page = pages.find((p) => isRecord(p) && p.id === slot.page)
-    if (!isRecord(page)) errors.push(`${at}: page must be the id of a page in the registry`)
-    else {
-      if (page.upstream !== 'frontend') errors.push(`${at}: a slot is on a page the platform renders itself, not on an engine page`)
-      if (typeof slot.id === 'string' && !slot.id.startsWith(`${slot.page}.`)) errors.push(`${at}: id must start with its page id and a dot`)
-    }
-    if (typeof slot.description !== 'string' || slot.description.trim() === '' || slot.description.includes('\n')) {
-      errors.push(`${at}: description must be one line`)
-    }
-  })
   return errors
 }
 
@@ -264,7 +216,6 @@ export function normaliseRegistry(registry: Registry): NormalisedRegistry {
       cache: p.cache ? { ttl: p.cache.ttl, swr: p.cache.swr } : null,
       requires: p.requires ?? null,
     })),
-    slots: (registry.slots ?? []).map((s) => ({ id: s.id, page: s.page, description: s.description })),
     reserved_slugs: [...registry.reserved_slugs].sort(),
   }
 }

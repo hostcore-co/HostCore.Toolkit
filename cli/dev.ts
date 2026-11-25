@@ -2,7 +2,7 @@ import { watch, type FSWatcher } from 'node:fs'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, normalize, resolve, sep } from 'node:path'
-import { matchPath, PAGES, SLOTS } from '../contract/dist/ts/registry'
+import { matchPath, PAGES } from '../contract/dist/ts/registry'
 import { validate } from '../contract/src/validate'
 import { effectiveTokens, TOKENS } from '../contract/src/tokens'
 import { buildFormat2 } from './build-v2'
@@ -12,20 +12,21 @@ import { CheckoutSimulator } from './dev-checkout'
 import type { ManifestV2 } from './manifest'
 import { RUNTIME_CLIENT_FILES, buildRuntime, writeRuntime } from './runtime'
 import { loadBundle, type LoadedBundle } from './sandbox'
-import { MINIMAL_LAYOUT_PAGE_IDS, platformPageChrome, platformPagesSentence, TEMPLATE_PAGE_IDS } from './sources'
+import { TEMPLATE_PAGE_IDS } from './sources'
 import { isFormat2, loadTemplate } from './template'
 
 /**
  * hct dev — a local preview of a format-2 template.
  *
  * The template is built exactly as `hct build` builds it, its server bundle
- * is loaded in an empty context with the runtime's modules, and each page is
- * served as the platform composes it: the template's layout and page when it
- * has both, its layout around a stand-in for a page it leaves to the
- * platform, its page inside a stand-in layout when it has no layout. The
- * real client entry hydrates it, with React from the runtime through an
- * import map. Page data comes from the contract fixtures, or from a payload
- * file the author supplies.
+ * is loaded in an empty context with the runtime's modules, and each page the
+ * template implements is served as the platform renders it: the template's
+ * layout with the page inside, hydrated by the real client entry, with React
+ * from the runtime through an import map. A page the template does not
+ * implement, and each of the platform's own pages, is a stand-in that says
+ * so: the platform renders all of it, with nothing of the template's code.
+ * Page data comes from the contract fixtures, or from a payload file the
+ * author supplies.
  */
 
 const BUILD_BASE = '/_hc/b/dev/client/'
@@ -222,122 +223,91 @@ export async function startDevServer(root: string, options: DevServerOptions = {
   function indexPage(): string {
     const b = build
     const implemented = new Set(b?.bundle.pages ?? [])
-    const hasLayout = (b?.bundle.layouts.length ?? 0) > 0
     const rows = TEMPLATE_PAGE_IDS.map((id) => {
       const names = fixtures.filter((f) => f.value.page?.id === id).map((f) => f.name)
-      const status = implemented.has(id) ? 'your page' : 'the platform default page'
+      const own = implemented.has(id)
+      const status = own ? 'your page' : PAGES.find((p) => p.id === id)?.tier === 'checkout' ? "the platform's own checkout" : "the platform's default template"
       return `<tr><td><code>${escapeHtml(id)}</code></td><td>${status}</td><td>${names
-        .map((n) => `<a href="/page/${encodeURIComponent(id)}/${encodeURIComponent(n)}">${escapeHtml(n)}</a> <small>(<a href="/page/${encodeURIComponent(id)}/${encodeURIComponent(n)}?variant=minimal">minimal</a>)</small>`)
+        .map((n) => {
+          const href = `/page/${encodeURIComponent(id)}/${encodeURIComponent(n)}`
+          return `<a href="${href}">${escapeHtml(n)}</a>${own ? ` <small>(<a href="${href}?variant=minimal">minimal</a>)</small>` : ''}`
+        })
         .join('<br>')}</td></tr>`
     }).join('')
-    const platformLink = (id: string) =>
-      `<a href="/page/${encodeURIComponent(id)}/home${MINIMAL_LAYOUT_PAGE_IDS.includes(id) ? '?variant=minimal' : ''}"><code>${escapeHtml(id)}</code></a>`
+    const platformLinks = PAGES.filter((p) => !TEMPLATE_PAGE_IDS.includes(p.id))
+      .map((p) => `<a href="/page/${encodeURIComponent(p.id)}/home"><code>${escapeHtml(p.id)}</code></a>`)
+      .join(', ')
     const own = options.payloadFile
       ? `<h2>Your payload</h2><p><a href="/page/_/${PAYLOAD_FIXTURE}">${escapeHtml(options.payloadFile)}</a> (<a href="/page/_/${PAYLOAD_FIXTURE}?variant=minimal">minimal</a>)</p>`
       : ''
     const status = buildError
       ? `<p style="color:#b91c1c"><strong>The last build failed</strong>; pages show its error until a change builds.</p>`
       : b
-        ? `<p>Build <code>${b.manifest.build_id.slice(0, 12)}</code> · layout: ${hasLayout ? 'yours' : 'the platform default'} · islands: ${b.manifest.islands.join(', ') || 'none'} · slots: ${b.manifest.slots.map((id) => `${escapeHtml(id)} (on ${escapeHtml(SLOTS.find((x) => x.id === id)?.page ?? '')})`).join(', ') || 'none'}</p>`
+        ? `<p>Build <code>${b.manifest.build_id.slice(0, 12)}</code> · islands: ${b.manifest.islands.join(', ') || 'none'}</p>`
         : ''
     return page(
       'hct dev',
       '',
-      `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Checkout</h2><p>The checkout pages talk to a stand-in for the platform: switch the customer between signed in (with a sample profile) and signed out, and choose how a placed order ends — on a stand-in payment page that returns to the success or cancel page, with bank transfer details, or paid at once — from the toolbar of a checkout page. Quotes are priced from the fixtures. <a href="/_dev/requests">See what your pages sent</a>.</p><h2>Platform pages</h2><p>${platformPagesSentence(platformLink)}</p></main>`,
+      `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><p>A page your template does not implement is rendered entirely by the platform's default template, with its own header and footer.</p><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Checkout</h2><p>The checkout pages talk to a stand-in for the platform: switch the customer between signed in (with a sample profile) and signed out, and choose how a placed order ends — on a stand-in payment page that returns to the success or cancel page, with bank transfer details, or paid at once — from the toolbar of a checkout page. Quotes are priced from the fixtures. <a href="/_dev/requests">See what your pages sent</a>.</p><h2>Platform pages</h2><p>The platform renders its own pages, and they show nothing of your template: ${platformLinks}.</p></main>`,
     )
   }
 
-  /**
-   * The slots the template fills on a platform page, each as a live store
-   * shows it: rendered on the server, in a shadow root of its own with the
-   * template's stylesheet and design tokens, and no script.
-   */
-  function slotsOn(pageId: string, payload: Record<string, any>, env: Record<string, unknown>): string {
-    const b = build!
-    const css = b.manifest.entry.css ? `<link rel="stylesheet" href="${BUILD_BASE}${b.manifest.entry.css.replace(/^client\//, '')}">` : ''
-    return SLOTS.filter((slot) => slot.page === pageId && b.bundle.slots.includes(slot.id))
-      .map((slot) => {
-        const { html } = JSON.parse(b.bundle.render(JSON.stringify({ kind: 'slot', slot: slot.id, payload, env }))) as { html: string }
-        return `<div data-hc-slot="${escapeHtml(slot.id)}" title="${escapeHtml(`slot ${slot.id}: ${slot.description}`)}"><template shadowrootmode="open"><style>${tokensCss(tokens, payload)}</style>${css}${html}</template></div>`
-      })
-      .join('')
+  /** Where a page the template does not render comes from, in a stand-in. */
+  function notRendered(pageId: string): { title: string; detail: string; shown: string; tokens: boolean } {
+    const tier = PAGES.find((p) => p.id === pageId)?.tier
+    if (!TEMPLATE_PAGE_IDS.includes(pageId)) {
+      return { title: `The platform's ${pageId} page appears here`, detail: "It is the platform's own page and shows nothing of your template.", shown: 'the platform page', tokens: false }
+    }
+    if (tier === 'checkout') {
+      return { title: `The platform's own ${pageId} page appears here`, detail: `This template does not implement ${pageId}, so the platform's own checkout page is shown, with nothing of your template.`, shown: "the platform's checkout page", tokens: false }
+    }
+    return { title: "The platform's default page appears here", detail: `This template does not implement ${pageId}; the platform's default template renders the whole page, with its own header and footer.`, shown: "the platform's default template", tokens: true }
   }
 
   function preview(pageId: string, fixtureName: string, payload: Record<string, any>, variant: 'default' | 'minimal', problems: string[], search = ''): Response {
     const b = build!
     const implemented = b.bundle.pages.includes(pageId)
-    const hasLayout = b.bundle.layouts.length > 0
-    const platformPage = !TEMPLATE_PAGE_IDS.includes(pageId)
-    const chrome = platformPage ? platformPageChrome(PAGES.find((p) => p.id === pageId)!.tier) : null
     const env = {
       build_id: b.manifest.build_id,
       asset_base: BUILD_BASE,
       locale: payload.store?.locale ?? 'en',
       currency: payload.store?.currency ?? 'USD',
-      mode: (implemented && hasLayout ? 'document' : 'composed') as 'document' | 'composed',
     }
-    const render = (kind: 'document' | 'layout' | 'body') =>
-      (JSON.parse(b.bundle.render(JSON.stringify({ kind, page: pageId, variant, payload, env }))) as { html: string }).html
-
-    let missing = platformPage
-      ? standIn(`The platform's ${pageId} page appears here`, 'It is the platform\'s own page, drawn inside your layout\'s minimal variant.')
-      : standIn("The platform's default page appears here", `This template does not implement ${pageId}; the platform's default template renders it.`)
+    const elsewhere = implemented ? null : notRendered(pageId)
     let rootHtml: string
+    let head: string
     let script = ''
-    let mount: string | null = null
-    let shown: string
-    try {
-      if (chrome === 'minimal-layout') missing += slotsOn(pageId, payload, env)
-      if (chrome !== null && chrome !== 'minimal-layout') {
-        rootHtml =
-          chrome === 'tokens'
-            ? standIn(`The platform's ${pageId} page appears here`, 'It is the platform\'s own page, in your design tokens and without your layout.')
-            : standIn(`The platform's ${pageId} page appears here`, 'It is the platform\'s own page and shows nothing of your template.')
-        shown = chrome === 'tokens' ? 'the platform page, your design tokens' : 'the platform page'
-      } else if (implemented && hasLayout) {
-        rootHtml = render('document')
-        shown = 'your layout and page'
-      } else if (hasLayout) {
-        rootHtml = render('layout').replace('<hc-outlet></hc-outlet>', `<hc-outlet>${missing}</hc-outlet>`)
-        shown = 'your layout, the platform page'
-      } else if (implemented) {
-        rootHtml = `${standIn("The platform's default layout appears here", 'This template has no src/layout.tsx.')}<hc-outlet>${render('body')}</hc-outlet>`
-        mount = 'body'
-        shown = 'the platform layout, your page'
-      } else {
-        rootHtml = missing
-        shown = 'the platform renders all of it'
+    if (elsewhere) {
+      rootHtml = standIn(elsewhere.title, elsewhere.detail)
+      head = elsewhere.tokens ? `<style>${tokensCss(tokens, payload)}</style>` : ''
+    } else {
+      try {
+        rootHtml = (JSON.parse(b.bundle.render(JSON.stringify({ kind: 'document', page: pageId, variant, payload, env }))) as { html: string }).html
+      } catch (e) {
+        return new Response(errorPage(`${pageId} / ${fixtureName} did not render`, (e as Error).message), {
+          status: 500,
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+        })
       }
-    } catch (e) {
-      return new Response(errorPage(`${pageId} / ${fixtureName} did not render`, (e as Error).message), {
-        status: 500,
-        headers: { 'content-type': 'text/html; charset=utf-8' },
-      })
-    }
-    const hydrates = (implemented || hasLayout) && (chrome === null || chrome === 'minimal-layout')
-    if (hydrates) {
-      const g = { v: 2, payload, env, mode: env.mode, page: pageId, variant, ...(mount ? { defer: true } : {}) }
+      const g = { v: 2, payload, env, page: pageId, variant }
       const entry = `${BUILD_BASE}${b.manifest.entry.client_js.replace(/^client\//, '')}`
-      script = `<script>window.__HC__ = ${scriptJson(g)}</script>${
-        mount ? `<script type="module">import { mount } from ${scriptJson(entry)}; mount(${scriptJson(mount)})</script>` : `<script type="module" src="${entry}"></script>`
-      }`
+      script = `<script>window.__HC__ = ${scriptJson(g)}</script><script type="module" src="${entry}"></script>`
+      const importMap = {
+        imports: Object.fromEntries(Object.entries(RUNTIME_CLIENT_FILES).map(([spec, file]) => [spec, `${RUNTIME_BASE}${file}`])),
+      }
+      const css = b.manifest.entry.css ? `<link rel="stylesheet" href="${BUILD_BASE}${b.manifest.entry.css.replace(/^client\//, '')}">` : ''
+      head = `<style>${tokensCss(tokens, payload)} hc-outlet,hc-island{display:contents}</style>${css}<script type="importmap">${scriptJson(importMap)}</script>`
     }
-    const importMap = {
-      imports: Object.fromEntries(Object.entries(RUNTIME_CLIENT_FILES).map(([spec, file]) => [spec, `${RUNTIME_BASE}${file}`])),
-    }
-    const usesLayout = chrome === null || chrome === 'minimal-layout'
-    const css = usesLayout && b.manifest.entry.css ? `<link rel="stylesheet" href="${BUILD_BASE}${b.manifest.entry.css.replace(/^client\//, '')}">` : ''
-    const head = `<style>${chrome === 'none' ? '' : tokensCss(tokens, payload)} hc-outlet,hc-island{display:contents}</style>${css}<script type="importmap">${scriptJson(importMap)}</script>`
     const here = fixtureName === PAYLOAD_FIXTURE ? `/page/_/${PAYLOAD_FIXTURE}` : `/page/${encodeURIComponent(pageId)}/${encodeURIComponent(fixtureName)}`
     const variants = (['default', 'minimal'] as const).map((v) => link(v === 'minimal' ? `${here}?variant=minimal` : here, v, v === variant))
     const bar = toolbar([
       link('/', '← all pages'),
-      `<span><code>${escapeHtml(pageId)}</code> · ${escapeHtml(fixtureName)} · ${escapeHtml(shown)}</span>`,
-      ...(usesLayout ? [`<span>layout: ${variants.join(' ')}</span>`] : []),
+      `<span><code>${escapeHtml(pageId)}</code> · ${escapeHtml(fixtureName)} · ${escapeHtml(elsewhere ? elsewhere.shown : 'your layout and page')}</span>`,
+      ...(elsewhere ? [] : [`<span>layout: ${variants.join(' ')}</span>`]),
       ...(problems.length > 0 ? [`<span title="${escapeHtml(problems.join('\n'))}" style="color:#fca5a5">${problems.length} contract problem(s) in the payload</span>`] : []),
-      ...(PAGES.find((p) => p.id === pageId)?.tier === 'checkout' ? checkout.toolbar(`${here}${search}`, link) : []),
+      ...(implemented && PAGES.find((p) => p.id === pageId)?.tier === 'checkout' ? checkout.toolbar(`${here}${search}`, link) : []),
     ])
-    const title = typeof payload.meta?.title === 'string' && payload.meta.title !== '' ? payload.meta.title : pageId
+    const title = TEMPLATE_PAGE_IDS.includes(pageId) && typeof payload.meta?.title === 'string' && payload.meta.title !== '' ? payload.meta.title : pageId
     return new Response(page(title, head, `<div id="hc-root">${rootHtml}</div>${bar}${script}`), {
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
     })
@@ -401,11 +371,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
         const known = PAGES.some((p) => p.id === pageId)
         if (!fixture || !known) return html(errorPage('No such page', `${pageId} / ${fixtureName}`), 404)
         const payload = JSON.parse(fixture.json) as Record<string, any>
-        if (!TEMPLATE_PAGE_IDS.includes(pageId)) {
-          // A platform page: the layout gets the store, nav and settings, and no page data.
-          payload.page = { id: pageId, params: {} }
-          delete payload.data
-        } else if (payload.page.id !== pageId) {
+        if (TEMPLATE_PAGE_IDS.includes(pageId) && payload.page.id !== pageId) {
           return html(errorPage('No such page', `fixture ${fixtureName} is for ${payload.page.id}, not ${pageId}`), 404)
         }
         return preview(pageId, fixtureName, payload, variant, [], url.search)
@@ -423,7 +389,6 @@ export async function startDevServer(root: string, options: DevServerOptions = {
         if (fixture) {
           // The query travels with the page: a checkout page reads its order reference or domain from it.
           const query = new URLSearchParams(url.search)
-          if (MINIMAL_LAYOUT_PAGE_IDS.includes(routed.id)) query.set('variant', 'minimal')
           const target = `/page/${encodeURIComponent(routed.id)}/${encodeURIComponent(fixture.name)}${query.size > 0 ? `?${query}` : ''}`
           return new Response(null, { status: 302, headers: { location: target } })
         }

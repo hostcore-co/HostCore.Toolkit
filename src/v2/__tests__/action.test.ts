@@ -54,7 +54,7 @@ describe("useAction('domain_checkout')", () => {
       href = action ? actionHref(action, { domain: 'acme.example', action: 'transfer', years: 1 }) : ''
       return null
     }
-    const env = { build_id: '', asset_base: '', locale: 'en', currency: 'USD', mode: 'document' as const }
+    const env = { build_id: '', asset_base: '', locale: 'en', currency: 'USD' }
     renderToString(createElement(PageContext.Provider, { value: { payload, env, defaults: {} } as never }, createElement(Probe)))
     expect(href).toBe('/checkout/domains?domain=acme.example&action=transfer&years=1')
   })

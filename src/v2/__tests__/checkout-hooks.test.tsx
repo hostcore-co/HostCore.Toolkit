@@ -9,7 +9,7 @@ import { PageContext } from '../context'
 
 const FIXTURES = join(import.meta.dir, '..', '..', '..', 'contract', 'fixtures', '2026-11')
 const load = (name: string) => JSON.parse(readFileSync(join(FIXTURES, `${name}.json`), 'utf8')) as Record<string, any>
-const ENV = { build_id: '', asset_base: '', locale: 'en', currency: 'USD', mode: 'document' as const }
+const ENV = { build_id: '', asset_base: '', locale: 'en', currency: 'USD' }
 
 const PROFILE = { country: 'gb', state: '', address_line1: '1 Example Street', address_line2: '', city: 'London', postal_code: 'N1 9GU', tax_id: '' }
 const CONTACT = {

@@ -26,11 +26,9 @@ export interface PageProps<P extends PageId = PageId> {
 }
 
 /**
- * Which chrome a layout renders. `default` wraps the storefront's own pages;
- * `minimal` wraps the platform's guarded pages, such as checkout, sign-in and
- * sign-up, where a layout should stay out of the way (no large hero, no
- * marketing). The account area is never drawn inside a layout: it takes the
- * template's design tokens only.
+ * Which chrome a layout renders. `default` wraps the storefront pages;
+ * `minimal` wraps the template's checkout pages, where a layout should stay
+ * out of the way (no large hero, no marketing).
  */
 export type LayoutVariant = 'default' | 'minimal'
 
@@ -40,13 +38,6 @@ export interface LayoutProps {
   children?: ReactNode
   variant: LayoutVariant
 }
-
-/**
- * How a page is put together. `document`: the template renders both the
- * layout and the page. `composed`: the layout and the page come from
- * different templates (one of them the platform default).
- */
-export type RenderMode = 'document' | 'composed'
 
 /** Facts about the render that are not page data. */
 export interface Env {
@@ -58,7 +49,6 @@ export interface Env {
   locale: string
   /** The store's ISO 4217 currency. */
   currency: string
-  mode: RenderMode
 }
 
 /** What the page sets as `window.__HC__` for a format-2 template. */
@@ -66,7 +56,6 @@ export interface HCGlobalV2 {
   v: 2
   payload: AnyPageEnvelope
   env: Env
-  mode: RenderMode
   /** The id of the page being shown. */
   page: string
   /** The layout variant the page was rendered with; `default` when absent. */
