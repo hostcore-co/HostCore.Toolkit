@@ -13,20 +13,7 @@ export const OUTLET_TAG = 'hc-outlet'
  * own elements to be direct children of the surrounding container.
  */
 export function Outlet() {
-  const ctx = useContext(PageContext)
-  const outlet = ctx?.outlet
+  const outlet = useContext(PageContext)?.outlet
   if (!outlet) throw new Error('<Outlet/> can only be rendered by a layout (src/layout.tsx)')
-  switch (outlet.kind) {
-    case 'page':
-      return createElement(OUTLET_TAG, null, outlet.page)
-    case 'marker':
-      return createElement(OUTLET_TAG, null)
-    case 'preserve':
-      // The page inside was rendered and is hydrated by someone else. Handing
-      // React the markup that is already there makes it leave it alone.
-      return createElement(OUTLET_TAG, {
-        dangerouslySetInnerHTML: { __html: outlet.html },
-        suppressHydrationWarning: true,
-      })
-  }
+  return createElement(OUTLET_TAG, null, outlet.page)
 }

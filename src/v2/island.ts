@@ -1,5 +1,4 @@
-import { createElement, useContext, type ComponentType } from 'react'
-import { PageContext } from './context'
+import { createElement, type ComponentType } from 'react'
 
 /** The element an island renders around its component. */
 export const ISLAND_TAG = 'hc-island'
@@ -75,10 +74,6 @@ export function unserialisable(value: unknown, path: string): string | null {
  */
 export function island<P extends object>(Component: ComponentType<P>): ComponentType<P> {
   function Island(props: P) {
-    const slot = useContext(PageContext)?.slot
-    if (slot !== undefined) {
-      throw new Error(`HC_SLOT_SCRIPT: slot "${slot}" renders an island, and a slot is shown with no script`)
-    }
     const name = islandName(Component)
     const label = Component.displayName ?? Component.name ?? 'component'
     if (!name) {

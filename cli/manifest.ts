@@ -121,8 +121,6 @@ export interface ManifestV2 {
   pages: string[]
   layouts: string[]
   islands: string[]
-  /** The slots the build fills, by slot id, in registry order. */
-  slots: string[]
   tokens: Record<string, string>
   settings: unknown[]
   inventory: InventoryEntry[]

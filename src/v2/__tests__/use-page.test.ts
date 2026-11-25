@@ -14,7 +14,7 @@ function fixture(name: string): AnyPageEnvelope {
 }
 
 function render(component: FunctionComponent, payload: AnyPageEnvelope): string {
-  const env = { build_id: '', asset_base: '/', locale: 'en', currency: 'USD', mode: 'document' as const }
+  const env = { build_id: '', asset_base: '/', locale: 'en', currency: 'USD' }
   return renderToString(createElement(PageContext.Provider, { value: { payload, env, defaults: {}, outlet: null } }, createElement(component)))
 }
 

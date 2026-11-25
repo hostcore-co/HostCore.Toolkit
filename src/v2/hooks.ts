@@ -114,7 +114,7 @@ export function useAction<K extends keyof Actions>(name: K): ActionFor<K> {
   return usePageContext('useAction').payload.actions[name] as ActionFor<K>
 }
 
-/** The build id, where its files are served from, the locale, currency and render mode. */
+/** The build id, where its files are served from, the locale and the currency. */
 export function useEnv(): Env {
   return usePageContext('useEnv').env
 }

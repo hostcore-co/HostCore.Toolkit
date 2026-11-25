@@ -1903,9 +1903,6 @@
       "requires": null
     }
   },
-  "slots": {
-    "checkout.summary": "checkout"
-  },
   "tokens": {
     "color.accent": {
       "property": "--hc-accent",

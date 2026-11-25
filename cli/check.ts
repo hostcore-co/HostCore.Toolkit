@@ -9,7 +9,6 @@ import { buildFormat2 } from './build-v2'
 import { digest, type ManifestV2 } from './manifest'
 import { buildRuntime, readRuntime, writeRuntime } from './runtime'
 import { loadBundleSource, loadLegacyBundle, type LoadedBundle } from './sandbox'
-import { LAYOUT_VARIANTS } from '../src/v2/server'
 import { isFormat2, loadTemplate } from './template'
 import { CommandError, quietStdout, stringFlag, type Flags } from './commands'
 import { scanBuiltStylesheets } from './validate'
@@ -19,12 +18,12 @@ import { scanBuiltStylesheets } from './validate'
  * platform does before it accepts a build.
  *
  * A format-2 build renders every page it implements against every fixture
- * for that page, as a whole document (when it has a layout, in its minimal
- * variant for a checkout page) and as a body,
- * and its layout once per variant, and every slot it fills against every
- * fixture. A format-1 build renders every contract
- * "1" fixture. Each render is reported with the sha256 of its HTML, so two
- * builds render the same when their results have the same keys and hashes.
+ * for that page, as a whole document: its layout with the page inside, in
+ * the layout's minimal variant for a checkout page. A page it does not
+ * implement is the platform's default template's, and is not rendered here.
+ * A format-1 build renders every contract "1" fixture. Each render is
+ * reported with the sha256 of its HTML, so two builds render the same when
+ * their results have the same keys and hashes.
  *
  * Before anything is rendered, the build itself is checked: a format-2
  * build must hold exactly the files its manifest lists, each with the
@@ -34,16 +33,13 @@ import { scanBuiltStylesheets } from './validate'
  */
 
 /**
- * `slot` is a slot rendered with a fixture's store and settings: its `page`
- * is the slot id. An empty slot passes.
- *
  * `build` is a problem with the build itself rather than a render: its
  * `page`, `fixture` and `variant` are "", and `error` starts with
  * HC_BUILD_FILES or HC_STYLESHEET_EXTERNAL.
  */
-export type CheckKind = 'document' | 'layout' | 'body' | 'slot' | 'legacy' | 'build'
+export type CheckKind = 'document' | 'legacy' | 'build'
 
-/** One render, or one problem with the build. `variant` is set only for kind "layout". */
+/** One render, or one problem with the build. `variant` is the layout variant of a `document` render. */
 export interface CheckResult {
   page: string
   fixture: string
@@ -93,9 +89,6 @@ export const DEFAULT_BUDGETS: CheckSizes = {
  */
 export const CHECK_ASSET_BASE = '/_hc/check/'
 
-/** The fixture the layout is rendered with: a layout needs no page data. */
-export const LAYOUT_FIXTURE = 'home'
-
 const LEGACY_PAGE_IDS: Record<string, string> = {
   home: 'home',
   group: 'catalog.group',
@@ -143,13 +136,12 @@ function rendered(base: Omit<CheckResult, 'ok' | 'html_sha256' | 'bytes' | 'erro
   }
 }
 
-function envFor(payload: Record<string, any>, kind: CheckKind) {
+function envFor(payload: Record<string, any>) {
   return {
     build_id: '',
     asset_base: CHECK_ASSET_BASE,
     locale: typeof payload.store?.locale === 'string' ? payload.store.locale : 'en',
     currency: typeof payload.store?.currency === 'string' ? payload.store.currency : 'USD',
-    mode: kind === 'document' ? 'document' : 'composed',
   }
 }
 
@@ -159,12 +151,8 @@ function htmlOf(output: string): string {
   return parsed.html
 }
 
-/**
- * The page's own markup in a render: all of a `body` render, and what is
- * inside the outlet of a `document` render.
- */
-function pageMarkup(kind: 'document' | 'body', html: string): string {
-  if (kind === 'body') return html
+/** The page's own markup in a render: what is inside the layout's outlet. */
+function pageMarkup(html: string): string {
   const start = html.indexOf('<hc-outlet>')
   const end = html.lastIndexOf('</hc-outlet>')
   return start === -1 || end < start ? '' : html.slice(start + '<hc-outlet>'.length, end)
@@ -185,10 +173,7 @@ export function emptyRenderError(page: string, fixture: string, variant: string)
   return `HC_EMPTY_RENDER: page "${page}" rendered nothing for fixture "${fixture}" (variant ${variant}): a page must render at least one element or some text`
 }
 
-/**
- * The layout variant a page is drawn in: `minimal` for a checkout page, as
- * the platform's own checkout is, and `default` for the storefront.
- */
+/** The layout variant a page is drawn in: `minimal` for a checkout page, `default` for the storefront. */
 export function layoutVariantFor(page: string): 'default' | 'minimal' {
   return PAGES.find((p) => p.id === page)?.tier === 'checkout' ? 'minimal' : 'default'
 }
@@ -196,47 +181,19 @@ export function layoutVariantFor(page: string): 'default' | 'minimal' {
 /** Renders a loaded format-2 bundle against the fixtures. */
 export function checkBundle(bundle: LoadedBundle, fixtures: Fixture[]): CheckResult[] {
   const results: CheckResult[] = []
-  const render = (kind: 'document' | 'layout' | 'body', page: string, variant: string, payload: Record<string, any>) =>
-    htmlOf(bundle.render(JSON.stringify({ kind, page, variant, payload, env: envFor(payload, kind) })))
-  /** A page render that fails when the page's own markup is empty. */
-  const renderPage = (kind: 'document' | 'body', page: string, fixture: string, payload: Record<string, any>) => {
-    const variant = layoutVariantFor(page)
-    const html = render(kind, page, variant, payload)
-    if (isEmptyMarkup(pageMarkup(kind, html))) throw new Error(emptyRenderError(page, fixture, variant))
+  /** A document render that fails when the page's own markup is empty. */
+  const renderPage = (page: string, fixture: string, variant: string, payload: Record<string, any>) => {
+    const html = htmlOf(bundle.render(JSON.stringify({ kind: 'document', page, variant, payload, env: envFor(payload) })))
+    if (isEmptyMarkup(pageMarkup(html))) throw new Error(emptyRenderError(page, fixture, variant))
     return html
   }
 
-  const layoutFixture = fixtures.find((f) => f.name === LAYOUT_FIXTURE)
-  if (bundle.layouts.length > 0) {
-    if (!layoutFixture) throw new CheckError(`the contract fixtures have no ${LAYOUT_FIXTURE} fixture to render the layout with`)
-    for (const variant of bundle.layouts) {
-      const payload = JSON.parse(layoutFixture.json) as Record<string, any>
-      results.push(
-        rendered({ page: payload.page.id, fixture: layoutFixture.name, kind: 'layout', variant }, () =>
-          render('layout', payload.page.id, variant, payload),
-        ),
-      )
-    }
-  }
-  for (const slot of bundle.slots) {
-    for (const fixture of fixtures) {
-      const payload = JSON.parse(fixture.json) as Record<string, any>
-      results.push(
-        rendered({ page: slot, fixture: fixture.name, kind: 'slot', variant: '' }, () =>
-          htmlOf(bundle.render(JSON.stringify({ kind: 'slot', slot, payload, env: envFor(payload, 'slot') }))),
-        ),
-      )
-    }
-  }
   for (const page of bundle.pages) {
+    const variant = layoutVariantFor(page)
     for (const fixture of fixtures.filter((f) => f.value.page?.id === page)) {
-      if (bundle.layouts.length > 0) {
-        // Each render gets its own copy: a payload is never shared between renders.
-        const payload = JSON.parse(fixture.json) as Record<string, any>
-        results.push(rendered({ page, fixture: fixture.name, kind: 'document', variant: '' }, () => renderPage('document', page, fixture.name, payload)))
-      }
+      // Each render gets its own copy: a payload is never shared between renders.
       const payload = JSON.parse(fixture.json) as Record<string, any>
-      results.push(rendered({ page, fixture: fixture.name, kind: 'body', variant: '' }, () => renderPage('body', page, fixture.name, payload)))
+      results.push(rendered({ page, fixture: fixture.name, kind: 'document', variant }, () => renderPage(page, fixture.name, variant, payload)))
     }
   }
   return results
@@ -495,12 +452,11 @@ export function formatCheck(check: DistCheck, budgets: CheckSizes): string {
     return `${lines.join('\n')}\n`
   }
   for (const r of report.results.filter((r) => !r.ok)) {
-    const kind = r.kind === 'layout' ? `layout (${r.variant})` : r.kind
-    lines.push(`  ✗ ${r.page}  fixture ${r.fixture}  ${kind}: ${r.error}`)
+    lines.push(`  ✗ ${r.page}  fixture ${r.fixture}  ${r.kind}: ${r.error}`)
   }
   const failed = report.results.filter((r) => !r.ok).length
   if (report.results.length === 0) {
-    lines.push('  the template implements no page and no layout: the platform renders every page')
+    lines.push('  the template implements no page: the platform\'s default template renders every page')
   } else {
     lines.push(`  ${report.results.length} renders, ${report.results.length - failed} ok, ${failed} failed`)
   }

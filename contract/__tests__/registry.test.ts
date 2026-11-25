@@ -82,6 +82,7 @@ describe('validateRegistry', () => {
     const errors = validateRegistry({ ...(registry as Registry), reserved_slugs: ['api', 'api'], extra: 1 })
     expect(errors).toContain('reserved slug api is listed twice')
     expect(errors).toContain('unknown key extra')
+    expect(validateRegistry({ ...(registry as Registry), slots: [] })).toEqual(['unknown key slots'])
   })
 })
 

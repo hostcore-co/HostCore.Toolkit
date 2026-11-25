@@ -5,7 +5,7 @@ import type * as TS from 'typescript'
 import { STANDARD_SETTINGS } from '../contract/src/settings'
 import { CommandError, type Flags } from './commands'
 import { platformUrlAdvice, platformUrlsIn } from './policy'
-import { discoverSources, MINIMAL_LAYOUT_PAGE_IDS, SOURCE_EXTENSIONS } from './sources'
+import { discoverSources, SOURCE_EXTENSIONS } from './sources'
 import { isFormat2, loadTemplate } from './template'
 import { FORMAT2_PACKAGE_RANGES, FORMAT2_REQUIRED, TOOLCHAIN } from './toolchain'
 
@@ -19,7 +19,8 @@ import { FORMAT2_PACKAGE_RANGES, FORMAT2_REQUIRED, TOOLCHAIN } from './toolchain
  *   - the page switch (`switch (data.page_type)`) or page map
  *     (`{ home: Home, group: Group }[data.page_type]`) in App becomes one
  *     file per page in src/pages/, and markup App renders around the page
- *     becomes src/layout.tsx with an <Outlet/>;
+ *     becomes src/layout.tsx with an <Outlet/> (a layout that is only the
+ *     <Outlet/> when App renders nothing around the page);
  *   - data read through useHC(), usePageData(), useStore() and
  *     useServiceGroups() is rewritten to usePage(), useStore(), useNav()
  *     and useSetting() wherever the contract-2026-11 field is the same value
@@ -926,20 +927,20 @@ function convertApp(ts: TypeScript, a: FileAnalysis, appFile: string, leftovers:
     }
   }
 
-  const componentFile = (path: string, name: string, pageId: string | null, depth: 0 | 1, kept: string[], bodyLines: string[], extraToolkit: string[], sideEffects: boolean) => {
+  /** Writes a page (pageId) or the layout (pageId null), which takes App's stylesheet imports. */
+  const componentFile = (path: string, name: string, pageId: string | null, depth: 0 | 1, kept: string[], bodyLines: string[], extraToolkit: string[]) => {
     const rawBody = bodyLines.join('\n')
     const others = otherStatements(rawBody, pageId === null)
     const inner = [...others, ...bodyLines].join('\n')
     const names = namesFor(new Set([...a.identifiers].filter((n) => !a.bindings.some((b) => b.name === n))), [...STANDARD_IDS])
     const hoisted = hoists(inner, names, pageId)
     const body = fill([...hoisted, ...kept, ...others, ...bodyLines].join('\n'), names)
-    const head = importLines(body, depth, extraToolkit, sideEffects)
+    const head = importLines(body, depth, extraToolkit, pageId === null)
     const signature = `export default function ${name}()`
     const text = `${head.join('\n')}${head.length ? '\n\n' : ''}${signature} {\n${reindent(body, '  ')}\n}\n`
     files.push({ path, text })
   }
 
-  const hasLayout = shape.layout !== null
   const pageIds = PAGE_ORDER.filter((id) => shape.pages.has(id))
   for (const id of pageIds) {
     const entry = shape.pages.get(id)!
@@ -960,30 +961,29 @@ function convertApp(ts: TypeScript, a: FileAnalysis, appFile: string, leftovers:
       } else {
         throw new UpgradeError(`the page map maps a page to ${entry.name}, which App neither declares nor imports`)
       }
-      if (!hasLayout) {
-        const css = imports.filter((imp) => !imp.importClause).map((imp) => `import '${deeper((imp.moduleSpecifier as TS.StringLiteral).text)}'`)
-        text = `${css.join('\n')}${css.length ? '\n' : ''}${text}`
-      }
       files.push({ path, text })
     } else if (entry.kind === 'expression') {
-      componentFile(path, COMPONENT_NAMES[id]!, id, 1, keptDeclarations([entry.range]), [reindent(`${indentAt(entry.range[0])}return ${a.edits.render(entry.range[0], entry.range[1])}`, '')], [], !hasLayout)
+      componentFile(path, COMPONENT_NAMES[id]!, id, 1, keptDeclarations([entry.range]), [reindent(`${indentAt(entry.range[0])}return ${a.edits.render(entry.range[0], entry.range[1])}`, '')], [])
     } else {
       const lines = entry.ranges.map(([s, e]) => block(s, e))
       if (entry.returns) lines.push(reindent(`${indentAt(entry.returns[0])}return ${a.edits.render(entry.returns[0], entry.returns[1])}`, ''))
       const kept = keptDeclarations(entry.ranges.concat(entry.returns ? [entry.returns] : []))
-      componentFile(path, COMPONENT_NAMES[id]!, id, 1, kept, lines.filter((l) => l.trim() !== ''), [], !hasLayout)
+      componentFile(path, COMPONENT_NAMES[id]!, id, 1, kept, lines.filter((l) => l.trim() !== ''), [])
     }
     done.push(`${path}: the ${id} page from App`)
   }
 
+  const others = shape.others.map((o): [number, number] => [o.getStart(), o.getEnd()])
   if (shape.layout) {
     const [js, je] = shape.layout.jsx
     const [os, oe] = shape.layout.outlet
     const jsx = `${a.edits.render(js, os)}<Outlet />${a.edits.render(oe, je)}`
-    const kept = keptDeclarations([shape.layout.jsx, ...shape.others.map((o): [number, number] => [o.getStart(), o.getEnd()])])
-    componentFile('src/layout.tsx', 'Layout', null, 0, kept, [reindent(`${indentAt(js)}return ${jsx}`, '')], ['Outlet'], true)
+    componentFile('src/layout.tsx', 'Layout', null, 0, keptDeclarations([shape.layout.jsx, ...others]), [reindent(`${indentAt(js)}return ${jsx}`, '')], ['Outlet'])
     done.push('src/layout.tsx: the markup App renders around the page, with <Outlet /> where the page goes')
-    leftovers.push({ kind: 'other', file: 'src/layout.tsx', line: 0, text: `the layout also wraps the platform's guarded pages (${MINIMAL_LAYOUT_PAGE_IDS.join(', ')}); take the variant prop ({ variant }: LayoutProps) and render less for "minimal"` })
+  } else {
+    // App renders nothing around its pages, so neither does the layout.
+    componentFile('src/layout.tsx', 'Layout', null, 0, keptDeclarations(others), ['return <Outlet />'], ['Outlet'])
+    done.push('src/layout.tsx: a layout that renders only the page, as App did')
   }
 
   if (shared.length > 0) {
@@ -1024,11 +1024,6 @@ function convertApp(ts: TypeScript, a: FileAnalysis, appFile: string, leftovers:
   }
   const leftOver = shape.others.filter((s) => declaredNames(ts, s).length > 0 && !files.some((f) => declaredNames(ts, s).some((n) => references(f.text, n))))
   for (const s of leftOver) leftovers.push({ kind: 'other', file: appFile, line: 0, text: `App declared ${declaredNames(ts, s).join(', ')}, which no page or layout uses; it was dropped` })
-  if (!hasLayout) {
-    for (const s of shape.others.filter((x) => declaredNames(ts, x).length === 0)) {
-      leftovers.push({ kind: 'other', file: appFile, line: 0, text: `App ran ${s.getText().split('\n')[0]}…, which has no place without a layout; it was dropped` })
-    }
-  }
   return files
 }
 

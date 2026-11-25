@@ -238,9 +238,19 @@ const FORMAT2 = {
   toolchain: 2,
 }
 
-async function findings2(sources: Record<string, string>, templateJson: Record<string, unknown> = FORMAT2): Promise<Finding[]> {
+const LAYOUT = 'export default function Layout({ children }: any) { return <div>{children}</div> }'
+
+/** Validates format-2 sources as written. */
+async function findingsAsWritten(sources: Record<string, string>, templateJson: Record<string, unknown> = FORMAT2): Promise<Finding[]> {
   const template = await loadTemplate(await fixture({ templateJson, sources }))
   return (await validateTemplate(template)).findings
+}
+
+/** Validates format-2 sources, with the layout a template with pages has when they give none. */
+async function findings2(sources: Record<string, string>, templateJson: Record<string, unknown> = FORMAT2): Promise<Finding[]> {
+  const pages = Object.keys(sources).some((path) => path.startsWith('src/pages/'))
+  const layout = Object.keys(sources).some((path) => /^src\/layout\.\w+$/.test(path))
+  return findingsAsWritten(pages && !layout ? { 'src/layout.tsx': LAYOUT, ...sources } : sources, templateJson)
 }
 
 describe('allowedPackages', () => {
@@ -362,6 +372,23 @@ export default function Home() { const nav = useNav(); return <Link href={nav.li
       ['src/islands/Plan_Picker.tsx', 'invalid-island-name'],
     ])
     expect(found[1]!.message).toContain('home.tsx, domains.tsx, catalog.group.tsx, catalog.service.tsx, not-found.tsx')
+  })
+
+  it('needs a layout with pages, and pages with a layout', async () => {
+    const pageOnly = await findingsAsWritten({ 'src/pages/home.tsx': 'export default function Home() { return <p>home</p> }' })
+    expect(pageOnly.map((f) => [f.file, f.rule])).toEqual([['src/layout.tsx', 'page-needs-layout']])
+    const layoutOnly = await findingsAsWritten({ 'src/layout.jsx': 'export default function Layout({ children }) { return <div>{children}</div> }' })
+    expect(layoutOnly.map((f) => [f.file, f.rule])).toEqual([['src/layout.jsx', 'layout-needs-page']])
+  })
+
+  it('refuses a src/slots/ directory: slots are no longer supported', async () => {
+    const found = await findings2({
+      'src/pages/home.tsx': 'export default function Home() { return <p>home</p> }',
+      'src/slots/checkout.summary.tsx': 'export default function Summary() { return <p>summary</p> }',
+    })
+    expect(found.map((f) => [f.file, f.rule, f.message])).toEqual([
+      ['src/slots/', 'slots-removed', 'slots are no longer supported; remove the src/slots/ directory'],
+    ])
   })
 
   it('requires hydrate to be a literal', async () => {

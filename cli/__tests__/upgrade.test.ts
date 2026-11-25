@@ -54,10 +54,11 @@ describe('hct upgrade on examples/legacy', () => {
     output = result.stdout
   })
 
-  it('writes one page file per page and removes App', async () => {
+  it('writes one page file per page and a layout, and removes App', async () => {
     const files = Object.keys(await tree(dir)).sort()
     expect(files).toEqual([
       'package.json',
+      'src/layout.tsx',
       'src/pages/catalog.group.tsx',
       'src/pages/catalog.service.tsx',
       'src/pages/domains.tsx',
@@ -66,8 +67,15 @@ describe('hct upgrade on examples/legacy', () => {
       'src/styles.css',
       'template.json',
     ])
+    // App renders nothing around its pages, so the layout is only the page, and takes App's stylesheet.
+    expect(await readFile(join(dir, 'src', 'layout.tsx'), 'utf8')).toBe(`import { Outlet } from '@hostcore/toolkit'
+import './styles.css'
+
+export default function Layout() {
+  return <Outlet />
+}
+`)
     expect(await readFile(join(dir, 'src', 'pages', 'home.tsx'), 'utf8')).toBe(`import { useSetting, useStore } from '@hostcore/toolkit'
-import '../styles.css'
 
 export default function Home() {
   const store = useStore()
@@ -189,11 +197,11 @@ describe('hct upgrade on a messier template', () => {
       'src/shared.tsx:18  data: the page data is split up in format 2',
       'src/layout.tsx:18  data.page_type: page ids are named differently in format 2',
       "template.json  faq.items, hero.primary_cta, hero.subtitle, hero.title: declared with the platform's standard label, limits and default",
-      'src/layout.tsx  the layout also wraps the platform\'s guarded pages (checkout, login, signup, forgotpassword, auth, connect, order)',
       'vite.config.ts  format 2 does not use it',
     ]) {
       expect(left).toContain(line)
     }
+    expect(left).not.toContain('guarded')
   })
 })
 

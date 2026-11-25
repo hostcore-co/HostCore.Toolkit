@@ -50,8 +50,6 @@ export interface LoadedBundle {
   protocol: number
   pages: string[]
   layouts: string[]
-  /** The slots the bundle fills; [] for a bundle built before slots existed. */
-  slots: string[]
   /** Calls render(); throws an Error with the bundle's message when it fails. */
   render(input: string): string
 }
@@ -92,7 +90,6 @@ export function loadBundleSource(runtimeSource: string, bundleSource: string, fi
     protocol: copyOut<number>(bundle.protocol ?? null),
     pages: copyOut<string[]>(bundle.pages ?? []),
     layouts: copyOut<string[]>(bundle.layouts ?? []),
-    slots: copyOut<string[]>(bundle.slots ?? []),
     render(input) {
       const result = call(bundle, input)
       if (!result.ok) throw new Error(result.value)

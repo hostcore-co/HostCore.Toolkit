@@ -35,3 +35,30 @@ jobs:
             bun cli/index.ts check "examples/$example"
             bun cli/index.ts build "examples/$example" --local-paths --out "$RUNNER_TEMP/build/$example"
           done
+
+  windows:
+    name: Windows, Bun 1.4.4
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - name: Install
+        run: bun install
+      - name: Typecheck
+        run: bun run check
+      - name: Test
+        run: bun test
+      - name: Contract
+        run: bun cli/index.ts contract check
+      - name: Examples
+        run: |
+          for example in basic minimal legacy; do
+            bun cli/index.ts validate "examples/$example"
+            bun cli/index.ts check "examples/$example"
+            bun cli/index.ts build "examples/$example" --local-paths --out "$RUNNER_TEMP/build/$example"
+          done
