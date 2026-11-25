@@ -54,10 +54,11 @@ describe('hct upgrade on examples/legacy', () => {
     output = result.stdout
   })
 
-  it('writes one page file per page and removes App', async () => {
+  it('writes one page file per page and a layout, and removes App', async () => {
     const files = Object.keys(await tree(dir)).sort()
     expect(files).toEqual([
       'package.json',
+      'src/layout.tsx',
       'src/pages/catalog.group.tsx',
       'src/pages/catalog.service.tsx',
       'src/pages/domains.tsx',
@@ -66,8 +67,15 @@ describe('hct upgrade on examples/legacy', () => {
       'src/styles.css',
       'template.json',
     ])
+    // App renders nothing around its pages, so the layout is only the page, and takes App's stylesheet.
+    expect(await readFile(join(dir, 'src', 'layout.tsx'), 'utf8')).toBe(`import { Outlet } from '@hostcore/toolkit'
+import './styles.css'
+
+export default function Layout() {
+  return <Outlet />
+}
+`)
     expect(await readFile(join(dir, 'src', 'pages', 'home.tsx'), 'utf8')).toBe(`import { useSetting, useStore } from '@hostcore/toolkit'
-import '../styles.css'
 
 export default function Home() {
   const store = useStore()
