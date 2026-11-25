@@ -33,7 +33,8 @@ hct push --listing <id>    # upload it as a new version and get a preview link
   `default` and `minimal` layout variants. A page you have not written shows
   that the platform's default template renders all of it, header and footer
   included, and the platform's own pages (sign-in, the account area and the
-  rest) show that they are the platform's, with nothing of your template.
+  rest) show that they are the platform's, in your colour tokens and with
+  nothing else of your template.
   Links in the preview go to the fixture for that page. Save a file and the
   template rebuilds and the browser reloads. `--payload <file>` previews a
   page payload of your own as well: a 2026-11 page envelope in a JSON file
@@ -100,7 +101,8 @@ and footer, so you can start with only `template.json` and replace one page
 at a time. Your layout appears only around the pages you implement. The
 platform's own pages, those that are not the template's in the
 [page registry](contract/registry.json) (sign-in, sign-up, the account area
-and the rest), show nothing of your template.
+and the rest), take your colour tokens and nothing else of your template:
+not its layout, stylesheet, fonts or script.
 
 ```jsonc
 // template.json
@@ -336,8 +338,8 @@ A template may also render the order flow. The checkout pages are in the
 | `checkout.cancel` | `/checkout/cancel` | where the customer returns after abandoning payment |
 
 Implement any of them as `src/pages/<page id>.tsx`, like any other page;
-each one you leave out stays the platform's own checkout page, which shows
-nothing of your template. Your checkout pages are drawn inside your
+each one you leave out stays the platform's own checkout page, which takes
+your colour tokens and nothing else of your template. Your checkout pages are drawn inside your
 layout's `minimal` variant. Sign-in and sign-up always stay the
 platform's. A store gets your checkout pages once HostCore has reviewed them
 for the version you upload; until then, and whenever a store chooses the

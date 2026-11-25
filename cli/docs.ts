@@ -171,7 +171,7 @@ function pagesPage(contractDir: string): string {
   const out = [
     '# Pages',
     '',
-    'Every page a store\'s domain serves. A template implements the storefront pages, one file each in `src/pages/<page id>.tsx`; a page it leaves out is rendered entirely by the platform\'s default template, with its own header and footer. It may also implement the checkout pages (below); one it leaves out is the platform\'s own checkout page. The platform\'s own pages show nothing of your template.',
+    'Every page a store\'s domain serves. A template implements the storefront pages, one file each in `src/pages/<page id>.tsx`; a page it leaves out is rendered entirely by the platform\'s default template, with its own header and footer. It may also implement the checkout pages (below); one it leaves out is the platform\'s own checkout page. The platform\'s own pages, and a checkout page you leave out, take your colour tokens and nothing else of your template: not its layout, stylesheet, fonts or script.',
     '',
     '## Pages a template implements',
     '',
@@ -205,7 +205,7 @@ function pagesPage(contractDir: string): string {
   out.push(
     '## Platform pages',
     '',
-    'The platform renders these itself, and they show nothing of your template.',
+    'The platform renders these itself. They take your colour tokens and nothing else of your template: not its layout, stylesheet, fonts or script.',
     '',
     table(
       ['page id', 'path', 'who sees it'],

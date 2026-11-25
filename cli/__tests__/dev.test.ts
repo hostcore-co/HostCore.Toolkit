@@ -104,7 +104,7 @@ describe('hct dev', () => {
     for (const id of ['home', 'domains', 'catalog.group', 'catalog.service', 'not-found']) expect(index.text).toContain(`<code>${id}</code>`)
     expect(index.text).toContain('href="/page/checkout/home"')
     expect(index.text).toContain('href="/page/dashboard/home"')
-    expect(index.text).toContain('The platform renders its own pages, and they show nothing of your template')
+    expect(index.text).toContain('The platform renders its own pages. They take your colour tokens and nothing else of your template')
     expect(index.text).not.toMatch(/slot/i)
     expect(index.text).toContain('href="/page/_/payload"')
   })
@@ -203,7 +203,7 @@ describe('hct dev', () => {
     expect(signIn.text).toContain('/_dev/customer?state=signed_in&amp;back=%2Fcheckout%2Frust%2Fstarter')
   })
 
-  it("shows the platform's own pages with nothing of the template", async () => {
+  it("shows the platform's own pages in the template's colour tokens, with nothing else of it", async () => {
     for (const id of ['login', 'checkout', 'dashboard']) {
       const page = await get(`/page/${id}/home`)
       expect(page.status).toBe(200)
@@ -211,7 +211,9 @@ describe('hct dev', () => {
       expect(html).toContain(`The platform's ${id} page appears here`)
       expect(html).not.toContain('<header')
       expect(html).not.toContain('<hc-outlet')
-      expect(page.text).not.toContain('--hc-accent')
+      expect(page.text).toContain('--hc-accent:#5b8cff')
+      expect(page.text).not.toContain('--hc-radius-md')
+      expect(page.text).not.toContain('--hc-font-')
       expect(page.text).not.toContain('rel="stylesheet"')
       expect(page.text).not.toContain('window.__HC__')
     }

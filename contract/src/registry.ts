@@ -11,7 +11,9 @@ import { matchRoute, type PathMatch } from './match'
  * Who may see a page: `open` pages are the storefront; `checkout` pages are
  * the order flow, which a template may render; `guarded` pages (sign-in,
  * sign-up and the like), `private` pages (the account area) and `staff`
- * pages are the platform's own and show nothing of a template.
+ * pages are the platform's own. The platform's own pages, and a checkout
+ * page the template does not render, take the template's colour tokens and
+ * nothing else of it: not its layout, stylesheet, fonts or script.
  */
 export const TIERS = ['open', 'checkout', 'guarded', 'private', 'staff'] as const
 export const UPSTREAMS = ['engine', 'frontend'] as const

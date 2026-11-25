@@ -24,7 +24,8 @@ import { isFormat2, loadTemplate } from './template'
  * layout with the page inside, hydrated by the real client entry, with React
  * from the runtime through an import map. A page the template does not
  * implement, and each of the platform's own pages, is a stand-in that says
- * so: the platform renders all of it, with nothing of the template's code.
+ * so: the platform renders all of it, with nothing of the template's code;
+ * the platform's own pages take only its colour tokens.
  * Page data comes from the contract fixtures, or from a payload file the
  * author supplies.
  */
@@ -69,10 +70,13 @@ function standIn(title: string, detail: string): string {
   return `<div data-hc-dev-standin style="${STANDIN_STYLE}"><strong>${escapeHtml(title)}</strong><br><span>${escapeHtml(detail)}</span></div>`
 }
 
-/** The design tokens as the rendering engine writes them, from the template's tokens and the payload's store theme. */
-function tokensCss(templateTokens: Record<string, string>, payload: Record<string, any>): string {
+/**
+ * The design tokens as the rendering engine writes them, from the template's tokens and the payload's store theme:
+ * all of them, or only the colours, as on the platform's own pages.
+ */
+function tokensCss(templateTokens: Record<string, string>, payload: Record<string, any>, which: 'all' | 'colours' = 'all'): string {
   const values = effectiveTokens(templateTokens, payload.store?.theme)
-  const declarations = TOKENS.filter((t) => t.name in values).map((t) => `${t.property}:${values[t.name]}`)
+  const declarations = TOKENS.filter((t) => t.name in values && (which === 'all' || t.kind === 'color')).map((t) => `${t.property}:${values[t.name]}`)
   return `:root,:host{${declarations.join(';')}}`
 }
 
@@ -226,7 +230,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     const rows = TEMPLATE_PAGE_IDS.map((id) => {
       const names = fixtures.filter((f) => f.value.page?.id === id).map((f) => f.name)
       const own = implemented.has(id)
-      const status = own ? 'your page' : PAGES.find((p) => p.id === id)?.tier === 'checkout' ? "the platform's own checkout" : "the platform's default template"
+      const status = own ? 'your page' : PAGES.find((p) => p.id === id)?.tier === 'checkout' ? "the platform's own checkout, in your colours" : "the platform's default template"
       return `<tr><td><code>${escapeHtml(id)}</code></td><td>${status}</td><td>${names
         .map((n) => {
           const href = `/page/${encodeURIComponent(id)}/${encodeURIComponent(n)}`
@@ -248,20 +252,20 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     return page(
       'hct dev',
       '',
-      `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><p>A page your template does not implement is rendered entirely by the platform's default template, with its own header and footer.</p><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Checkout</h2><p>The checkout pages talk to a stand-in for the platform: switch the customer between signed in (with a sample profile) and signed out, and choose how a placed order ends — on a stand-in payment page that returns to the success or cancel page, with bank transfer details, or paid at once — from the toolbar of a checkout page. Quotes are priced from the fixtures. <a href="/_dev/requests">See what your pages sent</a>.</p><h2>Platform pages</h2><p>The platform renders its own pages, and they show nothing of your template: ${platformLinks}.</p></main>`,
+      `<main style="font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 16px"><h1>${escapeHtml(b?.manifest.template_id ?? 'template')} — every page</h1>${status}${own}<h2>Storefront pages</h2><p>A page your template does not implement is rendered entirely by the platform's default template, with its own header and footer.</p><table cellpadding="6" style="border-collapse:collapse"><thead><tr><th align="left">page</th><th align="left">rendered by</th><th align="left">fixtures</th></tr></thead><tbody>${rows}</tbody></table><h2>Checkout</h2><p>The checkout pages talk to a stand-in for the platform: switch the customer between signed in (with a sample profile) and signed out, and choose how a placed order ends — on a stand-in payment page that returns to the success or cancel page, with bank transfer details, or paid at once — from the toolbar of a checkout page. Quotes are priced from the fixtures. <a href="/_dev/requests">See what your pages sent</a>.</p><h2>Platform pages</h2><p>The platform renders its own pages. They take your colour tokens and nothing else of your template (not its layout, stylesheet, fonts or script): ${platformLinks}.</p></main>`,
     )
   }
 
   /** Where a page the template does not render comes from, in a stand-in. */
-  function notRendered(pageId: string): { title: string; detail: string; shown: string; tokens: boolean } {
+  function notRendered(pageId: string): { title: string; detail: string; shown: string; tokens: 'all' | 'colours' } {
     const tier = PAGES.find((p) => p.id === pageId)?.tier
     if (!TEMPLATE_PAGE_IDS.includes(pageId)) {
-      return { title: `The platform's ${pageId} page appears here`, detail: "It is the platform's own page and shows nothing of your template.", shown: 'the platform page', tokens: false }
+      return { title: `The platform's ${pageId} page appears here`, detail: "It is the platform's own page: it takes your colour tokens and nothing else of your template.", shown: 'the platform page, your colours', tokens: 'colours' }
     }
     if (tier === 'checkout') {
-      return { title: `The platform's own ${pageId} page appears here`, detail: `This template does not implement ${pageId}, so the platform's own checkout page is shown, with nothing of your template.`, shown: "the platform's checkout page", tokens: false }
+      return { title: `The platform's own ${pageId} page appears here`, detail: `This template does not implement ${pageId}, so the platform's own checkout page is shown: it takes your colour tokens and nothing else of your template.`, shown: "the platform's checkout page, your colours", tokens: 'colours' }
     }
-    return { title: "The platform's default page appears here", detail: `This template does not implement ${pageId}; the platform's default template renders the whole page, with its own header and footer.`, shown: "the platform's default template", tokens: true }
+    return { title: "The platform's default page appears here", detail: `This template does not implement ${pageId}; the platform's default template renders the whole page, with its own header and footer.`, shown: "the platform's default template", tokens: 'all' }
   }
 
   function preview(pageId: string, fixtureName: string, payload: Record<string, any>, variant: 'default' | 'minimal', problems: string[], search = ''): Response {
@@ -279,7 +283,7 @@ export async function startDevServer(root: string, options: DevServerOptions = {
     let script = ''
     if (elsewhere) {
       rootHtml = standIn(elsewhere.title, elsewhere.detail)
-      head = elsewhere.tokens ? `<style>${tokensCss(tokens, payload)}</style>` : ''
+      head = `<style>${tokensCss(tokens, payload, elsewhere.tokens)}</style>`
     } else {
       try {
         rootHtml = (JSON.parse(b.bundle.render(JSON.stringify({ kind: 'document', page: pageId, variant, payload, env }))) as { html: string }).html
